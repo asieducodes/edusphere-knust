@@ -16,29 +16,29 @@
 
 **EduSphere** is a domain-restricted, mobile-native application built exclusively for KNUST students to discover and join course-specific study groups, share academic resources (past questions, notes, textbooks), and locate on-campus study spots in real time.
 
-[Features](#-features) · [Tech Stack](#-tech-stack) · [Getting Started](#-getting-started) · [Project Structure](#-project-structure) · [API Documentation](#-api-documentation) · [Team](#-team)
+[Features](#features) · [Tech Stack](#tech-stack) · [Getting Started](#getting-started) · [Project Structure](#project-structure) · [API Documentation](#api-documentation) · [Team](#team--contributors)
 
 </div>
 
 ---
 
-## ✨ Features
+## <img src="https://api.iconify.design/lucide/sparkles.svg?color=%232D3FE0" width="24" valign="middle"/> Features
 
-| Feature | Description |
-|---|---|
-| 🔐 **Domain-Restricted Auth** | Registration and login restricted to `@knust.edu.gh` / `@st.knust.edu.gh` emails only |
-| 👥 **Study Group Engine** | Create, discover, and join course-specific study groups with capacity tracking |
-| 📁 **Resource Repository** | Upload and download past questions, notes, and textbooks |
-| 💬 **Discussion Forums** | Threaded asynchronous discussions inside each group workspace |
-| 🗺️ **Campus Study Map** | Interactive map of KNUST libraries, lecture halls, and study spots |
-| 👤 **Student Profiles** | Programme/department/college/level, upload history, peer tutor ratings |
-| 🔔 **Notification Engine** | In-app alerts for new forum posts, group invites, and rating updates |
-| 📅 **Session Scheduling** | Group hosts can post shared study session events with time and location |
-| ⭐ **Peer Rating System** | Rate tutors and group hosts after a session |
+| | Feature | Description |
+|---|---|---|
+| <img src="https://api.iconify.design/lucide/lock.svg?color=%232D3FE0" width="20"/> | **Domain-Restricted Auth** | Registration and login restricted to `@knust.edu.gh` / `@st.knust.edu.gh` emails only |
+| <img src="https://api.iconify.design/lucide/users.svg?color=%232D3FE0" width="20"/> | **Study Group Engine** | Create, discover, and join course-specific study groups with capacity tracking |
+| <img src="https://api.iconify.design/lucide/folder.svg?color=%232D3FE0" width="20"/> | **Resource Repository** | Upload and download past questions, notes, and textbooks |
+| <img src="https://api.iconify.design/lucide/message-circle.svg?color=%232D3FE0" width="20"/> | **Discussion Forums** | Threaded asynchronous discussions inside each group workspace |
+| <img src="https://api.iconify.design/lucide/map.svg?color=%232D3FE0" width="20"/> | **Campus Study Map** | Interactive map of KNUST libraries, lecture halls, and study spots |
+| <img src="https://api.iconify.design/lucide/user-circle.svg?color=%232D3FE0" width="20"/> | **Student Profiles** | Programme/department/college/level, upload history, peer tutor ratings |
+| <img src="https://api.iconify.design/lucide/bell.svg?color=%232D3FE0" width="20"/> | **Notification Engine** | In-app alerts for new forum posts, group invites, and rating updates |
+| <img src="https://api.iconify.design/lucide/calendar.svg?color=%232D3FE0" width="20"/> | **Session Scheduling** | Group hosts can post shared study session events with time and location |
+| <img src="https://api.iconify.design/lucide/star.svg?color=%23F5A623" width="20"/> | **Peer Rating System** | Rate tutors and group hosts after a session |
 
 ---
 
-## 🛠 Tech Stack
+## <img src="https://api.iconify.design/lucide/layers.svg?color=%232D3FE0" width="24" valign="middle"/> Tech Stack
 
 ### Mobile App (Frontend)
 - **React Native** + **TypeScript**, built and run via **Expo Go**
@@ -54,11 +54,12 @@
 - **bcrypt** for password hashing
 - **Cloudinary** for academic file storage (past questions, notes, avatars)
 
-> Note: this project began as a web app concept (UI first designed in Google Stitch) before pivoting to a native mobile build. There is no browser-based frontend — the app runs on iOS/Android via Expo Go, not `localhost:5173` in a browser.
+> [!IMPORTANT]
+> This project began as a web app concept (UI first designed in Google Stitch) before pivoting to a native mobile build. There is no browser-based frontend — the app runs on iOS/Android via Expo Go, not `localhost:5173` in a browser.
 
 ---
 
-## 🚀 Getting Started
+## <img src="https://api.iconify.design/lucide/rocket.svg?color=%232D3FE0" width="24" valign="middle"/> Getting Started
 
 ### Prerequisites
 - Node.js >= 18.x, npm >= 9.x
@@ -127,7 +128,8 @@ npx expo start
 
 Scan the QR code with the **Expo Go** app on your phone, or press `i` / `a` for a simulator.
 
-> **Device networking note:** if you're running the backend on your laptop and testing on a physical phone, `localhost` in `.env` won't reach your laptop from the phone. Use your laptop's LAN IP instead (e.g. `http://192.168.1.42:8000/api`), and make sure both devices are on the same network.
+> [!WARNING]
+> **Device networking:** if you're running the backend on your laptop and testing on a physical phone, `localhost` in `.env` won't reach your laptop from the phone. Use your laptop's LAN IP instead (e.g. `http://192.168.1.42:8000/api`), and make sure both devices are on the same network.
 
 ---
 
@@ -150,7 +152,7 @@ EXPO_PUBLIC_API_BASE_URL=http://localhost:8000/api
 
 ---
 
-## 📁 Project Structure
+## <img src="https://api.iconify.design/lucide/folder-tree.svg?color=%232D3FE0" width="24" valign="middle"/> Project Structure
 
 ```
 edusphere-knust/
@@ -185,7 +187,7 @@ edusphere-knust/
 
 ---
 
-## 📡 API Documentation
+## <img src="https://api.iconify.design/lucide/book-open.svg?color=%232D3FE0" width="24" valign="middle"/> API Documentation
 
 Once the backend is running, full interactive API docs are available at:
 
@@ -212,78 +214,76 @@ Once the backend is running, full interactive API docs are available at:
 
 ---
 
----
-
-## 👨‍💻 Team & Contributors
+## <img src="https://api.iconify.design/lucide/users-round.svg?color=%232D3FE0" width="24" valign="middle"/> Team & Contributors
 
 <table>
   <thead>
-    <tr style="background-color: #2D3FE0; color: #ffffff;">
-      <th style="padding: 12px; text-align: left;">👤 Contributor</th>
-      <th style="padding: 12px; text-align: center;">🛡️ Domain / Sub-Team</th>
-      <th style="padding: 12px; text-align: left;">🚀 Primary Responsibility</th>
-      <th style="padding: 12px; text-align: center;">🌐 Profile</th>
+    <tr>
+      <th align="left">Contributor</th>
+      <th align="center">Domain / Sub-Team</th>
+      <th align="left">Primary Responsibility</th>
+      <th align="center">Profile</th>
     </tr>
   </thead>
   <tbody>
     <tr>
       <td><b>Asiedu Seth Osei</b></td>
-      <td align="center"><code style="color: #2D3FE0; background-color: #eef2ff;">Engineering Lead</code></td>
-      <td>Backend Lead / System & Software Architect</td>
+      <td align="center"><img src="https://img.shields.io/badge/Engineering_Lead-2D3FE0?style=flat-square"/></td>
+      <td>Backend Lead / System &amp; Software Architect</td>
       <td align="center"><a href="https://github.com/asieducodes">@asieducodes</a></td>
     </tr>
-    <tr style="background-color: #f8fafc;">
+    <tr>
       <td><b>Frimpong Solomon Junior</b></td>
-      <td align="center"><code style="color: #4f46e5; background-color: #f5f3ff;">Backend Tier</code></td>
-      <td>Core API Development & Business Logic</td>
+      <td align="center"><img src="https://img.shields.io/badge/Backend_Tier-4F46E5?style=flat-square"/></td>
+      <td>Core API Development &amp; Business Logic</td>
       <td align="center">—</td>
     </tr>
     <tr>
       <td><b>Agyemang Casper Adu-Gyamfi</b></td>
-      <td align="center"><code style="color: #0891b2; background-color: #ecfeff;">Mobile Frontend</code></td>
-      <td>UI Architecture & Mobile Client Implementation</td>
+      <td align="center"><img src="https://img.shields.io/badge/Mobile_Frontend-0891B2?style=flat-square"/></td>
+      <td>UI Architecture &amp; Mobile Client Implementation</td>
       <td align="center">—</td>
     </tr>
-    <tr style="background-color: #f8fafc;">
+    <tr>
       <td><b>Ackom Arnold</b></td>
-      <td align="center"><code style="color: #0891b2; background-color: #ecfeff;">Mobile Frontend</code></td>
-      <td>Client-Side Views & User Flow Engineering</td>
+      <td align="center"><img src="https://img.shields.io/badge/Mobile_Frontend-0891B2?style=flat-square"/></td>
+      <td>Client-Side Views &amp; User Flow Engineering</td>
       <td align="center">—</td>
     </tr>
     <tr>
       <td><b>Jessica Oforiwaa Anim</b></td>
-      <td align="center"><code style="color: #059669; background-color: #ecfdf5;">Data Architecture</code></td>
-      <td>Relational Database Design & Schema Modeling</td>
+      <td align="center"><img src="https://img.shields.io/badge/Data_Architecture-059669?style=flat-square"/></td>
+      <td>Relational Database Design &amp; Schema Modeling</td>
       <td align="center">—</td>
     </tr>
-    <tr style="background-color: #f8fafc;">
+    <tr>
       <td><b>Amuzu Emmanuel</b></td>
-      <td align="center"><code style="color: #059669; background-color: #ecfdf5;">Data Architecture</code></td>
-      <td>Database Query Optimizations & Seed Scripts</td>
+      <td align="center"><img src="https://img.shields.io/badge/Data_Architecture-059669?style=flat-square"/></td>
+      <td>Database Query Optimizations &amp; Seed Scripts</td>
       <td align="center">—</td>
     </tr>
     <tr>
       <td><b>Asante Samuel Osei</b></td>
-      <td align="center"><code style="color: #ea580c; background-color: #fff7ed;">Quality Assurance</code></td>
-      <td>Frontend System Testing & Integration Verification</td>
+      <td align="center"><img src="https://img.shields.io/badge/Quality_Assurance-EA580C?style=flat-square"/></td>
+      <td>Frontend System Testing &amp; Integration Verification</td>
       <td align="center">—</td>
     </tr>
-    <tr style="background-color: #f8fafc;">
+    <tr>
       <td><b>Samuella Andoh Bannerman</b></td>
-      <td align="center"><code style="color: #ea580c; background-color: #fff7ed;">Quality Assurance</code></td>
-      <td>Backend API Testing & Endpoint Validation Suites</td>
+      <td align="center"><img src="https://img.shields.io/badge/Quality_Assurance-EA580C?style=flat-square"/></td>
+      <td>Backend API Testing &amp; Endpoint Validation Suites</td>
       <td align="center">—</td>
     </tr>
     <tr>
       <td><b>Daniel Kuma Gyebi</b></td>
-      <td align="center"><code style="color: #4b5563; background-color: #f3f4f6;">Technical Writing</code></td>
-      <td>System Documentation & Architecture Manuals</td>
+      <td align="center"><img src="https://img.shields.io/badge/Technical_Writing-4B5563?style=flat-square"/></td>
+      <td>System Documentation &amp; Architecture Manuals</td>
       <td align="center">—</td>
     </tr>
-    <tr style="background-color: #f8fafc;">
+    <tr>
       <td><b>Joshua Adu Sarfo</b></td>
-      <td align="center"><code style="color: #4b5563; background-color: #f3f4f6;">Technical Writing</code></td>
-      <td>Technical Specification Documentation & Guides</td>
+      <td align="center"><img src="https://img.shields.io/badge/Technical_Writing-4B5563?style=flat-square"/></td>
+      <td>Technical Specification Documentation &amp; Guides</td>
       <td align="center">—</td>
     </tr>
   </tbody>
@@ -293,8 +293,7 @@ Once the backend is running, full interactive API docs are available at:
 
 ---
 
-
-## 📄 License
+## <img src="https://api.iconify.design/lucide/scale.svg?color=%232D3FE0" width="24" valign="middle"/> License
 
 This project is licensed under the MIT License. See [LICENSE](LICENSE) for details.
 
