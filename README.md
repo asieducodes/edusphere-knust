@@ -212,24 +212,87 @@ Once the backend is running, full interactive API docs are available at:
 
 ---
 
-## 👨‍💻 Team
+---
 
-| Name | Role | GitHub |
-|---|---|---|
-| Asiedu Seth Osei | Backend Lead / Software Architect | [@asieducodes](https://github.com/asieducodes) |
-| Frimpong Solomon Junior | Backend Developer | — |
-| Agyemang Casper Adu-Gyamfi | Frontend Developer | — |
-| Ackom Arnold | Frontend Developer | — |
-| Daniel Kuma Gyebi | Documentation | — |
-| Joshua Adu Sarfo | Documentation | — |
-| Jessica Oforiwaa Anim | Database | — |
-| Amuzu Emmanuel | Database | — |
-| Asante Samuel Osei | Testing | — |
-| Samuella Andoh Bannnerman | Testing | — |
+## 👨‍💻 Team & Contributors
 
-> Built as a group project for **KNUST — Department of Computer Engineering**
+<table>
+  <thead>
+    <tr style="background-color: #2D3FE0; color: #ffffff;">
+      <th style="padding: 12px; text-align: left;">👤 Contributor</th>
+      <th style="padding: 12px; text-align: center;">🛡️ Domain / Sub-Team</th>
+      <th style="padding: 12px; text-align: left;">🚀 Primary Responsibility</th>
+      <th style="padding: 12px; text-align: center;">🌐 Profile</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><b>Asiedu Seth Osei</b></td>
+      <td align="center"><code style="color: #2D3FE0; background-color: #eef2ff;">Engineering Lead</code></td>
+      <td>Backend Lead / System & Software Architect</td>
+      <td align="center"><a href="https://github.com/asieducodes">@asieducodes</a></td>
+    </tr>
+    <tr style="background-color: #f8fafc;">
+      <td><b>Frimpong Solomon Junior</b></td>
+      <td align="center"><code style="color: #4f46e5; background-color: #f5f3ff;">Backend Tier</code></td>
+      <td>Core API Development & Business Logic</td>
+      <td align="center">—</td>
+    </tr>
+    <tr>
+      <td><b>Agyemang Casper Adu-Gyamfi</b></td>
+      <td align="center"><code style="color: #0891b2; background-color: #ecfeff;">Mobile Frontend</code></td>
+      <td>UI Architecture & Mobile Client Implementation</td>
+      <td align="center">—</td>
+    </tr>
+    <tr style="background-color: #f8fafc;">
+      <td><b>Ackom Arnold</b></td>
+      <td align="center"><code style="color: #0891b2; background-color: #ecfeff;">Mobile Frontend</code></td>
+      <td>Client-Side Views & User Flow Engineering</td>
+      <td align="center">—</td>
+    </tr>
+    <tr>
+      <td><b>Jessica Oforiwaa Anim</b></td>
+      <td align="center"><code style="color: #059669; background-color: #ecfdf5;">Data Architecture</code></td>
+      <td>Relational Database Design & Schema Modeling</td>
+      <td align="center">—</td>
+    </tr>
+    <tr style="background-color: #f8fafc;">
+      <td><b>Amuzu Emmanuel</b></td>
+      <td align="center"><code style="color: #059669; background-color: #ecfdf5;">Data Architecture</code></td>
+      <td>Database Query Optimizations & Seed Scripts</td>
+      <td align="center">—</td>
+    </tr>
+    <tr>
+      <td><b>Asante Samuel Osei</b></td>
+      <td align="center"><code style="color: #ea580c; background-color: #fff7ed;">Quality Assurance</code></td>
+      <td>Frontend System Testing & Integration Verification</td>
+      <td align="center">—</td>
+    </tr>
+    <tr style="background-color: #f8fafc;">
+      <td><b>Samuella Andoh Bannerman</b></td>
+      <td align="center"><code style="color: #ea580c; background-color: #fff7ed;">Quality Assurance</code></td>
+      <td>Backend API Testing & Endpoint Validation Suites</td>
+      <td align="center">—</td>
+    </tr>
+    <tr>
+      <td><b>Daniel Kuma Gyebi</b></td>
+      <td align="center"><code style="color: #4b5563; background-color: #f3f4f6;">Technical Writing</code></td>
+      <td>System Documentation & Architecture Manuals</td>
+      <td align="center">—</td>
+    </tr>
+    <tr style="background-color: #f8fafc;">
+      <td><b>Joshua Adu Sarfo</b></td>
+      <td align="center"><code style="color: #4b5563; background-color: #f3f4f6;">Technical Writing</code></td>
+      <td>Technical Specification Documentation & Guides</td>
+      <td align="center">—</td>
+    </tr>
+  </tbody>
+</table>
+
+> Developed as a collaborative group engineering project for **KNUST — Department of Computer Engineering**.
 
 ---
+
 
 ## 📄 License
 
