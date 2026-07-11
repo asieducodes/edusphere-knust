@@ -224,6 +224,8 @@ Once the backend is running, full interactive API docs are available at:
 | Joshua Adu Sarfo | Documentation | — |
 | Jessica Oforiwaa Anim | Database | — |
 | Amuzu Emmanuel | Database | — |
+| Asante Samuel Osei | Testing | — |
+| Samuella Andoh Bannnerman | Testing | — |
 
 > Built as a group project for **KNUST — Department of Computer Engineering**
 
