@@ -1,139 +1,238 @@
 <div align="center">
 
-<img src="https://capsule-render.vercel.app/api?type=waving&color=0:2D3FE0,100:F5A623&height=180&section=header&text=EduSphere&fontSize=60&fontColor=ffffff&animation=fadeIn&fontAlignY=38&desc=Campus%20Study%20Group%20%26%20Resource%20Finder%20—%20KNUST&descAlignY=58&descSize=18" width="100%" alt="EduSphere banner"/>
+<img src="https://capsule-render.vercel.app/api?type=waving&color=0:2D3FE0,100:F5A623&height=200&section=header&text=EduSphere&fontSize=72&fontColor=ffffff&fontAlignY=38&desc=Campus%20Study%20Group%20and%20Resource%20Finder%20%E2%80%94%20KNUST&descAlignY=58&descSize=18&animation=fadeIn" width="100%"/>
+
+[![React Native](https://img.shields.io/badge/React_Native-0.74-61DAFB?style=for-the-badge&logo=react&logoColor=white)](https://reactnative.dev/)
+[![Expo](https://img.shields.io/badge/Expo-SDK_51-000020?style=for-the-badge&logo=expo&logoColor=white)](https://expo.dev/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.111-009688?style=for-the-badge&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-336791?style=for-the-badge&logo=postgresql&logoColor=white)](https://www.postgresql.org/)
+[![Cloudinary](https://img.shields.io/badge/Cloudinary-File_Storage-3448C5?style=for-the-badge&logo=cloudinary&logoColor=white)](https://cloudinary.com/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-F5A623?style=for-the-badge)](LICENSE)
 
 [![CI](https://github.com/asieducodes/edusphere-knust/actions/workflows/ci.yml/badge.svg)](https://github.com/asieducodes/edusphere-knust/actions/workflows/ci.yml)
-[![License: MIT](https://img.shields.io/badge/License-MIT-F5A623?style=for-the-badge)](LICENSE)
-[![React Native](https://img.shields.io/badge/React%20Native-0.74-61DAFB?style=for-the-badge&logo=react&logoColor=white)](https://reactnative.dev)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org)
-[![Expo](https://img.shields.io/badge/Expo-SDK%2051-000020?style=for-the-badge&logo=expo&logoColor=white)](https://expo.dev)
-[![FastAPI](https://img.shields.io/badge/FastAPI-0.111-009688?style=for-the-badge&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
-[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-4169E1?style=for-the-badge&logo=postgresql&logoColor=white)](https://www.postgresql.org)
-[![Cloudinary](https://img.shields.io/badge/Storage-Cloudinary-3448C5?style=for-the-badge&logo=cloudinary&logoColor=white)](https://cloudinary.com)
-
 [![Open Issues](https://img.shields.io/github/issues/asieducodes/edusphere-knust?color=F5A623&style=flat-square)](https://github.com/asieducodes/edusphere-knust/issues)
 [![Last Commit](https://img.shields.io/github/last-commit/asieducodes/edusphere-knust?color=2D3FE0&style=flat-square)](https://github.com/asieducodes/edusphere-knust/commits/main)
-[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-F5A623.svg?style=flat-square)](CONTRIBUTING.md)
+
+**EduSphere** is a domain-restricted, mobile-native application built exclusively for KNUST students to discover and join course-specific study groups, share academic resources (past questions, notes, textbooks), and locate on-campus study spots in real time.
+
+[Features](#-features) · [Tech Stack](#-tech-stack) · [Getting Started](#-getting-started) · [Project Structure](#-project-structure) · [API Documentation](#-api-documentation) · [Team](#-team)
 
 </div>
 
 ---
 
-## What is EduSphere?
-
-EduSphere helps KNUST students find and organize study groups, share past questions and notes, navigate campus, and rate tutors/hosts — all in one verified-student app.
+## ✨ Features
 
 | Feature | Description |
 |---|---|
-| 🔐 University email verification | Restricted to `@knust.edu.gh` / `@st.knust.edu.gh` |
-| 👥 Study groups | Create, join, and manage course-based study groups |
-| 💬 Discussion boards | Per-group discussion threads |
-| 📁 Resource sharing | Upload/download past questions and notes |
-| 🗺️ Campus map | Interactive map with study locations |
-| 🔔 Notifications | In-app alerts for group and resource activity |
-| ⭐ Peer ratings | Rate tutors and group hosts |
+| 🔐 **Domain-Restricted Auth** | Registration and login restricted to `@knust.edu.gh` / `@st.knust.edu.gh` emails only |
+| 👥 **Study Group Engine** | Create, discover, and join course-specific study groups with capacity tracking |
+| 📁 **Resource Repository** | Upload and download past questions, notes, and textbooks |
+| 💬 **Discussion Forums** | Threaded asynchronous discussions inside each group workspace |
+| 🗺️ **Campus Study Map** | Interactive map of KNUST libraries, lecture halls, and study spots |
+| 👤 **Student Profiles** | Programme/department/college/level, upload history, peer tutor ratings |
+| 🔔 **Notification Engine** | In-app alerts for new forum posts, group invites, and rating updates |
+| 📅 **Session Scheduling** | Group hosts can post shared study session events with time and location |
+| ⭐ **Peer Rating System** | Rate tutors and group hosts after a session |
 
-## Tech Stack
+---
 
-- **Frontend:** React Native + TypeScript, Expo Go
-- **Backend:** FastAPI (Python) + PostgreSQL, SQLAlchemy + Alembic migrations
-- **File Storage:** Cloudinary (past questions, notes, avatars)
-- **Testing:** Jest + React Native Testing Library (frontend), Pytest (backend)
-- **CI:** GitHub Actions
+## 🛠 Tech Stack
 
-## Project Structure
+### Mobile App (Frontend)
+- **React Native** + **TypeScript**, built and run via **Expo Go**
+- **React Navigation** (native-stack + bottom-tabs) for auth/main navigation
+- **Axios** for API communication, with automatic JWT refresh
+- **expo-secure-store** for secure token storage
 
-```
-edusphere-knust/
-├── App.tsx
-├── src/                        # React Native frontend
-│   ├── components/       # Shared UI components
-│   ├── context/          # AuthContext, app-wide state
-│   ├── navigation/        # Root, Auth, Main navigators
-│   ├── screens/           # 15 app screens
-│   ├── services/          # API layer (auth, groups, resources, etc.)
-│   ├── theme/              # Colors, typography
-│   ├── types/               # Shared TypeScript types
-│   └── utils/                # Validation helpers
-├── backend/                     # FastAPI backend
-│   ├── app/
-│   │   ├── api/routes/            # auth, users, groups, resources, sessions, ratings, notifications
-│   │   ├── core/                    # config, database session
-│   │   ├── models/                   # SQLAlchemy models
-│   │   ├── schemas/                   # Pydantic request/response schemas
-│   │   ├── services/                   # Cloudinary storage, business logic
-│   │   └── main.py                      # FastAPI app entrypoint
-│   ├── alembic/                    # DB migrations
-│   ├── tests/
-│   ├── requirements.txt
-│   └── Dockerfile
-├── docker-compose.yml            # API + Postgres for local dev
-├── __tests__/
-│   ├── unit/
-│   └── integration/
-├── docs/                     # Architecture & setup guides
-└── .github/workflows/         # CI pipeline
-```
+### Backend
+- **FastAPI** (Python) with Uvicorn ASGI server
+- **SQLAlchemy** ORM with Alembic migrations
+- **PostgreSQL 16** relational database
+- **JWT (python-jose)** for stateless authentication
+- **bcrypt** for password hashing
+- **Cloudinary** for academic file storage (past questions, notes, avatars)
 
-## Getting Started
+> Note: this project began as a web app concept (UI first designed in Google Stitch) before pivoting to a native mobile build. There is no browser-based frontend — the app runs on iOS/Android via Expo Go, not `localhost:5173` in a browser.
+
+---
+
+## 🚀 Getting Started
 
 ### Prerequisites
-- Node.js ≥ 18, npm ≥ 9
-- Python ≥ 3.12
-- Docker (recommended, for local Postgres) or a standalone PostgreSQL 16 instance
+- Node.js >= 18.x, npm >= 9.x
+- Python >= 3.12
+- PostgreSQL >= 16 (or Docker, recommended)
 - Expo Go app (iOS/Android) or a simulator
-- A [Cloudinary](https://cloudinary.com) account (free tier is fine) for file storage
+- Git
 
-### Frontend setup
+---
+
+### 1. Clone the repository
 
 ```bash
 git clone https://github.com/asieducodes/edusphere-knust.git
 cd edusphere-knust
-npm install
-cp .env.example .env   # then fill in your API base URL
-npx expo start
 ```
 
-Scan the QR code with Expo Go, or press `i` / `a` for simulator.
+---
 
-### Backend setup
+### 2. Backend setup
 
 ```bash
 cd backend
-cp .env.example .env   # fill in DATABASE_URL + Cloudinary credentials
-docker compose up -d   # from repo root: starts Postgres + the API together
-# — or, running the API locally without Docker —
-python -m venv .venv && source .venv/bin/activate
+
+# Create and activate virtual environment
+python -m venv venv
+source venv/bin/activate        # Linux/macOS
+venv\Scripts\activate           # Windows
+
+# Install dependencies
 pip install -r requirements.txt
+
+# Copy environment variables
+cp .env.example .env
+# Fill in your values in .env
+
+# Run database migrations
 alembic upgrade head
-uvicorn app.main:app --reload
+
+# Start the development server
+uvicorn app.main:app --reload --port 8000
 ```
 
-API docs (Swagger) are then available at `http://localhost:8000/docs`.
+Backend runs at: `http://localhost:8000`
+API docs available at: `http://localhost:8000/docs`
 
-See [`docs/BACKEND_SETUP.md`](docs/BACKEND_SETUP.md) for schema details and KNUST email domain restriction logic.
+Or, with Docker (starts Postgres + API together), from the repo root:
+```bash
+docker compose up -d
+```
 
-### Running tests
+---
+
+### 3. Mobile app setup
 
 ```bash
-npm test          # run all tests
-npm run test:watch
-npm run test:coverage
+# from repo root
+npm install
+
+# Copy environment variables
+cp .env.example .env
+# Fill in your API base URL (see note below on device networking)
+
+npx expo start
 ```
 
-## Documentation
+Scan the QR code with the **Expo Go** app on your phone, or press `i` / `a` for a simulator.
 
-- [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — app architecture & navigation flow
-- [`docs/BACKEND_SETUP.md`](docs/BACKEND_SETUP.md) — FastAPI/Postgres schema & setup
-- [`docs/CONTRIBUTING.md`](CONTRIBUTING.md) — how to contribute
+> **Device networking note:** if you're running the backend on your laptop and testing on a physical phone, `localhost` in `.env` won't reach your laptop from the phone. Use your laptop's LAN IP instead (e.g. `http://192.168.1.42:8000/api`), and make sure both devices are on the same network.
 
-## Brand
+---
 
-| Color | Hex | Usage |
+### 4. Environment variables
+
+**Backend `backend/.env`**
+```env
+ENV=development
+SECRET_KEY=your-super-secret-jwt-key
+DATABASE_URL=postgresql+asyncpg://user:password@localhost:5432/edusphere
+CLOUDINARY_CLOUD_NAME=your_cloud_name
+CLOUDINARY_API_KEY=your_api_key
+CLOUDINARY_API_SECRET=your_api_secret
+```
+
+**Mobile app `.env`**
+```env
+EXPO_PUBLIC_API_BASE_URL=http://localhost:8000/api
+```
+
+---
+
+## 📁 Project Structure
+
+```
+edusphere-knust/
+├── App.tsx                          # Mobile app entrypoint
+├── src/                             # React Native application
+│   ├── components/                  # Shared UI components
+│   ├── context/                     # AuthContext, app-wide state
+│   ├── navigation/                  # Root, Auth, Main navigators + CustomTabBar
+│   ├── screens/                     # 15 app screens
+│   ├── services/                    # api.js, auth.js, tokenStorage.js, + domain services
+│   ├── theme/                       # Colors, spacing, typography
+│   ├── types/                       # Shared TypeScript types
+│   └── utils/                       # authValidation.ts and other helpers
+│
+├── backend/                         # FastAPI application
+│   ├── app/
+│   │   ├── api/routes/              # auth, users, groups, resources, sessions, ratings, notifications
+│   │   ├── core/                    # config.py, database.py
+│   │   ├── models/                  # SQLAlchemy models
+│   │   ├── schemas/                 # Pydantic request/response schemas
+│   │   └── services/                # storage.py (Cloudinary), business logic
+│   ├── tests/                       # Pytest test suites
+│   ├── alembic/                     # Database migrations
+│   ├── requirements.txt
+│   └── Dockerfile
+│
+├── docs/                            # Architecture & setup guides
+├── __tests__/                       # Jest unit + integration tests
+├── docker-compose.yml               # API + Postgres for local dev
+└── .github/workflows/               # CI pipeline
+```
+
+---
+
+## 📡 API Documentation
+
+Once the backend is running, full interactive API docs are available at:
+
+- **Swagger UI**: `http://localhost:8000/docs`
+- **ReDoc**: `http://localhost:8000/redoc`
+
+### Core Endpoints
+
+| Method | Endpoint | Description |
 |---|---|---|
-| Royal Blue | `#2D3FE0` | Primary |
-| Amber | `#F5A623` | CTAs, active states |
+| `POST` | `/api/auth/signup` | Register with KNUST email |
+| `POST` | `/api/auth/login` | Login and receive JWT |
+| `POST` | `/api/auth/refresh` | Refresh an expired access token |
+| `POST` | `/api/auth/verify-email` | Verify a KNUST student email |
+| `GET` | `/api/users/me` | Get authenticated user profile |
+| `PATCH` | `/api/users/me` | Update authenticated user profile |
+| `GET` | `/api/groups` | List and filter all study groups |
+| `POST` | `/api/groups` | Create a new study group |
+| `GET` | `/api/resources` | List uploaded resources |
+| `POST` | `/api/resources` | Upload a resource (Cloudinary) |
+| `GET` | `/api/sessions` | List scheduled study sessions |
+| `POST` | `/api/ratings` | Submit a peer rating |
+| `GET` | `/api/notifications` | List in-app notifications |
 
-## License
+---
 
-MIT — see [LICENSE](LICENSE).
+## 👨‍💻 Team
+
+| Name | Role | GitHub |
+|---|---|---|
+| Asiedu Seth Osei | Backend Lead / Software Architect | [@asieducodes](https://github.com/asieducodes) |
+| Frimpong Solomon Junior | Backend Developer | — |
+| Agyemang Casper Adu-Gyamfi | Frontend Developer | — |
+| Ackom Arnold | Frontend Developer | — |
+| Daniel Kuma Gyebi | Documentation | — |
+| Joshua Adu Sarfo | Documentation | — |
+| Jessica Oforiwaa Anim | Database | — |
+| Amuzu Emmanuel | Database | — |
+
+> Built as a group project for **KNUST — Department of Computer Engineering**
+
+---
+
+## 📄 License
+
+This project is licensed under the MIT License. See [LICENSE](LICENSE) for details.
+
+<div align="center">
+<img src="https://capsule-render.vercel.app/api?type=waving&color=0:2D3FE0,100:F5A623&height=100&section=footer" width="100%"/>
+</div>
