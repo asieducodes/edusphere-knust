@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException, status
 
 from app.core.config import settings
-from app.schemas.auth import LoginRequest, SignupRequest, TokenResponse, VerifyEmailRequest
+from app.schemas.auth import LoginRequest, RefreshRequest, SignupRequest, TokenResponse, VerifyEmailRequest
 
 router = APIRouter()
 
@@ -34,7 +34,19 @@ async def verify_email(payload: VerifyEmailRequest):
     raise HTTPException(status_code=501, detail="Not implemented yet")
 
 
+@router.post("/verify-email/resend")
+async def resend_verification_email(email: str):
+    # TODO: generate a new verification code and send it
+    raise HTTPException(status_code=501, detail="Not implemented yet")
+
+
 @router.post("/forgot-password")
 async def forgot_password(email: str):
     # TODO: generate reset token, send reset email
+    raise HTTPException(status_code=501, detail="Not implemented yet")
+
+
+@router.post("/refresh", response_model=TokenResponse)
+async def refresh_token(payload: RefreshRequest):
+    # TODO: validate refresh token, issue a new access/refresh token pair
     raise HTTPException(status_code=501, detail="Not implemented yet")
