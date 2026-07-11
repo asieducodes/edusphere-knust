@@ -4,15 +4,15 @@
 
 **Campus study group & resource finder for KNUST students**
 
-[![CI](https://github.com/palatipus/edusphere-knust/actions/workflows/ci.yml/badge.svg)](https://github.com/palatipus/edusphere-knust/actions/workflows/ci.yml)
+[![CI](https://github.com/asieducodes/edusphere-knust/actions/workflows/ci.yml/badge.svg)](https://github.com/asieducodes/edusphere-knust/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-2D3FE0.svg)](LICENSE)
 [![Expo](https://img.shields.io/badge/Expo-SDK%2051-000020?logo=expo&logoColor=white)](https://expo.dev)
 [![React Native](https://img.shields.io/badge/React%20Native-0.74-61DAFB?logo=react&logoColor=white)](https://reactnative.dev)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org)
 [![Supabase](https://img.shields.io/badge/Backend-Supabase-3ECF8E?logo=supabase&logoColor=white)](https://supabase.com)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-F5A623.svg)](CONTRIBUTING.md)
-[![Open Issues](https://img.shields.io/github/issues/palatipus/edusphere-knust?color=F5A623)](https://github.com/palatipus/edusphere-knust/issues)
-[![Last Commit](https://img.shields.io/github/last-commit/palatipus/edusphere-knust?color=2D3FE0)](https://github.com/palatipus/edusphere-knust/commits/main)
+[![Open Issues](https://img.shields.io/github/issues/asieducodes/edusphere-knust?color=F5A623)](https://github.com/asieducodes/edusphere-knust/issues)
+[![Last Commit](https://img.shields.io/github/last-commit/asieducodes/edusphere-knust?color=2D3FE0)](https://github.com/asieducodes/edusphere-knust/commits/main)
 
 </div>
 
@@ -76,7 +76,7 @@ edusphere-knust/
 ### Setup
 
 ```bash
-git clone https://github.com/palatipus/edusphere-knust.git
+git clone https://github.com/asieducodes/edusphere-knust.git
 cd edusphere-knust
 npm install
 cp .env.example .env   # then fill in your Supabase URL + anon key
