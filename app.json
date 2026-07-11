@@ -1,0 +1,33 @@
+{
+  "expo": {
+    "name": "EduSphere",
+    "slug": "edusphere-knust",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "scheme": "edusphere",
+    "primaryColor": "#2D3FE0",
+    "splash": {
+      "backgroundColor": "#2D3FE0"
+    },
+    "assetBundlePatterns": ["**/*"],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "gh.edu.knust.edusphere"
+    },
+    "android": {
+      "package": "gh.edu.knust.edusphere",
+      "adaptiveIcon": {
+        "backgroundColor": "#2D3FE0"
+      }
+    },
+    "web": {
+      "favicon": "./assets/icons/favicon.png"
+    },
+    "extra": {
+      "eas": {
+        "projectId": ""
+      }
+    }
+  }
+}

@@ -1,0 +1,50 @@
+# Expo
+.expo/
+.expo-shared/
+dist/
+web-build/
+
+# Native
+*.orig.*
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+
+# Node
+node_modules/
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+.pnpm-debug.log*
+
+# Env
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# Supabase
+backend/supabase/.branches
+backend/supabase/.temp
+
+# Testing
+coverage/
+
+# macOS
+.DS_Store
+
+# Editors
+.vscode/*
+!.vscode/extensions.json
+.idea/
+
+# TypeScript
+*.tsbuildinfo
+
+# Logs
+*.log
+
+# Metro
+.metro-health-check*
