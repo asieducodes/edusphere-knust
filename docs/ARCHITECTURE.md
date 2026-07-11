@@ -18,23 +18,23 @@ App.tsx
 
 ## State & Auth
 
-`AuthContext` currently exposes `login / completeSignup / logout / verifyEmail` as placeholders. These will be replaced 1:1 with Supabase Auth calls (`supabase.auth.signInWithPassword`, `supabase.auth.signUp`, etc.) — the navigation layer doesn't need to change since it only depends on the `session` shape.
+`AuthContext` currently exposes `login / completeSignup / logout / verifyEmail` as placeholders. These will be replaced 1:1 with calls to the FastAPI `/api/auth/*` endpoints (JWT access + refresh tokens stored via `expo-secure-store`) — the navigation layer doesn't need to change since it only depends on the `session` shape.
 
 ## Services Layer
 
-All network calls go through domain services (`services/auth.ts`, `services/group.ts`, etc.), which call a shared `api.ts` axios instance. This keeps screens free of direct fetch/axios calls and makes swapping REST-style calls for direct Supabase client calls a localized change.
+All network calls go through domain services (`services/auth.ts`, `services/group.ts`, etc.), which call a shared `api.ts` axios instance pointed at `EXPO_PUBLIC_API_BASE_URL`. This keeps screens free of direct fetch/axios calls.
 
 ## Data Flow
 
 ```
-Screen → Service (e.g. groupService.createGroup) → Supabase client → Postgres (RLS-enforced)
+Screen → Service (e.g. groupService.createGroup) → axios (api.ts) → FastAPI route → SQLAlchemy model → Postgres
 ```
 
-Row-Level Security policies (see `backend/supabase/migrations/`) enforce that:
-- Users can only read/write their own profile.
-- Group membership rows are only writable by the member or group host.
-- Resource uploads are scoped to verified KNUST accounts.
+Access control is enforced in FastAPI route handlers/dependencies (JWT-derived user + ownership checks), rather than database-level RLS. For example:
+- Users can only read/write their own profile (enforced via the authenticated user dependency).
+- Group membership endpoints check the requester is the member or group host before allowing writes.
+- Resource uploads require a verified KNUST account (checked in the `resources` router before calling `storage.upload_resource_file`).
 
 ## Validation
 
-`utils/authValidation.ts` centralizes KNUST email domain checks (`@knust.edu.gh`, `@st.knust.edu.gh`) and form validation for Login/Signup/ForgotPassword, so the same rules apply on both the client and can be mirrored in Supabase Auth hooks server-side.
+`utils/authValidation.ts` centralizes KNUST email domain checks (`@knust.edu.gh`, `@st.knust.edu.gh`) and form validation for Login/Signup/ForgotPassword, mirroring the same domain allowlist enforced server-side in `app/api/routes/auth.py` via `settings.ALLOWED_EMAIL_DOMAINS`.

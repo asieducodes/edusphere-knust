@@ -1,18 +1,19 @@
 <div align="center">
 
-# 🎓 EduSphere
-
-**Campus study group & resource finder for KNUST students**
+<img src="https://capsule-render.vercel.app/api?type=waving&color=0:2D3FE0,100:F5A623&height=180&section=header&text=EduSphere&fontSize=60&fontColor=ffffff&animation=fadeIn&fontAlignY=38&desc=Campus%20Study%20Group%20%26%20Resource%20Finder%20—%20KNUST&descAlignY=58&descSize=18" width="100%" alt="EduSphere banner"/>
 
 [![CI](https://github.com/asieducodes/edusphere-knust/actions/workflows/ci.yml/badge.svg)](https://github.com/asieducodes/edusphere-knust/actions/workflows/ci.yml)
-[![License: MIT](https://img.shields.io/badge/License-MIT-2D3FE0.svg)](LICENSE)
-[![Expo](https://img.shields.io/badge/Expo-SDK%2051-000020?logo=expo&logoColor=white)](https://expo.dev)
-[![React Native](https://img.shields.io/badge/React%20Native-0.74-61DAFB?logo=react&logoColor=white)](https://reactnative.dev)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org)
-[![Supabase](https://img.shields.io/badge/Backend-Supabase-3ECF8E?logo=supabase&logoColor=white)](https://supabase.com)
-[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-F5A623.svg)](CONTRIBUTING.md)
-[![Open Issues](https://img.shields.io/github/issues/asieducodes/edusphere-knust?color=F5A623)](https://github.com/asieducodes/edusphere-knust/issues)
-[![Last Commit](https://img.shields.io/github/last-commit/asieducodes/edusphere-knust?color=2D3FE0)](https://github.com/asieducodes/edusphere-knust/commits/main)
+[![License: MIT](https://img.shields.io/badge/License-MIT-F5A623?style=for-the-badge)](LICENSE)
+[![React Native](https://img.shields.io/badge/React%20Native-0.74-61DAFB?style=for-the-badge&logo=react&logoColor=white)](https://reactnative.dev)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org)
+[![Expo](https://img.shields.io/badge/Expo-SDK%2051-000020?style=for-the-badge&logo=expo&logoColor=white)](https://expo.dev)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.111-009688?style=for-the-badge&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-4169E1?style=for-the-badge&logo=postgresql&logoColor=white)](https://www.postgresql.org)
+[![Cloudinary](https://img.shields.io/badge/Storage-Cloudinary-3448C5?style=for-the-badge&logo=cloudinary&logoColor=white)](https://cloudinary.com)
+
+[![Open Issues](https://img.shields.io/github/issues/asieducodes/edusphere-knust?color=F5A623&style=flat-square)](https://github.com/asieducodes/edusphere-knust/issues)
+[![Last Commit](https://img.shields.io/github/last-commit/asieducodes/edusphere-knust?color=2D3FE0&style=flat-square)](https://github.com/asieducodes/edusphere-knust/commits/main)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-F5A623.svg?style=flat-square)](CONTRIBUTING.md)
 
 </div>
 
@@ -35,8 +36,9 @@ EduSphere helps KNUST students find and organize study groups, share past questi
 ## Tech Stack
 
 - **Frontend:** React Native + TypeScript, Expo Go
-- **Backend:** Supabase (Auth, Postgres, Storage, Row-Level Security)
-- **Testing:** Jest + React Native Testing Library
+- **Backend:** FastAPI (Python) + PostgreSQL, SQLAlchemy + Alembic migrations
+- **File Storage:** Cloudinary (past questions, notes, avatars)
+- **Testing:** Jest + React Native Testing Library (frontend), Pytest (backend)
 - **CI:** GitHub Actions
 
 ## Project Structure
@@ -44,7 +46,7 @@ EduSphere helps KNUST students find and organize study groups, share past questi
 ```
 edusphere-knust/
 ├── App.tsx
-├── src/
+├── src/                        # React Native frontend
 │   ├── components/       # Shared UI components
 │   ├── context/          # AuthContext, app-wide state
 │   ├── navigation/        # Root, Auth, Main navigators
@@ -53,11 +55,19 @@ edusphere-knust/
 │   ├── theme/              # Colors, typography
 │   ├── types/               # Shared TypeScript types
 │   └── utils/                # Validation helpers
-├── backend/
-│   └── supabase/
-│       ├── migrations/      # SQL schema + RLS policies
-│       ├── functions/       # Edge functions
-│       └── seed/            # Seed data
+├── backend/                     # FastAPI backend
+│   ├── app/
+│   │   ├── api/routes/            # auth, users, groups, resources, sessions, ratings, notifications
+│   │   ├── core/                    # config, database session
+│   │   ├── models/                   # SQLAlchemy models
+│   │   ├── schemas/                   # Pydantic request/response schemas
+│   │   ├── services/                   # Cloudinary storage, business logic
+│   │   └── main.py                      # FastAPI app entrypoint
+│   ├── alembic/                    # DB migrations
+│   ├── tests/
+│   ├── requirements.txt
+│   └── Dockerfile
+├── docker-compose.yml            # API + Postgres for local dev
 ├── __tests__/
 │   ├── unit/
 │   └── integration/
@@ -68,18 +78,19 @@ edusphere-knust/
 ## Getting Started
 
 ### Prerequisites
-- Node.js ≥ 18
-- npm ≥ 9
+- Node.js ≥ 18, npm ≥ 9
+- Python ≥ 3.12
+- Docker (recommended, for local Postgres) or a standalone PostgreSQL 16 instance
 - Expo Go app (iOS/Android) or a simulator
-- A [Supabase](https://supabase.com) project (free tier is fine)
+- A [Cloudinary](https://cloudinary.com) account (free tier is fine) for file storage
 
-### Setup
+### Frontend setup
 
 ```bash
 git clone https://github.com/asieducodes/edusphere-knust.git
 cd edusphere-knust
 npm install
-cp .env.example .env   # then fill in your Supabase URL + anon key
+cp .env.example .env   # then fill in your API base URL
 npx expo start
 ```
 
@@ -87,7 +98,20 @@ Scan the QR code with Expo Go, or press `i` / `a` for simulator.
 
 ### Backend setup
 
-See [`docs/BACKEND_SETUP.md`](docs/BACKEND_SETUP.md) for applying migrations and configuring Supabase Auth for KNUST email domains.
+```bash
+cd backend
+cp .env.example .env   # fill in DATABASE_URL + Cloudinary credentials
+docker compose up -d   # from repo root: starts Postgres + the API together
+# — or, running the API locally without Docker —
+python -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt
+alembic upgrade head
+uvicorn app.main:app --reload
+```
+
+API docs (Swagger) are then available at `http://localhost:8000/docs`.
+
+See [`docs/BACKEND_SETUP.md`](docs/BACKEND_SETUP.md) for schema details and KNUST email domain restriction logic.
 
 ### Running tests
 
@@ -100,7 +124,7 @@ npm run test:coverage
 ## Documentation
 
 - [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — app architecture & navigation flow
-- [`docs/BACKEND_SETUP.md`](docs/BACKEND_SETUP.md) — Supabase schema & setup
+- [`docs/BACKEND_SETUP.md`](docs/BACKEND_SETUP.md) — FastAPI/Postgres schema & setup
 - [`docs/CONTRIBUTING.md`](CONTRIBUTING.md) — how to contribute
 
 ## Brand

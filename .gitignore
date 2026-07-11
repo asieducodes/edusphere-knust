@@ -25,9 +25,12 @@ yarn-error.*
 .env.*.local
 !.env.example
 
-# Supabase
-backend/supabase/.branches
-backend/supabase/.temp
+# Python / backend
+backend/.venv/
+backend/__pycache__/
+backend/**/__pycache__/
+backend/.pytest_cache/
+*.pyc
 
 # Testing
 coverage/
