@@ -2,6 +2,9 @@ export interface SignupPayload {
   email: string;
   password: string;
   full_name: string;
+  programme?: string;
+  department?: string;
+  level?: string;
 }
 
 export interface LoginPayload {

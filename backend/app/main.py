@@ -1,7 +1,10 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from fastapi.exceptions import RequestValidationError
 
 from app.core.config import settings
+from app.schemas.response import success
 from app.api.routes import auth, users, groups, resources, sessions, ratings, notifications
 
 app = FastAPI(
@@ -18,6 +21,26 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
+@app.exception_handler(HTTPException)
+async def http_exception_handler(request: Request, exc: HTTPException):
+    """Wraps every HTTPException in the standard {success, message, error} envelope,
+    so route handlers can keep raising plain HTTPException and still get a
+    consistent response shape across the whole API."""
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={"success": False, "message": "Request failed", "error": exc.detail},
+    )
+
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    return JSONResponse(
+        status_code=422,
+        content={"success": False, "message": "Validation error", "error": exc.errors()},
+    )
+
+
 app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
 app.include_router(users.router, prefix="/api/users", tags=["users"])
 app.include_router(groups.router, prefix="/api/groups", tags=["groups"])
@@ -29,4 +52,4 @@ app.include_router(notifications.router, prefix="/api/notifications", tags=["not
 
 @app.get("/health", tags=["health"])
 async def health_check():
-    return {"status": "ok"}
+    return success(data={"status": "ok"}, message="Service is healthy")

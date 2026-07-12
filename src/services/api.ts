@@ -28,7 +28,15 @@ let isRefreshing = false;
 let pendingRequests: Array<() => void> = [];
 
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    // Backend wraps every success response as { success, message, data }.
+    // Unwrap here so every service file can just read response.data directly,
+    // instead of response.data.data everywhere.
+    if (response.data && typeof response.data === 'object' && 'data' in response.data) {
+      response.data = response.data.data;
+    }
+    return response;
+  },
   async (error: AxiosError) => {
     const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
 
@@ -53,10 +61,11 @@ api.interceptors.response.use(
     isRefreshing = true;
 
     try {
-      const { data } = await axios.post(`${API_BASE_URL}/auth/refresh`, {
+      const { data: envelope } = await axios.post(`${API_BASE_URL}/auth/refresh`, {
         refresh_token: refreshToken,
       });
-      await tokenStorage.setTokens(data.access_token, data.refresh_token);
+      const tokens = envelope.data ?? envelope; // unwrap envelope here too, this call bypasses the interceptor above
+      await tokenStorage.setTokens(tokens.access_token, tokens.refresh_token);
       pendingRequests.forEach((resolve) => resolve());
       pendingRequests = [];
       return api(originalRequest);

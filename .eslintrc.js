@@ -18,7 +18,6 @@ module.exports = {
     react: { version: 'detect' },
   },
   env: {
-    'react-native/react-native': true,
     node: true,
     jest: true,
   },
