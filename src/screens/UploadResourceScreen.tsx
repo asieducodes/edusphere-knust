@@ -1,0 +1,582 @@
+/**
+ * EduSphere — screens/UploadResourceScreen.tsx
+ * -----------------------------------------------------------------------
+ * Form screen for uploading a new academic resource. Opens on top of the
+ * tabs (see navigation/AppNavigator.tsx). File picking is stubbed with a
+ * placeholder onPress — swap in expo-document-picker when ready:
+ *   npx expo install expo-document-picker
+ * -----------------------------------------------------------------------
+ */
+
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, StatusBar } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { Feather } from '@expo/vector-icons';
+import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { COLORS, SHADOW } from '../theme/colors';
+import { RootStackParamList } from '../navigation/types';
+import { ScreenHeader, AppTextInput, SelectableChip, SectionCard, PrimaryButton } from '../components/common';
+
+type Props = NativeStackScreenProps<RootStackParamList, 'UploadResource'>;
+
+// -----------------------------------------------------------------------
+// STATIC SAMPLE DATA
+// -----------------------------------------------------------------------
+const CATEGORY_OPTIONS = [
+  'Past Questions',
+  'Lecture Notes',
+  'Slides',
+  'Assignment',
+  'Study Guide',
+  'Tutorial Questions',
+  'Summary Notes',
+];
+
+type Visibility = 'Public' | 'Group Only' | 'Private';
+
+const VISIBILITY_OPTIONS: { key: Visibility; subtitle: string; icon: keyof typeof Feather.glyphMap }[] = [
+  { key: 'Public', subtitle: 'Anyone on EduSphere can access it', icon: 'globe' },
+  { key: 'Group Only', subtitle: 'Only members of selected groups can access it', icon: 'users' },
+  { key: 'Private', subtitle: 'Only you can access it', icon: 'lock' },
+];
+
+const RELATED_GROUPS = ['CSM 351 Data Structures', 'MTH 263 Calculus II', 'CSM 357 Database Systems'];
+
+// A stand-in for a real picked file (name/size), since no document-picker
+// package is wired up yet. Swap this out once expo-document-picker is added.
+interface PickedFile {
+  name: string;
+  size: string;
+}
+
+type UploadState = 'idle' | 'uploading' | 'success' | 'error';
+
+const UploadResourceScreen: React.FC<Props> = ({ navigation }) => {
+  const [pickedFile, setPickedFile] = useState<PickedFile | null>(null);
+
+  const [title, setTitle] = useState('');
+  const [courseCode, setCourseCode] = useState('');
+  const [description, setDescription] = useState('');
+  const [category, setCategory] = useState<string | null>(null);
+  const [visibility, setVisibility] = useState<Visibility>('Public');
+  const [relatedGroup, setRelatedGroup] = useState<string | null>(null);
+
+  const [uploadState, setUploadState] = useState<UploadState>('idle');
+  const [progress, setProgress] = useState(0);
+
+  const handleChooseFile = () => {
+    // Placeholder for expo-document-picker. For now, simulate a selection
+    // so the "selected file" UI state is demonstrable.
+    setPickedFile({ name: 'Data Structures Past Questions.pdf', size: '2.4 MB' });
+  };
+
+  const handleRemoveFile = () => setPickedFile(null);
+
+  const isFormValid = pickedFile !== null && title.trim().length > 0 && courseCode.trim().length > 0 && category !== null;
+
+  const handleUpload = () => {
+    if (!isFormValid) {
+      setUploadState('error');
+      return;
+    }
+
+    // Placeholder "upload" simulation — replace with a real upload call
+    // (e.g. multipart POST) and drive `progress` from its actual events.
+    setUploadState('uploading');
+    setProgress(0);
+
+    let current = 0;
+    const interval = setInterval(() => {
+      current += 20;
+      setProgress(current);
+      if (current >= 100) {
+        clearInterval(interval);
+        setUploadState('success');
+      }
+    }, 250);
+  };
+
+  return (
+    <SafeAreaView style={styles.safeArea} edges={['top']}>
+      <StatusBar barStyle="dark-content" backgroundColor={COLORS.background} />
+
+      <ScreenHeader
+        title="Upload Resource"
+        subtitle="Share helpful materials with students"
+        onBack={() => navigation.goBack()}
+      />
+
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+      >
+        {/* ---------------------------------------------------------- */}
+        {/* INTRO CARD                                                  */}
+        {/* ---------------------------------------------------------- */}
+        <View style={styles.introCard}>
+          <View style={styles.introIconWrap}>
+            <Feather name="upload-cloud" size={20} color={COLORS.white} />
+          </View>
+          <Text style={styles.introText}>
+            Upload notes, slides, past questions, or study guides to help your coursemates.
+          </Text>
+        </View>
+
+        {/* ---------------------------------------------------------- */}
+        {/* FILE UPLOAD AREA                                            */}
+        {/* ---------------------------------------------------------- */}
+        {pickedFile ? (
+          <View style={styles.selectedFileCard}>
+            <View style={styles.selectedFileIconWrap}>
+              <Feather name="file-text" size={18} color={COLORS.primary} />
+            </View>
+            <View style={styles.selectedFileInfo}>
+              <Text style={styles.selectedFileName} numberOfLines={1}>
+                {pickedFile.name}
+              </Text>
+              <Text style={styles.selectedFileSize}>{pickedFile.size}</Text>
+            </View>
+            <TouchableOpacity onPress={handleRemoveFile} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+              <Feather name="x-circle" size={20} color={COLORS.danger} />
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <TouchableOpacity style={styles.uploadDropzone} activeOpacity={0.8} onPress={handleChooseFile}>
+            <View style={styles.uploadDropzoneIconWrap}>
+              <Feather name="upload" size={22} color={COLORS.primary} />
+            </View>
+            <Text style={styles.uploadDropzoneTitle}>Tap to choose a file</Text>
+            <Text style={styles.uploadDropzoneSubtitle}>PDF, DOCX, PPTX up to 20MB</Text>
+          </TouchableOpacity>
+        )}
+
+        {/* ---------------------------------------------------------- */}
+        {/* RESOURCE DETAILS FORM                                       */}
+        {/* ---------------------------------------------------------- */}
+        <SectionCard title="Resource Details">
+          <AppTextInput
+            label="Resource Title"
+            placeholder="e.g. Data Structures Past Questions"
+            value={title}
+            onChangeText={setTitle}
+          />
+          <AppTextInput
+            label="Course Code"
+            placeholder="e.g. CSM 357"
+            value={courseCode}
+            onChangeText={setCourseCode}
+            autoCapitalize="characters"
+          />
+          <AppTextInput
+            label="Description"
+            placeholder="Briefly describe this resource..."
+            value={description}
+            onChangeText={setDescription}
+            multiline
+            style={{ marginBottom: 0 }}
+          />
+        </SectionCard>
+
+        {/* ---------------------------------------------------------- */}
+        {/* CATEGORY                                                    */}
+        {/* ---------------------------------------------------------- */}
+        <SectionCard title="Category">
+          <View style={styles.chipsWrap}>
+            {CATEGORY_OPTIONS.map((cat) => (
+              <SelectableChip key={cat} label={cat} selected={category === cat} onPress={() => setCategory(cat)} />
+            ))}
+          </View>
+        </SectionCard>
+
+        {/* ---------------------------------------------------------- */}
+        {/* VISIBILITY                                                  */}
+        {/* ---------------------------------------------------------- */}
+        <SectionCard title="Visibility">
+          {VISIBILITY_OPTIONS.map((option, index) => {
+            const isActive = visibility === option.key;
+            return (
+              <TouchableOpacity
+                key={option.key}
+                style={[
+                  styles.visibilityRow,
+                  index !== VISIBILITY_OPTIONS.length - 1 && styles.visibilityRowSpacing,
+                  isActive && styles.visibilityRowActive,
+                ]}
+                activeOpacity={0.8}
+                onPress={() => setVisibility(option.key)}
+              >
+                <View style={[styles.radioOuter, isActive && styles.radioOuterActive]}>
+                  {isActive && <View style={styles.radioInner} />}
+                </View>
+                <Feather
+                  name={option.icon}
+                  size={16}
+                  color={isActive ? COLORS.primary : COLORS.textSecondary}
+                  style={{ marginHorizontal: 10 }}
+                />
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.visibilityLabel, isActive && styles.visibilityLabelActive]}>
+                    {option.key}
+                  </Text>
+                  <Text style={styles.visibilitySubtitle}>{option.subtitle}</Text>
+                </View>
+              </TouchableOpacity>
+            );
+          })}
+        </SectionCard>
+
+        {/* ---------------------------------------------------------- */}
+        {/* RELATED GROUP (optional)                                    */}
+        {/* ---------------------------------------------------------- */}
+        <SectionCard title="Related Group (optional)">
+          {RELATED_GROUPS.map((group, index) => {
+            const isActive = relatedGroup === group;
+            return (
+              <TouchableOpacity
+                key={group}
+                style={[styles.groupOptionRow, index !== RELATED_GROUPS.length - 1 && styles.infoRowDivider]}
+                activeOpacity={0.7}
+                onPress={() => setRelatedGroup(isActive ? null : group)}
+              >
+                <Text style={styles.groupOptionText}>{group}</Text>
+                {isActive ? (
+                  <Feather name="check-circle" size={18} color={COLORS.primary} />
+                ) : (
+                  <View style={styles.groupOptionCircle} />
+                )}
+              </TouchableOpacity>
+            );
+          })}
+        </SectionCard>
+
+        {/* ---------------------------------------------------------- */}
+        {/* UPLOAD GUIDELINES                                           */}
+        {/* ---------------------------------------------------------- */}
+        <View style={styles.guidelinesCard}>
+          <Feather name="alert-triangle" size={16} color={COLORS.warning} />
+          <Text style={styles.guidelinesText}>
+            Only upload academic materials you have permission to share. Avoid duplicate, misleading, or
+            inappropriate files.
+          </Text>
+        </View>
+
+        {/* ---------------------------------------------------------- */}
+        {/* UPLOAD STATE UI                                             */}
+        {/* ---------------------------------------------------------- */}
+        {uploadState === 'uploading' && (
+          <View style={styles.stateCard}>
+            <View style={styles.stateRow}>
+              <Feather name="upload-cloud" size={16} color={COLORS.primary} />
+              <Text style={styles.stateUploadingText}>Uploading… {progress}%</Text>
+            </View>
+            <View style={styles.progressTrack}>
+              <View style={[styles.progressFill, { width: `${progress}%` }]} />
+            </View>
+          </View>
+        )}
+
+        {uploadState === 'success' && (
+          <View style={[styles.stateCard, styles.stateSuccessCard]}>
+            <Feather name="check-circle" size={18} color={COLORS.success} />
+            <Text style={styles.stateSuccessText}>Resource uploaded successfully!</Text>
+          </View>
+        )}
+
+        {uploadState === 'error' && (
+          <View style={[styles.stateCard, styles.stateErrorCard]}>
+            <Feather name="alert-circle" size={18} color={COLORS.danger} />
+            <Text style={styles.stateErrorText}>
+              Please choose a file and fill in title, course code, and category before uploading.
+            </Text>
+          </View>
+        )}
+
+        {/* ---------------------------------------------------------- */}
+        {/* UPLOAD BUTTON                                               */}
+        {/* ---------------------------------------------------------- */}
+        <View style={styles.uploadButtonWrap}>
+          <PrimaryButton
+            label={uploadState === 'uploading' ? 'Uploading...' : 'Upload Resource'}
+            onPress={handleUpload}
+            loading={uploadState === 'uploading'}
+            icon={uploadState !== 'uploading' ? 'upload' : undefined}
+          />
+        </View>
+
+        <View style={{ height: 40 }} />
+      </ScrollView>
+    </SafeAreaView>
+  );
+};
+
+export default UploadResourceScreen;
+
+// -----------------------------------------------------------------------
+// STYLES
+// -----------------------------------------------------------------------
+const H_PADDING = 20;
+
+const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: COLORS.background,
+  },
+  container: {
+    flex: 1,
+    backgroundColor: COLORS.background,
+  },
+  scrollContent: {
+    paddingTop: 4,
+    paddingBottom: 12,
+  },
+
+  // Intro card
+  introCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.primary,
+    marginHorizontal: H_PADDING,
+    marginBottom: 20,
+    borderRadius: 16,
+    padding: 16,
+  },
+  introIconWrap: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255,255,255,0.18)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 14,
+  },
+  introText: {
+    flex: 1,
+    fontSize: 12.5,
+    color: 'rgba(255,255,255,0.92)',
+    lineHeight: 18,
+  },
+
+  // Upload dropzone
+  uploadDropzone: {
+    borderWidth: 1.5,
+    borderColor: COLORS.primarySoft,
+    borderStyle: 'dashed',
+    borderRadius: 18,
+    marginHorizontal: H_PADDING,
+    marginBottom: 20,
+    paddingVertical: 32,
+    alignItems: 'center',
+    backgroundColor: COLORS.card,
+  },
+  uploadDropzoneIconWrap: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: COLORS.primaryLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 12,
+  },
+  uploadDropzoneTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: COLORS.textPrimary,
+    marginBottom: 4,
+  },
+  uploadDropzoneSubtitle: {
+    fontSize: 12,
+    color: COLORS.textMuted,
+  },
+
+  // Selected file card
+  selectedFileCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.card,
+    borderRadius: 16,
+    marginHorizontal: H_PADDING,
+    marginBottom: 20,
+    padding: 14,
+    ...SHADOW,
+  },
+  selectedFileIconWrap: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: COLORS.primaryLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  selectedFileInfo: {
+    flex: 1,
+    marginRight: 8,
+  },
+  selectedFileName: {
+    fontSize: 13.5,
+    fontWeight: '600',
+    color: COLORS.textPrimary,
+    marginBottom: 3,
+  },
+  selectedFileSize: {
+    fontSize: 11.5,
+    color: COLORS.textMuted,
+  },
+
+  // Chips
+  chipsWrap: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+  },
+
+  // Visibility options
+  visibilityRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: 14,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  visibilityRowSpacing: {
+    marginBottom: 10,
+  },
+  visibilityRowActive: {
+    borderColor: COLORS.primary,
+    backgroundColor: COLORS.primaryLight,
+  },
+  radioOuter: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    borderWidth: 2,
+    borderColor: COLORS.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  radioOuterActive: {
+    borderColor: COLORS.primary,
+  },
+  radioInner: {
+    width: 9,
+    height: 9,
+    borderRadius: 4.5,
+    backgroundColor: COLORS.primary,
+  },
+  visibilityLabel: {
+    fontSize: 13.5,
+    fontWeight: '700',
+    color: COLORS.textPrimary,
+    marginBottom: 2,
+  },
+  visibilityLabelActive: {
+    color: COLORS.primary,
+  },
+  visibilitySubtitle: {
+    fontSize: 11.5,
+    color: COLORS.textSecondary,
+  },
+
+  // Related group
+  groupOptionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 13,
+  },
+  infoRowDivider: {
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+  },
+  groupOptionText: {
+    fontSize: 13.5,
+    color: COLORS.textPrimary,
+    fontWeight: '500',
+  },
+  groupOptionCircle: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    borderWidth: 1.5,
+    borderColor: COLORS.border,
+  },
+
+  // Guidelines
+  guidelinesCard: {
+    flexDirection: 'row',
+    backgroundColor: COLORS.warningLight,
+    marginHorizontal: H_PADDING,
+    marginBottom: 20,
+    borderRadius: 14,
+    padding: 14,
+  },
+  guidelinesText: {
+    flex: 1,
+    fontSize: 12,
+    color: '#92600F',
+    lineHeight: 17,
+    marginLeft: 10,
+  },
+
+  // Upload state UI
+  stateCard: {
+    backgroundColor: COLORS.card,
+    marginHorizontal: H_PADDING,
+    marginBottom: 20,
+    borderRadius: 14,
+    padding: 14,
+    ...SHADOW,
+  },
+  stateRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  stateUploadingText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: COLORS.textPrimary,
+    marginLeft: 8,
+  },
+  progressTrack: {
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: COLORS.chipBg,
+    overflow: 'hidden',
+  },
+  progressFill: {
+    height: '100%',
+    backgroundColor: COLORS.primary,
+    borderRadius: 4,
+  },
+  stateSuccessCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.successLight,
+  },
+  stateSuccessText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: COLORS.success,
+    marginLeft: 10,
+  },
+  stateErrorCard: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    backgroundColor: '#FDEAEA',
+  },
+  stateErrorText: {
+    flex: 1,
+    fontSize: 12.5,
+    color: COLORS.danger,
+    marginLeft: 10,
+    lineHeight: 18,
+  },
+
+  // Upload button
+  uploadButtonWrap: {
+    paddingHorizontal: H_PADDING,
+  },
+});
