@@ -355,7 +355,12 @@ const HomeScreen: React.FC = () => {
 
         <View style={styles.stackedCards}>
           {MY_GROUPS.map((group) => (
-            <View key={group.id} style={styles.groupCard}>
+            <TouchableOpacity
+              key={group.id}
+              style={styles.groupCard}
+              activeOpacity={0.8}
+              onPress={() => openGroup(group)}
+            >
               <View style={styles.groupCardTop}>
                 <View style={styles.courseBadge}>
                   <Text style={styles.courseBadgeText}>{group.code}</Text>
@@ -371,7 +376,7 @@ const HomeScreen: React.FC = () => {
                   {group.members} members
                 </Text>
               </View>
-            </View>
+            </TouchableOpacity>
           ))}
         </View>
 

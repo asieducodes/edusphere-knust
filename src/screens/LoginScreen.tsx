@@ -115,7 +115,7 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
     const { isValid } = validateLoginForm(email, password);
 
     // Placeholder — replace with a real auth call (Supabase, your API, etc).
-    console.log("Login pressed", { email, password });
+    console.log("Login pressed", { email });
 
     if (!isValid) return; // Do not proceed, and do not call any backend/context action.
 
