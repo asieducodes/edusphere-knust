@@ -8,7 +8,7 @@
  */
 
 import api from './api';
-import { ApiResponse, PaginationParams } from '../types/api';
+import { ApiResponse, PaginatedData, PaginationParams } from '../types/api';
 import {
   Group,
   CreateGroupPayload,
@@ -19,6 +19,7 @@ import {
   CreatePostPayload,
   PostComment,
   CreateCommentPayload,
+  GroupMember,
 } from '../types/group';
 
 // -----------------------------------------------------------------------
@@ -27,20 +28,20 @@ import {
 
 /** GET /groups — matches GroupsScreen's "Discover Groups" list, with
  *  search + category filter chip support via query params. */
-export async function getGroups(params?: GroupQueryParams): Promise<ApiResponse<Group[]>> {
-  const response = await api.get<ApiResponse<Group[]>>('/groups', { params });
+export async function getGroups(params?: GroupQueryParams): Promise<ApiResponse<PaginatedData<Group>>> {
+  const response = await api.get<ApiResponse<PaginatedData<Group>>>('/groups', { params });
   return response.data;
 }
 
 /** GET /groups/my — matches GroupsScreen's/HomeScreen's "My Groups". */
-export async function getMyGroups(params?: PaginationParams): Promise<ApiResponse<Group[]>> {
-  const response = await api.get<ApiResponse<Group[]>>('/groups/my', { params });
+export async function getMyGroups(params?: PaginationParams): Promise<ApiResponse<PaginatedData<Group>>> {
+  const response = await api.get<ApiResponse<PaginatedData<Group>>>('/groups/my', { params });
   return response.data;
 }
 
 /** GET /groups/recommended — matches HomeScreen's "Recommended Groups". */
-export async function getRecommendedGroups(params?: PaginationParams): Promise<ApiResponse<Group[]>> {
-  const response = await api.get<ApiResponse<Group[]>>('/groups/recommended', { params });
+export async function getRecommendedGroups(params?: PaginationParams): Promise<ApiResponse<PaginatedData<Group>>> {
+  const response = await api.get<ApiResponse<PaginatedData<Group>>>('/groups/recommended', { params });
   return response.data;
 }
 
@@ -93,6 +94,15 @@ export async function rejectGroupInvite(inviteId: string): Promise<ApiResponse<G
   return response.data;
 }
 
+/** GET /groups/:groupId/members — matches GroupDetailsScreen's "Members" section. */
+export async function getGroupMembers(
+  groupId: string,
+  params?: PaginationParams
+): Promise<ApiResponse<PaginatedData<GroupMember>>> {
+  const response = await api.get<ApiResponse<PaginatedData<GroupMember>>>(`/groups/${groupId}/members`, { params });
+  return response.data;
+}
+
 // -----------------------------------------------------------------------
 // DISCUSSIONS (matches GroupDetailsScreen's "Recent Discussions" section)
 // -----------------------------------------------------------------------
@@ -101,8 +111,8 @@ export async function rejectGroupInvite(inviteId: string): Promise<ApiResponse<G
 export async function getGroupPosts(
   groupId: string,
   params?: PaginationParams
-): Promise<ApiResponse<GroupPost[]>> {
-  const response = await api.get<ApiResponse<GroupPost[]>>(`/groups/${groupId}/posts`, { params });
+): Promise<ApiResponse<PaginatedData<GroupPost>>> {
+  const response = await api.get<ApiResponse<PaginatedData<GroupPost>>>(`/groups/${groupId}/posts`, { params });
   return response.data;
 }
 
@@ -120,8 +130,8 @@ export async function createGroupPost(
 export async function getPostComments(
   postId: string,
   params?: PaginationParams
-): Promise<ApiResponse<PostComment[]>> {
-  const response = await api.get<ApiResponse<PostComment[]>>(`/posts/${postId}/comments`, { params });
+): Promise<ApiResponse<PaginatedData<PostComment>>> {
+  const response = await api.get<ApiResponse<PaginatedData<PostComment>>>(`/posts/${postId}/comments`, { params });
   return response.data;
 }
 

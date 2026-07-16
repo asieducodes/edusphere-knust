@@ -16,7 +16,7 @@
  * -----------------------------------------------------------------------
  */
 
-import React, { useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import {
   View,
   Text,
@@ -30,11 +30,14 @@ import {
   Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useFocusEffect } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Feather, FontAwesome5, MaterialCommunityIcons, Ionicons } from '@expo/vector-icons';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { COLORS, SHADOW } from '../theme/colors';
 import { AuthStackParamList } from '../navigation/types';
+import { useAuth } from '../context/AuthContext';
+import * as authService from '../services/authService';
 
 type Props = NativeStackScreenProps<AuthStackParamList, 'EmailVerification'>;
 
@@ -95,34 +98,47 @@ const LogoEmblem: React.FC = () => (
 );
 
 const EmailVerificationScreen: React.FC<Props> = ({ navigation, route }) => {
+  const { refreshSession } = useAuth();
   const email = route.params?.email || FALLBACK_EMAIL;
   const [isResending, setIsResending] = useState(false);
   const [resendCooldown, setResendCooldown] = useState(false);
+  const [resendError, setResendError] = useState<string | null>(null);
+
+  // Real verification happens by clicking the emailed link, not from an
+  // in-app button — this re-checks the session every time the student
+  // returns to this screen (e.g. after switching to their email app and
+  // back), so a verified account moves into the main app automatically
+  // (RootNavigator swaps to MainStack once isEmailVerified flips true).
+  useFocusEffect(
+    useCallback(() => {
+      refreshSession();
+    }, [refreshSession])
+  );
 
   const handleChange = () => {
     navigation.navigate('Signup');
   };
 
   const handleOpenOutlook = () => {
-    // Placeholder — replace with a real deep link / web open once wired up:
-    //   Linking.openURL('https://outlook.office.com');
-    console.log('Open Outlook (Web) pressed — should open https://outlook.office.com');
+    Linking.openURL('https://outlook.office.com');
   };
 
-  const handleResend = () => {
+  const handleResend = async () => {
     if (isResending || resendCooldown) return;
 
-    // Placeholder — replace with a real "resend verification email" call.
     setIsResending(true);
-    console.log('Resend verification link pressed', { email });
-
-    setTimeout(() => {
-      setIsResending(false);
+    setResendError(null);
+    try {
+      await authService.resendVerification({ email });
       setResendCooldown(true);
-      // Simple cooldown so the student can't spam resend — replace with a
-      // real rate-limit response from your backend once that exists.
+      // Simple client-side cooldown so the student can't spam resend.
       setTimeout(() => setResendCooldown(false), 15000);
-    }, 1200);
+    } catch (err) {
+      const message = (err as { message?: string })?.message ?? 'Something went wrong. Please try again.';
+      setResendError(message);
+    } finally {
+      setIsResending(false);
+    }
   };
 
   const handleContinueToLogin = () => {
@@ -275,6 +291,7 @@ const EmailVerificationScreen: React.FC<Props> = ({ navigation, route }) => {
               </Text>
             </TouchableOpacity>
           )}
+          {resendError ? <Text style={styles.resendErrorText}>{resendError}</Text> : null}
         </View>
 
         {/* ---------------------------------------------------------- */}
@@ -661,6 +678,12 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: COLORS.textSecondary,
     marginLeft: 8,
+  },
+  resendErrorText: {
+    fontSize: 12,
+    color: COLORS.danger,
+    marginTop: 8,
+    textAlign: 'center',
   },
 
   // ---------------- Steps ----------------

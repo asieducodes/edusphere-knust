@@ -8,12 +8,14 @@
  */
 
 import api from './api';
-import { ApiResponse, PaginationParams } from '../types/api';
+import { ApiResponse, PaginatedData, PaginationParams } from '../types/api';
 import { StudySession, CreateSessionPayload, RsvpPayload } from '../types/session';
 
 /** GET /sessions/upcoming — matches HomeScreen's "Upcoming Sessions". */
-export async function getUpcomingSessions(params?: PaginationParams): Promise<ApiResponse<StudySession[]>> {
-  const response = await api.get<ApiResponse<StudySession[]>>('/sessions/upcoming', { params });
+export async function getUpcomingSessions(
+  params?: PaginationParams
+): Promise<ApiResponse<PaginatedData<StudySession>>> {
+  const response = await api.get<ApiResponse<PaginatedData<StudySession>>>('/sessions/upcoming', { params });
   return response.data;
 }
 
@@ -21,8 +23,10 @@ export async function getUpcomingSessions(params?: PaginationParams): Promise<Ap
 export async function getGroupSessions(
   groupId: string,
   params?: PaginationParams
-): Promise<ApiResponse<StudySession[]>> {
-  const response = await api.get<ApiResponse<StudySession[]>>(`/groups/${groupId}/sessions`, { params });
+): Promise<ApiResponse<PaginatedData<StudySession>>> {
+  const response = await api.get<ApiResponse<PaginatedData<StudySession>>>(`/groups/${groupId}/sessions`, {
+    params,
+  });
   return response.data;
 }
 

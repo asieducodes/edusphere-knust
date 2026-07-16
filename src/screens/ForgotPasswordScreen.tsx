@@ -23,6 +23,7 @@ import {
   Platform,
   StatusBar,
   Dimensions,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -31,6 +32,7 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { COLORS, SHADOW } from '../theme/colors';
 import { AuthStackParamList } from '../navigation/types';
 import { validateForgotPasswordForm } from '../utils/authValidation';
+import * as authService from '../services/authService';
 
 type Props = NativeStackScreenProps<AuthStackParamList, 'ForgotPassword'>;
 
@@ -78,22 +80,31 @@ const ForgotPasswordScreen: React.FC<Props> = ({ navigation }) => {
   const [email, setEmail] = useState('');
   const [submitted, setSubmitted] = useState(false);
   const [linkSent, setLinkSent] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [serverError, setServerError] = useState<string | null>(null);
 
   const emailError = submitted ? validateForgotPasswordForm(email).errors.email : undefined;
 
-  const handleSendResetLink = () => {
+  const handleSendResetLink = async () => {
     setSubmitted(true);
+    setServerError(null);
     const { isValid } = validateForgotPasswordForm(email);
-
-    // Placeholder — replace with a real "send reset email" API call.
-    console.log('Send reset link pressed', { email });
 
     if (!isValid) {
       setLinkSent(false);
-      return; // Do not proceed, and do not call any backend placeholder.
+      return;
     }
 
-    setLinkSent(true);
+    setIsSubmitting(true);
+    try {
+      await authService.forgotPassword({ email });
+      setLinkSent(true);
+    } catch (err) {
+      const message = (err as { message?: string })?.message ?? 'Something went wrong. Please try again.';
+      setServerError(message);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleLogInPress = () => {
@@ -238,9 +249,25 @@ const ForgotPasswordScreen: React.FC<Props> = ({ navigation }) => {
               </View>
             )}
 
+            {serverError ? (
+              <View style={styles.errorRow}>
+                <Feather name="alert-circle" size={12} color={COLORS.danger} />
+                <Text style={styles.errorText}>{serverError}</Text>
+              </View>
+            ) : null}
+
             {/* Send Reset Link button */}
-            <TouchableOpacity style={styles.sendButton} activeOpacity={0.85} onPress={handleSendResetLink}>
-              <Text style={styles.sendButtonText}>Send Reset Link</Text>
+            <TouchableOpacity
+              style={[styles.sendButton, isSubmitting && styles.sendButtonDisabled]}
+              activeOpacity={0.85}
+              onPress={handleSendResetLink}
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? (
+                <ActivityIndicator color={COLORS.white} size="small" />
+              ) : (
+                <Text style={styles.sendButtonText}>Send Reset Link</Text>
+              )}
             </TouchableOpacity>
           </View>
 
@@ -600,6 +627,9 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 14,
     elevation: 6,
+  },
+  sendButtonDisabled: {
+    opacity: 0.7,
   },
   sendButtonText: {
     fontSize: 15,

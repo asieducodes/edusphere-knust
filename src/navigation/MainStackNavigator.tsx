@@ -23,6 +23,8 @@ import CreateGroupScreen from "../screens/CreateGroupScreen";
 import ResourceDetailsScreen from "../screens/ResourceDetailsScreen";
 import UploadResourceScreen from "../screens/UploadResourceScreen";
 import EditProfileScreen from "../screens/EditProfileScreen";
+import NotificationsScreen from "../screens/NotificationsScreen";
+import NotificationDetailScreen from "../screens/NotificationDetailScreen";
 
 const Stack = createNativeStackNavigator<MainStackParamList>();
 
@@ -37,6 +39,8 @@ const MainStackNavigator: React.FC = () => {
       <Stack.Screen name="ResourceDetails" component={ResourceDetailsScreen} />
       <Stack.Screen name="UploadResource" component={UploadResourceScreen} />
       <Stack.Screen name="EditProfile" component={EditProfileScreen} />
+      <Stack.Screen name="Notifications" component={NotificationsScreen} />
+      <Stack.Screen name="NotificationDetail" component={NotificationDetailScreen} />
     </Stack.Navigator>
   );
 };

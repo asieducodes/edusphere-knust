@@ -23,6 +23,7 @@ import {
   ToggleRow,
   PrimaryButton,
 } from '../components/common';
+import { useCreateGroup } from '../hooks/useGroups';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'CreateGroup'>;
 
@@ -59,6 +60,10 @@ const CreateGroupScreen: React.FC<Props> = ({ navigation }) => {
   const [meetingTime, setMeetingTime] = useState('');
 
   const [submitted, setSubmitted] = useState(false);
+  const [serverError, setServerError] = useState<string | null>(null);
+
+  const createGroupMutation = useCreateGroup();
+  const isSubmitting = createGroupMutation.isPending;
 
   const toggleTag = (tag: string) => {
     setSelectedTags((prev) =>
@@ -84,13 +89,32 @@ const CreateGroupScreen: React.FC<Props> = ({ navigation }) => {
 
   const handleCreate = () => {
     setSubmitted(true);
+    setServerError(null);
     if (!isFormValid) return;
 
-    // Placeholder action — replace with a real API call, then either
-    // go back to the Groups list or push straight into GroupDetails
-    // for the newly created group:
-    //   navigation.navigate('GroupDetails', { group: newGroup });
-    navigation.goBack();
+    createGroupMutation.mutate(
+      {
+        name: groupName.trim(),
+        courseCode: courseCode.trim(),
+        courseTitle: courseTitle.trim(),
+        description: description.trim(),
+        tags: selectedTags,
+        groupType,
+        maxMembers: maxMembers.trim() ? parseInt(maxMembers, 10) : undefined,
+        allowMemberUploads: allowUploads,
+        allowMemberInvites: allowInvites,
+        meetingLocation: meetingLocation.trim() || undefined,
+        meetingDay: meetingDay.trim() || undefined,
+        meetingTime: meetingTime.trim() || undefined,
+      },
+      {
+        onSuccess: (group) => navigation.replace('GroupDetails', { groupId: group.id }),
+        onError: (err) => {
+          const message = (err as { message?: string })?.message ?? 'Something went wrong. Please try again.';
+          setServerError(message);
+        },
+      }
+    );
   };
 
   return (
@@ -255,12 +279,14 @@ const CreateGroupScreen: React.FC<Props> = ({ navigation }) => {
             label="Create Study Group"
             onPress={handleCreate}
             disabled={submitted && !isFormValid}
+            loading={isSubmitting}
           />
           {submitted && !isFormValid && (
             <Text style={styles.formErrorText}>
               Please fill in all required fields above before creating your group.
             </Text>
           )}
+          {serverError ? <Text style={styles.formErrorText}>{serverError}</Text> : null}
         </View>
 
         <View style={{ height: 40 }} />

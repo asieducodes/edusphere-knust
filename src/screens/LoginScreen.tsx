@@ -23,6 +23,7 @@ import {
   Platform,
   StatusBar,
   Dimensions,
+  ActivityIndicator,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
@@ -103,6 +104,8 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [serverError, setServerError] = useState<string | null>(null);
 
   const { errors } = submitted
     ? validateLoginForm(email, password)
@@ -110,21 +113,28 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
   const emailError = errors.email;
   const passwordError = errors.password;
 
-  const handleLogin = () => {
+  const handleLogin = async () => {
     setSubmitted(true);
+    setServerError(null);
     const { isValid } = validateLoginForm(email, password);
-
-    // Placeholder — replace with a real auth call (Supabase, your API, etc).
-    console.log("Login pressed", { email });
 
     if (!isValid) return; // Do not proceed, and do not call any backend/context action.
 
-    // Flips shared auth state to true — RootNavigator is watching this via
-    // useAuth() and will swap from AuthStack to MainStackNavigator on its
-    // own. There's no direct navigation.navigate('MainTabs') here because
-    // MainTabs lives in a completely different navigator tree once auth
-    // and main are split (see navigation/RootNavigator.tsx).
-    login();
+    setIsSubmitting(true);
+    try {
+      // Flips shared auth state via AuthContext — RootNavigator is
+      // watching this via useAuth() and will swap from AuthStack to
+      // MainStackNavigator on its own. There's no direct
+      // navigation.navigate('MainTabs') here because MainTabs lives in a
+      // completely different navigator tree once auth and main are split
+      // (see navigation/RootNavigator.tsx).
+      await login({ email, password });
+    } catch (err) {
+      const message = (err as { message?: string })?.message ?? "Something went wrong. Please try again.";
+      setServerError(message);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleForgotPassword = () => {
@@ -296,6 +306,13 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
               </View>
             ) : null}
 
+            {serverError ? (
+              <View style={styles.errorRow}>
+                <Feather name="alert-circle" size={12} color={COLORS.danger} />
+                <Text style={styles.errorText}>{serverError}</Text>
+              </View>
+            ) : null}
+
             {/* Forgot password */}
             <TouchableOpacity
               style={styles.forgotPasswordWrap}
@@ -307,11 +324,16 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
 
             {/* Log In button */}
             <TouchableOpacity
-              style={styles.loginButton}
+              style={[styles.loginButton, isSubmitting && styles.loginButtonDisabled]}
               activeOpacity={0.85}
               onPress={handleLogin}
+              disabled={isSubmitting}
             >
-              <Text style={styles.loginButtonText}>Log In</Text>
+              {isSubmitting ? (
+                <ActivityIndicator color={COLORS.white} size="small" />
+              ) : (
+                <Text style={styles.loginButtonText}>Log In</Text>
+              )}
             </TouchableOpacity>
           </View>
 
@@ -612,6 +634,9 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 14,
     elevation: 6,
+  },
+  loginButtonDisabled: {
+    opacity: 0.7,
   },
   loginButtonText: {
     fontSize: 15,

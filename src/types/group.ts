@@ -70,6 +70,14 @@ export interface GroupInvite {
   createdAt: string;
 }
 
+/** Matches GroupDetailsScreen's "Members" section. */
+export interface GroupMember {
+  id: string;
+  fullName: string;
+  avatarUrl: string | null;
+  role: 'owner' | 'member';
+}
+
 // -----------------------------------------------------------------------
 // Discussions (GroupDetailsScreen's "Recent Discussions" section)
 // -----------------------------------------------------------------------

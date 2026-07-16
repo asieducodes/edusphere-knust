@@ -9,7 +9,7 @@
 
 import { PaginationParams } from './api';
 
-export type ResourceFileType = 'PDF' | 'DOCX' | 'PPTX';
+export type ResourceFileType = 'PDF' | 'DOCX' | 'PPTX' | 'ZIP';
 export type ResourceVisibility = 'Public' | 'Group Only' | 'Private';
 
 export interface ResourceUploader {
@@ -46,12 +46,15 @@ export interface LocalFile {
   type: string;
 }
 
-/** Matches UploadResourceScreen's form fields exactly. */
+/** Matches UploadResourceScreen's form fields exactly. Course is free
+ *  text, not a picked FK — the seeded courses table is nowhere near a
+ *  full KNUST catalog, so students type their own course code (same
+ *  pattern CreateGroupScreen already uses for group courseCode/courseTitle). */
 export interface UploadResourcePayload {
   file: LocalFile;
   title: string;
   description: string;
-  courseId: string;
+  courseCode: string;
   category: string;
   visibility: ResourceVisibility;
   groupId?: string;
@@ -63,6 +66,8 @@ export interface ResourceQueryParams extends PaginationParams {
   category?: string;
   courseCode?: string;
   groupId?: string;
+  mine?: boolean;
+  saved?: boolean;
 }
 
 export interface ResourceReview {

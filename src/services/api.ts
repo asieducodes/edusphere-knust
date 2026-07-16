@@ -18,7 +18,10 @@ import { ApiResponse, ApiError } from '../types/api';
 
 // Falls back to a local dev server if the env var isn't set — lets the
 // app run against a local backend during development without any config.
-const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:5000/api';
+// Exported so services that bypass this axios instance for a specific
+// request (resourceService's upload, which uses expo-file-system's native
+// upload task for real progress events) still hit the same backend.
+export const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:5000/api';
 
 const api: AxiosInstance = axios.create({
   baseURL: API_BASE_URL,
@@ -72,10 +75,11 @@ api.interceptors.response.use(
     const normalized = normalizeError(error);
 
     if (error.response?.status === 401) {
-      // Token is invalid or expired — clear it locally. Hook this up to
-      // AuthContext's logout() once the two are wired together, so the
-      // app also re-routes back to Login when this fires.
+      // Token is invalid or expired — clear it locally and notify
+      // AuthContext (see setUnauthorizedHandler below) so the app also
+      // re-routes back to Login when this fires.
       await deleteToken();
+      unauthorizedHandler?.();
     }
 
     return Promise.reject(normalized);
@@ -83,6 +87,19 @@ api.interceptors.response.use(
 );
 
 export default api;
+
+// -----------------------------------------------------------------------
+// UNAUTHORIZED HANDLER — lets AuthContext react to a 401 from anywhere
+// -----------------------------------------------------------------------
+// api.ts is a plain module, not a React context, so it can't call
+// AuthContext's logout() directly. AuthProvider registers a callback here
+// on mount; when any request comes back 401, this fires it so the shared
+// auth state flips and RootNavigator swaps back to AuthStack.
+let unauthorizedHandler: (() => void) | null = null;
+
+export function setUnauthorizedHandler(handler: (() => void) | null) {
+  unauthorizedHandler = handler;
+}
 
 // -----------------------------------------------------------------------
 // MULTIPART FORM-DATA HELPER

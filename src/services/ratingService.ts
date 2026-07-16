@@ -11,7 +11,7 @@
  */
 
 import api from './api';
-import { ApiResponse, PaginationParams } from '../types/api';
+import { ApiResponse, PaginatedData, PaginationParams } from '../types/api';
 
 export type RatingTargetType = 'group' | 'user';
 
@@ -39,14 +39,20 @@ export async function createRating(payload: CreateRatingPayload): Promise<ApiRes
 }
 
 /** GET /users/:userId/ratings — matches ProfileScreen's "Rating" stat. */
-export async function getUserRatings(userId: string, params?: PaginationParams): Promise<ApiResponse<Rating[]>> {
-  const response = await api.get<ApiResponse<Rating[]>>(`/users/${userId}/ratings`, { params });
+export async function getUserRatings(
+  userId: string,
+  params?: PaginationParams
+): Promise<ApiResponse<PaginatedData<Rating>>> {
+  const response = await api.get<ApiResponse<PaginatedData<Rating>>>(`/users/${userId}/ratings`, { params });
   return response.data;
 }
 
 /** GET /groups/:groupId/ratings — matches the star rating shown on
  *  group cards and GroupDetailsScreen's hero card. */
-export async function getGroupRatings(groupId: string, params?: PaginationParams): Promise<ApiResponse<Rating[]>> {
-  const response = await api.get<ApiResponse<Rating[]>>(`/groups/${groupId}/ratings`, { params });
+export async function getGroupRatings(
+  groupId: string,
+  params?: PaginationParams
+): Promise<ApiResponse<PaginatedData<Rating>>> {
+  const response = await api.get<ApiResponse<PaginatedData<Rating>>>(`/groups/${groupId}/ratings`, { params });
   return response.data;
 }

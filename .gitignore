@@ -31,7 +31,14 @@ yarn-error.*
 *.pem
 
 # local env files
+.env
 .env*.local
+
+# editor
+.vscode/
+
+# backend — split into its own repo (backend/), deployed separately on Render
+backend/
 
 # typescript
 *.tsbuildinfo

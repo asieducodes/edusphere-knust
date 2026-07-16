@@ -1,54 +1,20 @@
 /**
  * EduSphere — navigation/types.ts
  * -----------------------------------------------------------------------
- * Shared navigation types + the Group data shape passed as route params.
- * Import from here instead of redefining param lists per-screen — this
- * is what gives you autocomplete and type-checking on navigation.navigate()
- * calls and route.params across the whole app.
+ * Shared navigation types. Import from here instead of redefining param
+ * lists per-screen — this is what gives you autocomplete and type-checking
+ * on navigation.navigate() calls and route.params across the whole app.
+ *
+ * GroupDetails/ResourceDetails take only an id, not a full object — the
+ * destination screen fetches fresh real data via groupService/resourceService
+ * (src/types/group.ts's Group / src/types/resource.ts's Resource), rather
+ * than every caller constructing a duplicate local object to pass through
+ * params. Always fresh, no dual type shapes to keep in sync.
  * -----------------------------------------------------------------------
  */
 
 import type { NavigatorScreenParams } from '@react-navigation/native';
-
-/** Shared shape for a study group, used wherever a group is passed as a
- *  navigation param (GroupsScreen card tap, HomeScreen card tap, etc). */
-export interface Group {
-  id: string;
-  categoryShort: string; // e.g. "CS" — shown in the hero card badge
-  code: string; // e.g. "CSM 351"
-  name: string; // e.g. "CSM 351 Data Structures"
-  subtitle: string; // e.g. "Data Structures and Algorithms"
-  description: string;
-  members: number;
-  rating: number;
-  status: 'Active' | 'Inactive';
-  groupType: 'Public Group' | 'Private Group';
-  isJoined: boolean;
-}
-
-/** Shared shape for a resource, used wherever a resource is passed as a
- *  navigation param (ResourcesScreen row tap, GroupDetails resource tap). */
-export interface ResourceData {
-  id: string;
-  title: string;
-  fileType: 'PDF' | 'DOCX' | 'PPTX';
-  courseCode: string;
-  category: string;
-  description: string;
-  size: string;
-  uploaded: string;
-  downloads: number;
-  saves: number;
-  rating: number;
-  visibility: 'Public' | 'Group Only' | 'Private';
-  uploader: {
-    name: string;
-    initials: string;
-    programme: string;
-    level: string;
-    verified: boolean;
-  };
-}
+import type { AppNotification } from '../types/notification';
 
 /** Tabs rendered inside the bottom tab bar (see MainTabNavigator.tsx). */
 export type MainTabParamList = {
@@ -76,11 +42,17 @@ export type AuthStackParamList = {
  *  navigation/MainStackNavigator.tsx. Add future screens the same way. */
 export type MainStackParamList = {
   MainTabs: NavigatorScreenParams<MainTabParamList> | undefined;
-  GroupDetails: { group?: Group } | undefined;
+  GroupDetails: { groupId: string };
   CreateGroup: undefined;
-  ResourceDetails: { resource?: ResourceData } | undefined;
+  ResourceDetails: { resourceId: string };
   UploadResource: undefined;
   EditProfile: undefined;
+  Notifications: undefined;
+  /** Takes the full notification, not just an id — notification content is
+   *  immutable once created (only isRead changes, tracked separately in the
+   *  list screen), and there's no single-notification GET endpoint, so
+   *  refetching would add a round trip for no benefit. */
+  NotificationDetail: { notification: AppNotification };
 };
 
 /** Backward-compatible alias — screens written before this Auth/Main

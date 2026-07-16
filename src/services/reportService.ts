@@ -7,7 +7,7 @@
  */
 
 import api from './api';
-import { ApiResponse, PaginationParams } from '../types/api';
+import { ApiResponse, PaginatedData, PaginationParams } from '../types/api';
 import { Report, CreateReportPayload } from '../types/report';
 
 /** POST /reports */
@@ -17,7 +17,7 @@ export async function createReport(payload: CreateReportPayload): Promise<ApiRes
 }
 
 /** GET /reports/my */
-export async function getMyReports(params?: PaginationParams): Promise<ApiResponse<Report[]>> {
-  const response = await api.get<ApiResponse<Report[]>>('/reports/my', { params });
+export async function getMyReports(params?: PaginationParams): Promise<ApiResponse<PaginatedData<Report>>> {
+  const response = await api.get<ApiResponse<PaginatedData<Report>>>('/reports/my', { params });
   return response.data;
 }

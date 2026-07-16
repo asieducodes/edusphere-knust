@@ -15,10 +15,12 @@
  */
 
 import React from "react";
+import { View, ActivityIndicator, StyleSheet } from "react-native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { useAuth } from "../context/AuthContext";
 import AuthStackNavigator from "./AuthStackNavigator";
 import MainStackNavigator from "./MainStackNavigator";
+import { COLORS } from "../theme/colors";
 
 // This top-level switch doesn't need typed route params — each branch is
 // a full component with no params of its own, and screens never navigate
@@ -26,8 +28,21 @@ import MainStackNavigator from "./MainStackNavigator";
 // which one is mounted, not a navigate() call).
 const Stack = createNativeStackNavigator();
 
+/** Shown only while AuthContext resolves the cold-start session check
+ *  (typically well under a second). Matches SplashScreen's brand color so
+ *  the transition into AuthStack's own Splash screen is seamless. */
+const LoadingGate: React.FC = () => (
+  <View style={styles.loadingGate}>
+    <ActivityIndicator color={COLORS.white} size="large" />
+  </View>
+);
+
 const RootNavigator: React.FC = () => {
-  const { isAuthenticated, isEmailVerified } = useAuth();
+  const { isAuthenticated, isEmailVerified, isLoading } = useAuth();
+
+  if (isLoading) {
+    return <LoadingGate />;
+  }
 
   // Only fully authenticated + verified students see the main app.
   // Everyone else — logged out, or logged in but still pending email
@@ -45,5 +60,14 @@ const RootNavigator: React.FC = () => {
     </Stack.Navigator>
   );
 };
+
+const styles = StyleSheet.create({
+  loadingGate: {
+    flex: 1,
+    backgroundColor: COLORS.primary,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+});
 
 export default RootNavigator;

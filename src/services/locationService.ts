@@ -9,12 +9,14 @@
  */
 
 import api from './api';
-import { ApiResponse } from '../types/api';
+import { ApiResponse, PaginatedData } from '../types/api';
 import { CampusLocation, LocationQueryParams } from '../types/location';
 
 /** GET /locations — matches MapScreen's search bar + category filter chips. */
-export async function getLocations(params?: LocationQueryParams): Promise<ApiResponse<CampusLocation[]>> {
-  const response = await api.get<ApiResponse<CampusLocation[]>>('/locations', { params });
+export async function getLocations(
+  params?: LocationQueryParams
+): Promise<ApiResponse<PaginatedData<CampusLocation>>> {
+  const response = await api.get<ApiResponse<PaginatedData<CampusLocation>>>('/locations', { params });
   return response.data;
 }
 

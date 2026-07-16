@@ -8,17 +8,17 @@
  */
 
 import api from './api';
-import { ApiResponse } from '../types/api';
+import { ApiResponse, PaginatedData } from '../types/api';
 import { Department, Course, CourseQueryParams } from '../types/course';
 
 /** GET /departments — supports search via query params. */
-export async function getDepartments(params?: CourseQueryParams): Promise<ApiResponse<Department[]>> {
-  const response = await api.get<ApiResponse<Department[]>>('/departments', { params });
+export async function getDepartments(params?: CourseQueryParams): Promise<ApiResponse<PaginatedData<Department>>> {
+  const response = await api.get<ApiResponse<PaginatedData<Department>>>('/departments', { params });
   return response.data;
 }
 
 /** GET /courses — supports search + filter by department via query params. */
-export async function getCourses(params?: CourseQueryParams): Promise<ApiResponse<Course[]>> {
-  const response = await api.get<ApiResponse<Course[]>>('/courses', { params });
+export async function getCourses(params?: CourseQueryParams): Promise<ApiResponse<PaginatedData<Course>>> {
+  const response = await api.get<ApiResponse<PaginatedData<Course>>>('/courses', { params });
   return response.data;
 }

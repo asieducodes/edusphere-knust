@@ -30,6 +30,9 @@ export async function uploadAvatar(file: FormDataFile): Promise<ApiResponse<Uplo
 
   const response = await api.post<ApiResponse<UploadAvatarResponseData>>('/profile/avatar', formData, {
     headers: { 'Content-Type': 'multipart/form-data' },
+    // See resourceService.uploadResource for why this overrides the
+    // global 15s timeout.
+    timeout: 5 * 60 * 1000,
   });
   return response.data;
 }

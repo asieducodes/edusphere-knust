@@ -1,17 +1,18 @@
 /**
  * EduSphere — screens/GroupDetailsScreen.tsx
  * -----------------------------------------------------------------------
- * Opens on top of the bottom tabs (see navigation/AppNavigator.tsx) when
- * a group card is tapped anywhere in the app. Receives an optional
- * `group` object via route params — falls back to sample data if none
- * is passed, so this screen also works if opened directly for testing.
+ * Opens on top of the bottom tabs when a group card is tapped anywhere in
+ * the app. Receives only a `groupId` via route params and fetches the
+ * real group (and its discussions/resources/members/sessions) from the
+ * backend — see navigation/types.ts for why this takes an id, not a full
+ * object.
  *
  * Follows the same design system as the rest of EduSphere (shared theme,
  * card style, spacing, typography).
  * -----------------------------------------------------------------------
  */
 
-import React, { useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import {
   View,
   Text,
@@ -19,155 +20,45 @@ import {
   ScrollView,
   TouchableOpacity,
   StatusBar,
+  Alert,
+  Modal,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather, Ionicons } from '@expo/vector-icons';
+import { useFocusEffect } from '@react-navigation/native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { COLORS, SHADOW } from '../theme/colors';
-import { Group, ResourceData, RootStackParamList } from '../navigation/types';
+import { RootStackParamList } from '../navigation/types';
+import { LoadingView, ErrorView, AppTextInput, PrimaryButton } from '../components/common';
+import {
+  useGroup,
+  useGroupPosts,
+  useGroupMembers,
+  useGroupSessions,
+  useJoinGroup,
+  useLeaveGroup,
+  useCreateGroupPost,
+  useCreateGroupSession,
+  useInviteMember,
+} from '../hooks/useGroups';
+import { useResources } from '../hooks/useResources';
+import { GroupMember } from '../types/group';
+import { Resource } from '../types/resource';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'GroupDetails'>;
 
-// -----------------------------------------------------------------------
-// FALLBACK SAMPLE DATA — used when no group is passed via route params
-// -----------------------------------------------------------------------
-const SAMPLE_GROUP: Group = {
-  id: 'g-sample',
-  categoryShort: 'CS',
-  code: 'CSM 351',
-  name: 'CSM 351 Data Structures',
-  subtitle: 'Data Structures and Algorithms',
-  description:
-    'A study group for students who want to improve their understanding of data structures, algorithms, and problem-solving techniques.',
-  members: 24,
-  rating: 4.8,
-  status: 'Active',
-  groupType: 'Public Group',
-  isJoined: true,
-};
-
-// -----------------------------------------------------------------------
-// TYPES (local to this screen)
-// -----------------------------------------------------------------------
-interface StatItem {
-  id: string;
-  icon: keyof typeof Feather.glyphMap;
-  value: string;
-  label: string;
-}
-
-interface DiscussionItem {
-  id: string;
-  question: string;
-  author: string;
-  initials: string;
-  replies: number;
-  time: string;
-}
-
-interface ResourceItem {
-  id: string;
-  title: string;
-  fileType: 'PDF' | 'DOCX' | 'PPTX';
-  size: string;
-}
-
-interface MemberItem {
-  id: string;
-  name: string;
-  initials: string;
-  role: 'Host' | 'Tutor' | 'Member';
-}
-
-// -----------------------------------------------------------------------
-// STATIC SAMPLE DATA
-// -----------------------------------------------------------------------
-const STATS: StatItem[] = [
-  { id: 'st1', icon: 'users', value: '24', label: 'Members' },
-  { id: 'st2', icon: 'file-text', value: '12', label: 'Resources' },
-  { id: 'st3', icon: 'calendar', value: '8', label: 'Sessions' },
-  { id: 'st4', icon: 'message-circle', value: '36', label: 'Discussions' },
-];
-
-const DISCUSSIONS: DiscussionItem[] = [
-  {
-    id: 'd1',
-    question: 'How do binary search trees work?',
-    author: 'Ama',
-    initials: 'AM',
-    replies: 8,
-    time: '15 min ago',
-  },
-  {
-    id: 'd2',
-    question: 'Difference between stack and queue?',
-    author: 'Kojo',
-    initials: 'KJ',
-    replies: 5,
-    time: '1h ago',
-  },
-  {
-    id: 'd3',
-    question: 'Best way to revise linked lists?',
-    author: 'Nii',
-    initials: 'NN',
-    replies: 3,
-    time: '2h ago',
-  },
-];
-
-const RESOURCES: ResourceItem[] = [
-  { id: 'r1', title: 'Data Structures Past Questions', fileType: 'PDF', size: '2.4 MB' },
-  { id: 'r2', title: 'Linked List Lecture Notes', fileType: 'DOCX', size: '1.6 MB' },
-  { id: 'r3', title: 'Stacks and Queues Slides', fileType: 'PPTX', size: '3.1 MB' },
-];
-
-const MEMBERS: MemberItem[] = [
-  { id: 'm1', name: 'Nii Nortey', initials: 'NN', role: 'Host' },
-  { id: 'm2', name: 'Ama Mensah', initials: 'AM', role: 'Tutor' },
-  { id: 'm3', name: 'Kojo Asante', initials: 'KA', role: 'Member' },
-  { id: 'm4', name: 'Efua Boateng', initials: 'EB', role: 'Member' },
-  { id: 'm5', name: 'Kofi Appiah', initials: 'KP', role: 'Member' },
-];
-
-const HAS_UPCOMING_SESSION = true; // toggle to preview the empty state
-
-// This screen's Shared Resources list only tracks title/fileType/size —
-// ResourceDetailsScreen needs the fuller ResourceData shape. This fills
-// in reasonable defaults for what isn't tracked here yet (same pattern
-// used in ResourcesScreen.tsx's toResourceData helper).
-const toResourceData = (item: ResourceItem, group: Group): ResourceData => ({
-  id: item.id,
-  title: item.title,
-  fileType: item.fileType,
-  courseCode: group.code,
-  category: 'Shared Resource',
-  description: `Shared in the ${group.name} study group.`,
-  size: item.size,
-  uploaded: 'Recently',
-  downloads: 0,
-  saves: 0,
-  rating: 4.5,
-  visibility: 'Group Only',
-  uploader: {
-    name: 'Group Member',
-    initials: 'GM',
-    programme: 'BSc Computer Science',
-    level: 'Level 300',
-    verified: false,
-  },
-});
-
-const FILE_TYPE_STYLES: Record<ResourceItem['fileType'], { bg: string; color: string }> = {
+const FILE_TYPE_STYLES: Record<Resource['fileType'], { bg: string; color: string }> = {
   PDF: { bg: '#FDEAEA', color: '#D93A3A' },
   DOCX: { bg: '#E7EEFD', color: '#2D3FE0' },
   PPTX: { bg: '#FEF0E2', color: '#E08A1F' },
+  ZIP: { bg: '#F1F2F8', color: '#5B6172' },
 };
 
-const ROLE_STYLES: Record<MemberItem['role'], { bg: string; color: string }> = {
-  Host: { bg: COLORS.primaryLight, color: COLORS.primary },
-  Tutor: { bg: COLORS.successLight, color: COLORS.success },
-  Member: { bg: COLORS.chipBg, color: COLORS.textSecondary },
+const ROLE_STYLES: Record<GroupMember['role'], { bg: string; color: string }> = {
+  owner: { bg: COLORS.primaryLight, color: COLORS.primary },
+  member: { bg: COLORS.chipBg, color: COLORS.textSecondary },
 };
 
 // -----------------------------------------------------------------------
@@ -189,7 +80,7 @@ const SectionHeader: React.FC<{ title: string; onPressViewAll?: () => void }> = 
   </View>
 );
 
-/** Reusable empty state — used for discussions, resources, and sessions */
+/** Reusable empty state — used for discussions, resources, sessions, members */
 const EmptyState: React.FC<{
   icon: keyof typeof Feather.glyphMap;
   title: string;
@@ -211,19 +102,207 @@ const EmptyState: React.FC<{
   </View>
 );
 
+/** Bottom-sheet modal shell shared by the 3 group-action forms below. */
+const ActionModal: React.FC<{
+  visible: boolean;
+  title: string;
+  onClose: () => void;
+  children: React.ReactNode;
+}> = ({ visible, title, onClose, children }) => (
+  <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+    <KeyboardAvoidingView
+      style={{ flex: 1 }}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+    >
+      <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={onClose}>
+        <View style={styles.modalSheet} onStartShouldSetResponder={() => true}>
+          <View style={styles.modalHandle} />
+          <View style={styles.modalHeaderRow}>
+            <Text style={styles.modalTitle}>{title}</Text>
+            <TouchableOpacity onPress={onClose} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+              <Feather name="x" size={20} color={COLORS.textMuted} />
+            </TouchableOpacity>
+          </View>
+          {children}
+        </View>
+      </TouchableOpacity>
+    </KeyboardAvoidingView>
+  </Modal>
+);
+
+function courseCodeToBadge(courseCode: string): string {
+  return courseCode.split(' ')[0]?.slice(0, 2).toUpperCase() || '??';
+}
+
 // -----------------------------------------------------------------------
 // MAIN COMPONENT
 // -----------------------------------------------------------------------
 const GroupDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
-  // Falls back to sample data if this screen is opened without params
-  // (e.g. directly, during testing).
-  const group: Group = route.params?.group ?? SAMPLE_GROUP;
+  const { groupId } = route.params;
 
-  const [isJoined, setIsJoined] = useState(group.isJoined);
-  const [isSaved, setIsSaved] = useState(false);
+  const [activeModal, setActiveModal] = useState<'discussion' | 'session' | 'invite' | null>(null);
+  const [modalError, setModalError] = useState<string | null>(null);
 
-  const hasDiscussions = DISCUSSIONS.length > 0;
-  const hasResources = RESOURCES.length > 0;
+  const [discussionTitle, setDiscussionTitle] = useState('');
+  const [discussionBody, setDiscussionBody] = useState('');
+  const [sessionTitle, setSessionTitle] = useState('');
+  const [sessionDate, setSessionDate] = useState('');
+  const [sessionStartTime, setSessionStartTime] = useState('');
+  const [sessionEndTime, setSessionEndTime] = useState('');
+  const [sessionLocation, setSessionLocation] = useState('');
+  const [inviteEmail, setInviteEmail] = useState('');
+
+  const groupQuery = useGroup(groupId);
+  const group = groupQuery.data;
+
+  const postsQuery = useGroupPosts(groupId, !!group?.isJoined);
+  const membersQuery = useGroupMembers(groupId, !!group?.isJoined);
+  const sessionsQuery = useGroupSessions(groupId, !!group?.isJoined);
+  const resourcesQuery = useResources({ groupId });
+
+  const joinMutation = useJoinGroup();
+  const leaveMutation = useLeaveGroup();
+  const createPostMutation = useCreateGroupPost(groupId);
+  const createSessionMutation = useCreateGroupSession(groupId);
+  const inviteMutation = useInviteMember(groupId);
+
+  useFocusEffect(
+    useCallback(() => {
+      groupQuery.refetch();
+      resourcesQuery.refetch();
+      if (group?.isJoined) {
+        postsQuery.refetch();
+        membersQuery.refetch();
+        sessionsQuery.refetch();
+      }
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [group?.isJoined])
+  );
+
+  const posts = postsQuery.data?.items ?? [];
+  const discussionsCount = postsQuery.data?.meta.total ?? 0;
+  const members = membersQuery.data?.items ?? [];
+  const sessions = sessionsQuery.data?.items ?? [];
+  const sessionsCount = sessionsQuery.data?.meta.total ?? 0;
+  const resources = resourcesQuery.data?.items ?? [];
+  const resourcesCount = resourcesQuery.data?.meta.total ?? 0;
+
+  const isJoinLeaveSubmitting = joinMutation.isPending || leaveMutation.isPending;
+
+  const handleJoinLeave = () => {
+    if (!group) return;
+    const mutation = group.isJoined ? leaveMutation : joinMutation;
+    mutation.mutate(groupId, {
+      onError: (err) => {
+        const message = (err as { message?: string })?.message ?? 'Something went wrong. Please try again.';
+        Alert.alert('Error', message);
+      },
+    });
+  };
+
+  const closeModal = () => {
+    setActiveModal(null);
+    setModalError(null);
+  };
+
+  const isModalSubmitting =
+    createPostMutation.isPending || createSessionMutation.isPending || inviteMutation.isPending;
+
+  const handleSubmitDiscussion = () => {
+    if (!discussionTitle.trim()) {
+      setModalError('Please enter a title.');
+      return;
+    }
+    setModalError(null);
+    createPostMutation.mutate(
+      { title: discussionTitle.trim(), body: discussionBody.trim() || undefined },
+      {
+        onSuccess: () => {
+          setDiscussionTitle('');
+          setDiscussionBody('');
+          closeModal();
+        },
+        onError: (err) => setModalError((err as { message?: string })?.message ?? 'Something went wrong. Please try again.'),
+      }
+    );
+  };
+
+  const handleSubmitSession = () => {
+    if (!sessionTitle.trim() || !sessionDate.trim() || !sessionStartTime.trim() || !sessionEndTime.trim() || !sessionLocation.trim()) {
+      setModalError('Please fill in every field.');
+      return;
+    }
+    setModalError(null);
+    createSessionMutation.mutate(
+      {
+        title: sessionTitle.trim(),
+        date: sessionDate.trim(),
+        startTime: sessionStartTime.trim(),
+        endTime: sessionEndTime.trim(),
+        location: sessionLocation.trim(),
+      },
+      {
+        onSuccess: () => {
+          setSessionTitle('');
+          setSessionDate('');
+          setSessionStartTime('');
+          setSessionEndTime('');
+          setSessionLocation('');
+          closeModal();
+        },
+        onError: (err) => setModalError((err as { message?: string })?.message ?? 'Something went wrong. Please try again.'),
+      }
+    );
+  };
+
+  const handleSubmitInvite = () => {
+    if (!inviteEmail.trim()) {
+      setModalError('Please enter an email address.');
+      return;
+    }
+    setModalError(null);
+    inviteMutation.mutate(
+      { email: inviteEmail.trim() },
+      {
+        onSuccess: () => {
+          setInviteEmail('');
+          closeModal();
+          Alert.alert('Invite sent', 'They’ll see it once they sign in.');
+        },
+        onError: (err) => setModalError((err as { message?: string })?.message ?? 'Something went wrong. Please try again.'),
+      }
+    );
+  };
+
+  if (groupQuery.isLoading) {
+    return (
+      <SafeAreaView style={styles.safeArea} edges={['top']}>
+        <StatusBar barStyle="dark-content" backgroundColor={COLORS.background} />
+        <LoadingView message="Loading group..." />
+      </SafeAreaView>
+    );
+  }
+
+  if (groupQuery.isError || !group) {
+    return (
+      <SafeAreaView style={styles.safeArea} edges={['top']}>
+        <StatusBar barStyle="dark-content" backgroundColor={COLORS.background} />
+        <View style={styles.header}>
+          <TouchableOpacity style={styles.headerIconButton} activeOpacity={0.7} onPress={() => navigation.goBack()}>
+            <Feather name="arrow-left" size={20} color={COLORS.textPrimary} />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Group Details</Text>
+          <View style={styles.headerIconButton} />
+        </View>
+        <ErrorView message="Couldn't load this group." onRetry={() => groupQuery.refetch()} />
+      </SafeAreaView>
+    );
+  }
+
+  const hasDiscussions = posts.length > 0;
+  const hasResources = resources.length > 0;
+  const hasSessions = sessions.length > 0;
+  const hasMembers = members.length > 0;
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
@@ -243,7 +322,11 @@ const GroupDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
 
         <Text style={styles.headerTitle}>Group Details</Text>
 
-        <TouchableOpacity style={styles.headerIconButton} activeOpacity={0.7}>
+        <TouchableOpacity
+          style={styles.headerIconButton}
+          activeOpacity={0.7}
+          onPress={() => Alert.alert(group.name, 'Group options aside from Join/Leave aren\'t available yet.')}
+        >
           <Feather name="more-vertical" size={20} color={COLORS.textPrimary} />
         </TouchableOpacity>
       </View>
@@ -259,42 +342,41 @@ const GroupDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
         <View style={styles.heroCard}>
           <View style={styles.heroTopRow}>
             <View style={styles.heroBadge}>
-              <Text style={styles.heroBadgeText}>{group.categoryShort}</Text>
+              <Text style={styles.heroBadgeText}>{courseCodeToBadge(group.courseCode)}</Text>
             </View>
 
-            <View style={styles.heroChipsRow}>
-              <View style={styles.statusChip}>
-                <View style={styles.statusDot} />
-                <Text style={styles.statusChipText}>{group.status}</Text>
-              </View>
-              <View style={styles.typeChip}>
-                <Text style={styles.typeChipText}>{group.groupType}</Text>
-              </View>
+            <View style={styles.typeChip}>
+              <Text style={styles.typeChipText}>{group.groupType} Group</Text>
             </View>
           </View>
 
           <Text style={styles.heroTitle}>{group.name}</Text>
-          <Text style={styles.heroSubtitle}>{group.subtitle}</Text>
+          <Text style={styles.heroSubtitle}>
+            {group.courseCode} — {group.courseTitle}
+          </Text>
           <Text style={styles.heroDescription}>{group.description}</Text>
 
           <View style={styles.heroMetaRow}>
             <View style={styles.heroMetaItem}>
               <Feather name="users" size={14} color={COLORS.textSecondary} />
-              <Text style={styles.heroMetaText}>{group.members} members</Text>
+              <Text style={styles.heroMetaText}>{group.membersCount} members</Text>
             </View>
-            <View style={styles.heroMetaItem}>
-              <Ionicons name="star" size={14} color={COLORS.star} />
-              <Text style={styles.heroMetaText}>{group.rating.toFixed(1)} rating</Text>
-            </View>
+            {group.rating !== undefined ? (
+              <View style={styles.heroMetaItem}>
+                <Ionicons name="star" size={14} color={COLORS.star} />
+                <Text style={styles.heroMetaText}>{group.rating.toFixed(1)} rating</Text>
+              </View>
+            ) : null}
           </View>
 
           <TouchableOpacity
-            style={styles.heroActionButton}
+            style={[styles.heroActionButton, isJoinLeaveSubmitting && styles.heroActionButtonDisabled]}
             activeOpacity={0.85}
-            onPress={() => setIsJoined((prev) => !prev)}
+            onPress={handleJoinLeave}
+            disabled={isJoinLeaveSubmitting}
           >
             <Text style={styles.heroActionButtonText}>
-              {isJoined ? 'Open Group' : 'Join Group'}
+              {isJoinLeaveSubmitting ? 'Please wait...' : group.isJoined ? 'Leave Group' : 'Join Group'}
             </Text>
           </TouchableOpacity>
         </View>
@@ -303,125 +385,166 @@ const GroupDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
         {/* GROUP STATS                                                 */}
         {/* ---------------------------------------------------------- */}
         <View style={styles.statsRow}>
-          {STATS.map((stat) => (
-            <View key={stat.id} style={styles.statCard}>
-              <View style={styles.statIconWrap}>
-                <Feather name={stat.icon} size={16} color={COLORS.primary} />
-              </View>
-              <Text style={styles.statValue}>{stat.value}</Text>
-              <Text style={styles.statLabel}>{stat.label}</Text>
+          <View style={styles.statCard}>
+            <View style={styles.statIconWrap}>
+              <Feather name="users" size={16} color={COLORS.primary} />
             </View>
-          ))}
+            <Text style={styles.statValue}>{group.membersCount}</Text>
+            <Text style={styles.statLabel}>Members</Text>
+          </View>
+          <View style={styles.statCard}>
+            <View style={styles.statIconWrap}>
+              <Feather name="file-text" size={16} color={COLORS.primary} />
+            </View>
+            <Text style={styles.statValue}>{resourcesCount}</Text>
+            <Text style={styles.statLabel}>Resources</Text>
+          </View>
+          <View style={styles.statCard}>
+            <View style={styles.statIconWrap}>
+              <Feather name="calendar" size={16} color={COLORS.primary} />
+            </View>
+            <Text style={styles.statValue}>{sessionsCount}</Text>
+            <Text style={styles.statLabel}>Sessions</Text>
+          </View>
+          <View style={styles.statCard}>
+            <View style={styles.statIconWrap}>
+              <Feather name="message-circle" size={16} color={COLORS.primary} />
+            </View>
+            <Text style={styles.statValue}>{discussionsCount}</Text>
+            <Text style={styles.statLabel}>Discussions</Text>
+          </View>
         </View>
 
-        {/* ---------------------------------------------------------- */}
-        {/* UPCOMING SESSION                                            */}
-        {/* ---------------------------------------------------------- */}
-        <SectionHeader title="Upcoming Session" />
-        {HAS_UPCOMING_SESSION ? (
-          <View style={styles.stackedCards}>
-            <View style={styles.sessionCard}>
-              <Text style={styles.sessionTitle}>Data Structures Revision</Text>
-
-              <View style={styles.sessionMetaRow}>
-                <Feather name="calendar" size={13} color={COLORS.textSecondary} />
-                <Text style={styles.sessionMetaText}>Today</Text>
-              </View>
-              <View style={styles.sessionMetaRow}>
-                <Feather name="clock" size={13} color={COLORS.textSecondary} />
-                <Text style={styles.sessionMetaText}>4:00 PM – 6:00 PM</Text>
-              </View>
-              <View style={styles.sessionMetaRow}>
-                <Feather name="map-pin" size={13} color={COLORS.textSecondary} />
-                <Text style={styles.sessionMetaText}>CCB, Room 203</Text>
-              </View>
-
-              <TouchableOpacity
-                style={styles.viewOnMapButton}
-                activeOpacity={0.85}
-                onPress={() => navigation.navigate('MainTabs', { screen: 'Map' })}
-              >
-                <Feather name="map" size={13} color={COLORS.white} />
-                <Text style={styles.viewOnMapButtonText}>View on Map</Text>
-              </TouchableOpacity>
-            </View>
+        {!group.isJoined ? (
+          <View style={styles.joinPrompt}>
+            <Feather name="lock" size={13} color={COLORS.textMuted} />
+            <Text style={styles.joinPromptText}>Join this group to see discussions, sessions, and members.</Text>
           </View>
-        ) : (
-          <View style={styles.stackedCards}>
-            <View style={styles.emptyStateCard}>
-              <EmptyState
-                icon="calendar"
-                title="No upcoming sessions"
-                subtitle="Schedule a session so members know when to meet."
-              />
-            </View>
-          </View>
+        ) : null}
+
+        {/* ---------------------------------------------------------- */}
+        {/* UPCOMING SESSIONS                                           */}
+        {/* ---------------------------------------------------------- */}
+        {group.isJoined && (
+          <>
+            <SectionHeader title="Upcoming Sessions" />
+            {hasSessions ? (
+              <View style={styles.stackedCards}>
+                {sessions.map((session) => (
+                  <View key={session.id} style={styles.sessionCard}>
+                    <Text style={styles.sessionTitle}>{session.title}</Text>
+
+                    <View style={styles.sessionMetaRow}>
+                      <Feather name="calendar" size={13} color={COLORS.textSecondary} />
+                      <Text style={styles.sessionMetaText}>{session.date}</Text>
+                    </View>
+                    <View style={styles.sessionMetaRow}>
+                      <Feather name="clock" size={13} color={COLORS.textSecondary} />
+                      <Text style={styles.sessionMetaText}>
+                        {session.startTime} – {session.endTime}
+                      </Text>
+                    </View>
+                    <View style={styles.sessionMetaRow}>
+                      <Feather name="map-pin" size={13} color={COLORS.textSecondary} />
+                      <Text style={styles.sessionMetaText}>{session.location}</Text>
+                    </View>
+                    <View style={styles.sessionMetaRow}>
+                      <Feather name="users" size={13} color={COLORS.textSecondary} />
+                      <Text style={styles.sessionMetaText}>{session.attendeesCount} attending</Text>
+                    </View>
+                  </View>
+                ))}
+              </View>
+            ) : (
+              <View style={styles.stackedCards}>
+                <View style={styles.emptyStateCard}>
+                  <EmptyState
+                    icon="calendar"
+                    title="No upcoming sessions"
+                    subtitle="Schedule a session so members know when to meet."
+                  />
+                </View>
+              </View>
+            )}
+          </>
         )}
 
         {/* ---------------------------------------------------------- */}
         {/* RECENT DISCUSSIONS                                          */}
         {/* ---------------------------------------------------------- */}
-        <SectionHeader title="Recent Discussions" onPressViewAll={() => {}} />
-        {hasDiscussions ? (
-          <View style={styles.listCard}>
-            {DISCUSSIONS.map((item, index) => (
-              <TouchableOpacity
-                key={item.id}
-                style={[
-                  styles.discussionRow,
-                  index !== DISCUSSIONS.length - 1 && styles.rowDivider,
-                ]}
-                activeOpacity={0.7}
-              >
-                <View style={styles.avatarCircle}>
-                  <Text style={styles.avatarInitials}>{item.initials}</Text>
-                </View>
+        {group.isJoined && (
+          <>
+            <SectionHeader title="Recent Discussions" />
+            {hasDiscussions ? (
+              <View style={styles.listCard}>
+                {posts.map((item, index) => (
+                  <TouchableOpacity
+                    key={item.id}
+                    style={[styles.discussionRow, index !== posts.length - 1 && styles.rowDivider]}
+                    activeOpacity={0.7}
+                    onPress={() =>
+                      Alert.alert(
+                        item.title,
+                        `${item.body ?? ''}\n\nBy ${item.authorName} • ${item.repliesCount} replies\n\nFull discussion threads aren't available yet.`
+                      )
+                    }
+                  >
+                    <View style={styles.avatarCircle}>
+                      <Text style={styles.avatarInitials}>
+                        {item.authorName
+                          .split(' ')
+                          .map((p) => p[0])
+                          .join('')
+                          .slice(0, 2)
+                          .toUpperCase()}
+                      </Text>
+                    </View>
 
-                <View style={styles.discussionInfo}>
-                  <Text style={styles.discussionQuestion} numberOfLines={2}>
-                    {item.question}
-                  </Text>
-                  <Text style={styles.discussionMeta}>
-                    Asked by {item.author} • {item.replies} replies • {item.time}
-                  </Text>
-                </View>
+                    <View style={styles.discussionInfo}>
+                      <Text style={styles.discussionQuestion} numberOfLines={2}>
+                        {item.title}
+                      </Text>
+                      <Text style={styles.discussionMeta}>
+                        Asked by {item.authorName} • {item.repliesCount} replies
+                      </Text>
+                    </View>
 
-                <Feather name="chevron-right" size={18} color={COLORS.textMuted} />
-              </TouchableOpacity>
-            ))}
-          </View>
-        ) : (
-          <View style={styles.listCard}>
-            <EmptyState
-              icon="message-circle"
-              title="No discussions yet"
-              subtitle="Start the first conversation in this group."
-            />
-          </View>
+                    <Feather name="chevron-right" size={18} color={COLORS.textMuted} />
+                  </TouchableOpacity>
+                ))}
+              </View>
+            ) : (
+              <View style={styles.listCard}>
+                <EmptyState
+                  icon="message-circle"
+                  title="No discussions yet"
+                  subtitle="Start the first conversation in this group."
+                />
+              </View>
+            )}
+          </>
         )}
 
         {/* ---------------------------------------------------------- */}
         {/* SHARED RESOURCES                                            */}
         {/* ---------------------------------------------------------- */}
-        <SectionHeader title="Shared Resources" onPressViewAll={() => {}} />
+        <SectionHeader
+          title="Shared Resources"
+          onPressViewAll={() => navigation.navigate('MainTabs', { screen: 'Resources' })}
+        />
         {hasResources ? (
           <View style={styles.listCard}>
-            {RESOURCES.map((item, index) => {
+            {resources.map((item, index) => {
               const fileStyle = FILE_TYPE_STYLES[item.fileType];
               return (
                 <TouchableOpacity
                   key={item.id}
-                  style={[
-                    styles.resourceRow,
-                    index !== RESOURCES.length - 1 && styles.rowDivider,
-                  ]}
+                  style={[styles.resourceRow, index !== resources.length - 1 && styles.rowDivider]}
                   activeOpacity={0.7}
-                  onPress={() => navigation.navigate('ResourceDetails', { resource: toResourceData(item, group) })}
+                  onPress={() => navigation.navigate('ResourceDetails', { resourceId: item.id })}
                 >
                   <View style={[styles.fileBadge, { backgroundColor: fileStyle.bg }]}>
-                    <Text style={[styles.fileBadgeText, { color: fileStyle.color }]}>
-                      {item.fileType}
-                    </Text>
+                    <Text style={[styles.fileBadgeText, { color: fileStyle.color }]}>{item.fileType}</Text>
                   </View>
 
                   <View style={styles.resourceInfo}>
@@ -433,12 +556,7 @@ const GroupDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
                     </Text>
                   </View>
 
-                  <TouchableOpacity style={styles.resourceIconButton} activeOpacity={0.7}>
-                    <Feather name="download" size={16} color={COLORS.primary} />
-                  </TouchableOpacity>
-                  <TouchableOpacity style={styles.resourceIconButton} activeOpacity={0.7}>
-                    <Feather name="more-vertical" size={16} color={COLORS.textMuted} />
-                  </TouchableOpacity>
+                  <Feather name="chevron-right" size={16} color={COLORS.textMuted} />
                 </TouchableOpacity>
               );
             })}
@@ -458,123 +576,141 @@ const GroupDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
         {/* ---------------------------------------------------------- */}
         {/* MEMBERS                                                     */}
         {/* ---------------------------------------------------------- */}
-        <SectionHeader title="Members" onPressViewAll={() => {}} />
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.membersScroll}
-        >
-          {MEMBERS.map((member) => {
-            const roleStyle = ROLE_STYLES[member.role];
-            return (
-              <View key={member.id} style={styles.memberCard}>
-                <View style={styles.memberAvatarCircle}>
-                  <Text style={styles.memberAvatarInitials}>{member.initials}</Text>
-                </View>
-                <Text style={styles.memberName} numberOfLines={1}>
-                  {member.name.split(' ')[0]}
-                </Text>
-                <View style={[styles.roleChip, { backgroundColor: roleStyle.bg }]}>
-                  <Text style={[styles.roleChipText, { color: roleStyle.color }]}>
-                    {member.role}
-                  </Text>
-                </View>
-              </View>
-            );
-          })}
-        </ScrollView>
+        {group.isJoined && (
+          <>
+            <SectionHeader title="Members" />
+            {hasMembers ? (
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.membersScroll}
+              >
+                {members.map((member) => {
+                  const roleStyle = ROLE_STYLES[member.role];
+                  return (
+                    <View key={member.id} style={styles.memberCard}>
+                      <View style={styles.memberAvatarCircle}>
+                        <Text style={styles.memberAvatarInitials}>
+                          {member.fullName
+                            .split(' ')
+                            .map((p) => p[0])
+                            .join('')
+                            .slice(0, 2)
+                            .toUpperCase()}
+                        </Text>
+                      </View>
+                      <Text style={styles.memberName} numberOfLines={1}>
+                        {member.fullName.split(' ')[0]}
+                      </Text>
+                      <View style={[styles.roleChip, { backgroundColor: roleStyle.bg }]}>
+                        <Text style={[styles.roleChipText, { color: roleStyle.color }]}>
+                          {member.role === 'owner' ? 'Owner' : 'Member'}
+                        </Text>
+                      </View>
+                    </View>
+                  );
+                })}
+              </ScrollView>
+            ) : null}
+          </>
+        )}
 
         {/* ---------------------------------------------------------- */}
         {/* GROUP ACTIONS                                               */}
         {/* ---------------------------------------------------------- */}
-        <SectionHeader title="Group Actions" />
-        <View style={styles.actionsGrid}>
-          {/* These 3 actions don't have dedicated screens yet — only
-              CreateGroup, ResourceDetails, UploadResource, and EditProfile
-              have been built so far. Wire these onPress handlers to real
-              navigation once DiscussionThread, ScheduleSession, and
-              InviteMember screens exist. */}
-          <TouchableOpacity
-            style={styles.primaryActionCard}
-            activeOpacity={0.85}
-            onPress={() => {
-              // Placeholder — no DiscussionThread/CreateDiscussion screen yet.
-            }}
-          >
-            <View style={styles.primaryActionIconWrap}>
-              <Feather name="message-square" size={18} color={COLORS.white} />
-            </View>
-            <Text style={styles.primaryActionLabel}>Start Discussion</Text>
-          </TouchableOpacity>
+        {group.isJoined && (
+          <>
+            <SectionHeader title="Group Actions" />
+            <View style={styles.actionsGrid}>
+              <TouchableOpacity
+                style={styles.primaryActionCard}
+                activeOpacity={0.85}
+                onPress={() => setActiveModal('discussion')}
+              >
+                <View style={styles.primaryActionIconWrap}>
+                  <Feather name="message-square" size={18} color={COLORS.white} />
+                </View>
+                <Text style={styles.primaryActionLabel}>Start Discussion</Text>
+              </TouchableOpacity>
 
-          <TouchableOpacity
-            style={styles.secondaryActionCard}
-            activeOpacity={0.85}
-            onPress={() => navigation.navigate('UploadResource')}
-          >
-            <View style={styles.secondaryActionIconWrap}>
-              <Feather name="upload" size={18} color={COLORS.primary} />
-            </View>
-            <Text style={styles.secondaryActionLabel}>Upload Resource</Text>
-          </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.secondaryActionCard}
+                activeOpacity={0.85}
+                onPress={() => navigation.navigate('UploadResource')}
+              >
+                <View style={styles.secondaryActionIconWrap}>
+                  <Feather name="upload" size={18} color={COLORS.primary} />
+                </View>
+                <Text style={styles.secondaryActionLabel}>Upload Resource</Text>
+              </TouchableOpacity>
 
-          <TouchableOpacity
-            style={styles.secondaryActionCard}
-            activeOpacity={0.85}
-            onPress={() => {
-              // Placeholder — no ScheduleSession screen yet.
-            }}
-          >
-            <View style={styles.secondaryActionIconWrap}>
-              <Feather name="calendar" size={18} color={COLORS.primary} />
-            </View>
-            <Text style={styles.secondaryActionLabel}>Schedule Session</Text>
-          </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.secondaryActionCard}
+                activeOpacity={0.85}
+                onPress={() => setActiveModal('session')}
+              >
+                <View style={styles.secondaryActionIconWrap}>
+                  <Feather name="calendar" size={18} color={COLORS.primary} />
+                </View>
+                <Text style={styles.secondaryActionLabel}>Schedule Session</Text>
+              </TouchableOpacity>
 
-          <TouchableOpacity
-            style={styles.secondaryActionCard}
-            activeOpacity={0.85}
-            onPress={() => {
-              // Placeholder — no InviteMember screen yet.
-            }}
-          >
-            <View style={styles.secondaryActionIconWrap}>
-              <Feather name="user-plus" size={18} color={COLORS.primary} />
+              <TouchableOpacity
+                style={styles.secondaryActionCard}
+                activeOpacity={0.85}
+                onPress={() => setActiveModal('invite')}
+              >
+                <View style={styles.secondaryActionIconWrap}>
+                  <Feather name="user-plus" size={18} color={COLORS.primary} />
+                </View>
+                <Text style={styles.secondaryActionLabel}>Invite Member</Text>
+              </TouchableOpacity>
             </View>
-            <Text style={styles.secondaryActionLabel}>Invite Member</Text>
-          </TouchableOpacity>
-        </View>
+          </>
+        )}
 
-        {/* Bottom spacer so content isn't hidden behind the fixed bar */}
-        <View style={{ height: 110 }} />
+        {/* Bottom spacer */}
+        <View style={{ height: 40 }} />
       </ScrollView>
 
       {/* ------------------------------------------------------------ */}
-      {/* FIXED BOTTOM ACTION BAR                                       */}
+      {/* GROUP ACTION MODALS                                           */}
       {/* ------------------------------------------------------------ */}
-      <View style={styles.bottomBar}>
-        <TouchableOpacity
-          style={styles.bottomPrimaryButton}
-          activeOpacity={0.85}
-          onPress={() => setIsJoined((prev) => !prev)}
-        >
-          <Text style={styles.bottomPrimaryButtonText}>
-            {isJoined ? 'Open Group' : 'Join Group'}
-          </Text>
-        </TouchableOpacity>
+      <ActionModal visible={activeModal === 'discussion'} title="Start Discussion" onClose={closeModal}>
+        <AppTextInput label="Title" value={discussionTitle} onChangeText={setDiscussionTitle} placeholder="What's your question?" />
+        <AppTextInput
+          label="Details (optional)"
+          value={discussionBody}
+          onChangeText={setDiscussionBody}
+          placeholder="Add more context..."
+          multiline
+        />
+        {modalError ? <Text style={styles.modalErrorText}>{modalError}</Text> : null}
+        <PrimaryButton label="Post Discussion" onPress={handleSubmitDiscussion} loading={isModalSubmitting} />
+      </ActionModal>
 
-        <TouchableOpacity
-          style={styles.bottomSaveButton}
-          activeOpacity={0.85}
-          onPress={() => setIsSaved((prev) => !prev)}
-        >
-          <Feather
-            name="bookmark"
-            size={20}
-            color={isSaved ? COLORS.primary : COLORS.textMuted}
-          />
-        </TouchableOpacity>
-      </View>
+      <ActionModal visible={activeModal === 'session'} title="Schedule Session" onClose={closeModal}>
+        <AppTextInput label="Title" value={sessionTitle} onChangeText={setSessionTitle} placeholder="e.g. Data Structures Revision" />
+        <AppTextInput label="Date" value={sessionDate} onChangeText={setSessionDate} placeholder="e.g. 2026-08-01" />
+        <AppTextInput label="Start Time" value={sessionStartTime} onChangeText={setSessionStartTime} placeholder="e.g. 4:00 PM" />
+        <AppTextInput label="End Time" value={sessionEndTime} onChangeText={setSessionEndTime} placeholder="e.g. 6:00 PM" />
+        <AppTextInput label="Location" value={sessionLocation} onChangeText={setSessionLocation} placeholder="e.g. CCB, Room 203" />
+        {modalError ? <Text style={styles.modalErrorText}>{modalError}</Text> : null}
+        <PrimaryButton label="Schedule Session" onPress={handleSubmitSession} loading={isModalSubmitting} />
+      </ActionModal>
+
+      <ActionModal visible={activeModal === 'invite'} title="Invite Member" onClose={closeModal}>
+        <AppTextInput
+          label="KNUST Email"
+          value={inviteEmail}
+          onChangeText={setInviteEmail}
+          placeholder="student@knust.edu.gh"
+          autoCapitalize="none"
+          keyboardType="email-address"
+        />
+        {modalError ? <Text style={styles.modalErrorText}>{modalError}</Text> : null}
+        <PrimaryButton label="Send Invite" onPress={handleSubmitInvite} loading={isModalSubmitting} />
+      </ActionModal>
     </SafeAreaView>
   );
 };
@@ -651,31 +787,6 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: COLORS.white,
   },
-  heroChipsRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  statusChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: COLORS.successLight,
-    paddingHorizontal: 9,
-    paddingVertical: 5,
-    borderRadius: 20,
-    marginRight: 8,
-  },
-  statusDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: COLORS.success,
-    marginRight: 5,
-  },
-  statusChipText: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: COLORS.success,
-  },
   typeChip: {
     backgroundColor: COLORS.chipBg,
     paddingHorizontal: 9,
@@ -726,6 +837,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: 16,
   },
+  heroActionButtonDisabled: {
+    opacity: 0.7,
+  },
   heroActionButtonText: {
     fontSize: 14,
     fontWeight: '700',
@@ -767,6 +881,24 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
 
+  // ---------------- JOIN PROMPT ----------------
+  joinPrompt: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginHorizontal: H_PADDING,
+    marginTop: 16,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    backgroundColor: COLORS.chipBg,
+    borderRadius: 12,
+  },
+  joinPromptText: {
+    flex: 1,
+    fontSize: 12,
+    color: COLORS.textSecondary,
+    marginLeft: 8,
+  },
+
   // ---------------- SECTION HEADER ----------------
   sectionHeader: {
     flexDirection: 'row',
@@ -796,6 +928,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.card,
     borderRadius: 18,
     padding: 16,
+    marginBottom: CARD_GAP,
     ...SHADOW,
   },
   sessionTitle: {
@@ -813,21 +946,6 @@ const styles = StyleSheet.create({
     fontSize: 12.5,
     color: COLORS.textSecondary,
     marginLeft: 7,
-  },
-  viewOnMapButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: COLORS.primary,
-    borderRadius: 10,
-    paddingVertical: 10,
-    marginTop: 14,
-  },
-  viewOnMapButtonText: {
-    fontSize: 12.5,
-    fontWeight: '700',
-    color: COLORS.white,
-    marginLeft: 6,
   },
   emptyStateCard: {
     backgroundColor: COLORS.card,
@@ -912,12 +1030,6 @@ const styles = StyleSheet.create({
   resourceMeta: {
     fontSize: 11.5,
     color: COLORS.textMuted,
-  },
-  resourceIconButton: {
-    width: 30,
-    height: 30,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
 
   // ---------------- MEMBERS ----------------
@@ -1058,45 +1170,42 @@ const styles = StyleSheet.create({
     color: COLORS.white,
   },
 
-  // ---------------- FIXED BOTTOM BAR ----------------
-  bottomBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: COLORS.card,
-    paddingHorizontal: H_PADDING,
-    paddingTop: 14,
-    paddingBottom: 28,
+  // ---------------- ACTION MODALS ----------------
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(17,17,17,0.4)',
+    justifyContent: 'flex-end',
+  },
+  modalSheet: {
+    backgroundColor: COLORS.white,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
-    shadowColor: '#1B1F3B',
-    shadowOffset: { width: 0, height: -3 },
-    shadowOpacity: 0.08,
-    shadowRadius: 10,
-    elevation: 10,
-    gap: 12,
+    paddingHorizontal: 20,
+    paddingTop: 12,
+    paddingBottom: 32,
   },
-  bottomPrimaryButton: {
-    flex: 1,
-    backgroundColor: COLORS.primary,
-    borderRadius: 14,
-    paddingVertical: 15,
+  modalHandle: {
+    width: 40,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: COLORS.border,
+    alignSelf: 'center',
+    marginBottom: 14,
+  },
+  modalHeaderRow: {
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 16,
   },
-  bottomPrimaryButtonText: {
-    fontSize: 14.5,
+  modalTitle: {
+    fontSize: 16,
     fontWeight: '700',
-    color: COLORS.white,
+    color: COLORS.textPrimary,
   },
-  bottomSaveButton: {
-    width: 52,
-    height: 52,
-    borderRadius: 14,
-    backgroundColor: COLORS.chipBg,
-    alignItems: 'center',
-    justifyContent: 'center',
+  modalErrorText: {
+    fontSize: 12,
+    color: COLORS.danger,
+    marginBottom: 12,
   },
 });

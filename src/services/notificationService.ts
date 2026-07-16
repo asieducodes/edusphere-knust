@@ -7,12 +7,14 @@
  */
 
 import api from './api';
-import { ApiResponse, PaginationParams } from '../types/api';
+import { ApiResponse, PaginatedData, PaginationParams } from '../types/api';
 import { AppNotification } from '../types/notification';
 
 /** GET /notifications */
-export async function getNotifications(params?: PaginationParams): Promise<ApiResponse<AppNotification[]>> {
-  const response = await api.get<ApiResponse<AppNotification[]>>('/notifications', { params });
+export async function getNotifications(
+  params?: PaginationParams
+): Promise<ApiResponse<PaginatedData<AppNotification>>> {
+  const response = await api.get<ApiResponse<PaginatedData<AppNotification>>>('/notifications', { params });
   return response.data;
 }
 

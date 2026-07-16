@@ -10,7 +10,7 @@
  * -----------------------------------------------------------------------
  */
 
-import React, { useState } from "react";
+import React, { useCallback } from "react";
 import {
   View,
   Text,
@@ -19,15 +19,19 @@ import {
   TouchableOpacity,
   Image,
   StatusBar,
+  Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Feather, Ionicons } from "@expo/vector-icons";
-import { useNavigation } from "@react-navigation/native";
+import { useNavigation, useFocusEffect } from "@react-navigation/native";
 import type { CompositeNavigationProp } from "@react-navigation/native";
 import type { BottomTabNavigationProp } from "@react-navigation/bottom-tabs";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { COLORS, SHADOW } from "../theme/colors";
 import { MainTabParamList, RootStackParamList } from "../navigation/types";
+import { useAuth } from "../context/AuthContext";
+import { LoadingView, ErrorView } from "../components/common";
+import { useMyProfile, useProfileStats } from "../hooks/useProfile";
 
 // Navigation from this screen needs to reach EditProfile, which lives in
 // the root stack sitting above the tabs.
@@ -53,138 +57,12 @@ interface AcademicInfoRow {
   value: string;
 }
 
-interface InterestChip {
-  id: string;
-  label: string;
-  accent?: boolean;
-}
-
-interface ActivityItem {
-  id: string;
-  icon: keyof typeof Feather.glyphMap;
-  text: string;
-  time: string;
-}
-
 interface MenuRow {
   id: string;
   icon: keyof typeof Feather.glyphMap;
   label: string;
   subtitle: string;
 }
-
-// -----------------------------------------------------------------------
-// STATIC SAMPLE DATA
-// -----------------------------------------------------------------------
-const STATS: StatItem[] = [
-  { id: "st1", icon: "users", value: "5", label: "Groups" },
-  { id: "st2", icon: "file-text", value: "12", label: "Resources" },
-  { id: "st3", icon: "calendar", value: "8", label: "Sessions" },
-  { id: "st4", icon: "star", value: "4.7", label: "Rating" },
-];
-
-const ACADEMIC_INFO: AcademicInfoRow[] = [
-  {
-    id: "ai1",
-    icon: "book-open",
-    label: "Programme",
-    value: "BSc Computer Engineering",
-  },
-  {
-    id: "ai2",
-    icon: "layers",
-    label: "Department",
-    value: "Computer Engineering",
-  },
-  {
-    id: "ai3",
-    icon: "home",
-    label: "College",
-    value: "College of Engineering",
-  },
-  { id: "ai4", icon: "bar-chart-2", label: "Level", value: "300" },
-  {
-    id: "ai5",
-    icon: "mail",
-    label: "Student Email",
-    value: "aaoduro@st.knust.edu.gh",
-  },
-];
-
-const INTERESTS: InterestChip[] = [
-  { id: "in1", label: "Data Structures", accent: true },
-  { id: "in2", label: "Database Systems" },
-  { id: "in3", label: "Artificial Intelligence", accent: true },
-  { id: "in4", label: "Calculus" },
-  { id: "in5", label: "Web Development" },
-  { id: "in6", label: "Cybersecurity" },
-];
-
-const RECENT_ACTIVITY: ActivityItem[] = [
-  {
-    id: "ac1",
-    icon: "user-plus",
-    text: "Joined CSM 351 Data Structures group",
-    time: "2h ago",
-  },
-  {
-    id: "ac2",
-    icon: "upload",
-    text: "Uploaded Past Questions - CSM 357",
-    time: "1d ago",
-  },
-  {
-    id: "ac3",
-    icon: "star",
-    text: "Rated MTH 263 Tutorial group",
-    time: "2d ago",
-  },
-  {
-    id: "ac4",
-    icon: "check-circle",
-    text: "Attended Database Systems study session",
-    time: "3d ago",
-  },
-];
-
-const ACCOUNT_MENU: MenuRow[] = [
-  {
-    id: "mn1",
-    icon: "bookmark",
-    label: "Saved Resources",
-    subtitle: "6 saved items",
-  },
-  {
-    id: "mn2",
-    icon: "upload",
-    label: "My Uploads",
-    subtitle: "12 files shared",
-  },
-  {
-    id: "mn3",
-    icon: "users",
-    label: "My Study Groups",
-    subtitle: "5 active groups",
-  },
-  {
-    id: "mn4",
-    icon: "bell",
-    label: "Notifications",
-    subtitle: "Manage alerts",
-  },
-  {
-    id: "mn5",
-    icon: "shield",
-    label: "Privacy & Security",
-    subtitle: "Password, data",
-  },
-  {
-    id: "mn6",
-    icon: "help-circle",
-    label: "Help & Support",
-    subtitle: "FAQs, contact us",
-  },
-];
 
 // -----------------------------------------------------------------------
 // SMALL REUSABLE COMPONENTS
@@ -198,29 +76,102 @@ const SectionHeader: React.FC<{ title: string }> = ({ title }) => (
   </View>
 );
 
-/** Generic empty state — reused for "no activity" and "no saved resources" */
-const EmptyState: React.FC<{
-  icon: keyof typeof Feather.glyphMap;
-  title: string;
-  subtitle: string;
-}> = ({ icon, title, subtitle }) => (
-  <View style={styles.emptyState}>
-    <View style={styles.emptyIconWrap}>
-      <Feather name={icon} size={22} color={COLORS.primary} />
-    </View>
-    <Text style={styles.emptyTitle}>{title}</Text>
-    <Text style={styles.emptySubtitle}>{subtitle}</Text>
-  </View>
-);
-
 // -----------------------------------------------------------------------
 // MAIN COMPONENT
 // -----------------------------------------------------------------------
 const ProfileScreen: React.FC = () => {
   const navigation = useNavigation<ProfileScreenNavigationProp>();
-  // Toggle these to preview the empty states — wire to real data later.
-  const [hasActivity] = useState(true);
-  const [hasSavedResources] = useState(true);
+  const { logout } = useAuth();
+
+  const profileQuery = useMyProfile();
+  const statsQuery = useProfileStats();
+  const user = profileQuery.data;
+  const counts = statsQuery.data ?? { groups: 0, uploads: 0, sessions: 0, saved: 0 };
+
+  const isLoading = profileQuery.isLoading || statsQuery.isLoading;
+  const hasError = !profileQuery.data && (profileQuery.isError || statsQuery.isError);
+
+  const refetchAll = useCallback(() => {
+    profileQuery.refetch();
+    statsQuery.refetch();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useFocusEffect(refetchAll);
+
+  const handleMenuPress = (item: MenuRow) => {
+    if (item.id === "mn1" || item.id === "mn2") {
+      navigation.navigate("Resources");
+      return;
+    }
+    if (item.id === "mn3") {
+      navigation.navigate("Groups");
+      return;
+    }
+    if (item.id === "mn4") {
+      navigation.navigate("Notifications");
+      return;
+    }
+    Alert.alert(item.label, "This section isn't available yet.");
+  };
+
+  const handleLogOut = () => {
+    Alert.alert("Log Out", "Are you sure you want to log out?", [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Log Out",
+        style: "destructive",
+        // logout() always clears local session state even if the
+        // server-side call fails (see AuthContext.tsx) — nothing else to
+        // handle here, just avoid an unhandled-rejection warning.
+        onPress: () => {
+          logout().catch(() => undefined);
+        },
+      },
+    ]);
+  };
+
+  if (isLoading) {
+    return (
+      <SafeAreaView style={styles.safeArea} edges={["top"]}>
+        <StatusBar barStyle="dark-content" backgroundColor={COLORS.background} />
+        <LoadingView message="Loading profile..." />
+      </SafeAreaView>
+    );
+  }
+
+  if (hasError || !user) {
+    return (
+      <SafeAreaView style={styles.safeArea} edges={["top"]}>
+        <StatusBar barStyle="dark-content" backgroundColor={COLORS.background} />
+        <ErrorView onRetry={refetchAll} />
+      </SafeAreaView>
+    );
+  }
+
+  const STATS: StatItem[] = [
+    { id: "st1", icon: "users", value: String(counts.groups), label: "Groups" },
+    { id: "st2", icon: "file-text", value: String(counts.uploads), label: "Resources" },
+    { id: "st3", icon: "calendar", value: String(counts.sessions), label: "Sessions" },
+    { id: "st4", icon: "star", value: user.rating ? user.rating.toFixed(1) : "—", label: "Rating" },
+  ];
+
+  const ACADEMIC_INFO: AcademicInfoRow[] = [
+    { id: "ai1", icon: "book-open", label: "Programme", value: user.programme || "Not set" },
+    { id: "ai2", icon: "layers", label: "Department", value: user.department || "Not set" },
+    { id: "ai3", icon: "home", label: "College", value: user.college || "Not set" },
+    { id: "ai4", icon: "bar-chart-2", label: "Level", value: user.level || "Not set" },
+    { id: "ai5", icon: "mail", label: "Student Email", value: user.email },
+  ];
+
+  const ACCOUNT_MENU: MenuRow[] = [
+    { id: "mn1", icon: "bookmark", label: "Saved Resources", subtitle: `${counts.saved} saved items` },
+    { id: "mn2", icon: "upload", label: "My Uploads", subtitle: `${counts.uploads} files shared` },
+    { id: "mn3", icon: "users", label: "My Study Groups", subtitle: `${counts.groups} active groups` },
+    { id: "mn4", icon: "bell", label: "Notifications", subtitle: "Manage alerts" },
+    { id: "mn5", icon: "shield", label: "Privacy & Security", subtitle: "Password, data" },
+    { id: "mn6", icon: "help-circle", label: "Help & Support", subtitle: "FAQs, contact us" },
+  ];
 
   return (
     <SafeAreaView style={styles.safeArea} edges={["top"]}>
@@ -240,6 +191,7 @@ const ProfileScreen: React.FC = () => {
             <TouchableOpacity
               style={styles.settingsIconButton}
               activeOpacity={0.7}
+              onPress={() => Alert.alert("Settings", "Settings aren't available yet.")}
             >
               <Feather name="settings" size={19} color={COLORS.textPrimary} />
             </TouchableOpacity>
@@ -252,33 +204,42 @@ const ProfileScreen: React.FC = () => {
         <View style={styles.profileCard}>
           <View style={styles.profileTopRow}>
             <View style={styles.avatarWrapper}>
-              <Image
-                source={{ uri: "https://i.pravatar.cc/150?img=12" }}
-                style={styles.avatar}
-              />
-              <View style={styles.verifiedBadge}>
-                <Ionicons name="checkmark" size={11} color={COLORS.white} />
-              </View>
+              {user.avatarUrl ? (
+                <Image source={{ uri: user.avatarUrl }} style={styles.avatar} />
+              ) : (
+                <View style={[styles.avatar, styles.avatarPlaceholder]}>
+                  <Feather name="user" size={28} color={COLORS.primary} />
+                </View>
+              )}
+              {user.isEmailVerified ? (
+                <View style={styles.verifiedBadge}>
+                  <Ionicons name="checkmark" size={11} color={COLORS.white} />
+                </View>
+              ) : null}
             </View>
 
             <View style={styles.profileNameBlock}>
               <View style={styles.profileNameRow}>
-                <Text style={styles.profileName}>Nii Nortey</Text>
+                <Text style={styles.profileName}>{user.fullName}</Text>
               </View>
-              <Text style={styles.profileProgramme}>BSc Computer Science</Text>
+              <Text style={styles.profileProgramme}>{user.programme || "Programme not set"}</Text>
               <View style={styles.profileMetaRow}>
-                <View style={styles.levelBadge}>
-                  <Text style={styles.levelBadgeText}>Level 300</Text>
-                </View>
+                {user.level ? (
+                  <View style={styles.levelBadge}>
+                    <Text style={styles.levelBadgeText}>{user.level}</Text>
+                  </View>
+                ) : null}
                 <Text style={styles.profileUniversity}>KNUST</Text>
               </View>
             </View>
           </View>
 
-          <View style={styles.verifiedStrip}>
-            <Feather name="shield" size={13} color={COLORS.primary} />
-            <Text style={styles.verifiedStripText}>Verified Student</Text>
-          </View>
+          {user.isEmailVerified ? (
+            <View style={styles.verifiedStrip}>
+              <Feather name="shield" size={13} color={COLORS.primary} />
+              <Text style={styles.verifiedStripText}>Verified Student</Text>
+            </View>
+          ) : null}
 
           <TouchableOpacity
             style={styles.editProfileButton}
@@ -334,64 +295,17 @@ const ProfileScreen: React.FC = () => {
         {/* ---------------------------------------------------------- */}
         {/* STUDY INTERESTS                                             */}
         {/* ---------------------------------------------------------- */}
-        <SectionHeader title="Study Interests" />
-        <View style={styles.interestsWrap}>
-          {INTERESTS.map((interest) => (
-            <View
-              key={interest.id}
-              style={[
-                styles.interestChip,
-                interest.accent && styles.interestChipAccent,
-              ]}
-            >
-              <Text
-                style={[
-                  styles.interestChipText,
-                  interest.accent && styles.interestChipTextAccent,
-                ]}
-              >
-                {interest.label}
-              </Text>
-            </View>
-          ))}
-        </View>
-
-        {/* ---------------------------------------------------------- */}
-        {/* RECENT ACTIVITY                                             */}
-        {/* ---------------------------------------------------------- */}
-        <SectionHeader title="Recent Activity" />
-        {hasActivity ? (
-          <View style={styles.listCard}>
-            {RECENT_ACTIVITY.map((activity, index) => (
-              <View
-                key={activity.id}
-                style={[
-                  styles.activityRow,
-                  index !== RECENT_ACTIVITY.length - 1 && styles.rowDivider,
-                ]}
-              >
-                <View style={styles.activityIconWrap}>
-                  <Feather
-                    name={activity.icon}
-                    size={15}
-                    color={COLORS.primary}
-                  />
+        {user.interests && user.interests.length > 0 && (
+          <>
+            <SectionHeader title="Study Interests" />
+            <View style={styles.interestsWrap}>
+              {user.interests.map((interest) => (
+                <View key={interest} style={styles.interestChip}>
+                  <Text style={styles.interestChipText}>{interest}</Text>
                 </View>
-                <Text style={styles.activityText} numberOfLines={2}>
-                  {activity.text}
-                </Text>
-                <Text style={styles.activityTime}>{activity.time}</Text>
-              </View>
-            ))}
-          </View>
-        ) : (
-          <View style={styles.listCard}>
-            <EmptyState
-              icon="activity"
-              title="No activity yet"
-              subtitle="Join a group or upload a resource to get started."
-            />
-          </View>
+              ))}
+            </View>
+          </>
         )}
 
         {/* ---------------------------------------------------------- */}
@@ -407,6 +321,7 @@ const ProfileScreen: React.FC = () => {
                 index !== ACCOUNT_MENU.length - 1 && styles.rowDivider,
               ]}
               activeOpacity={0.7}
+              onPress={() => handleMenuPress(item)}
             >
               <View style={styles.menuIconWrap}>
                 <Feather name={item.icon} size={16} color={COLORS.primary} />
@@ -424,23 +339,10 @@ const ProfileScreen: React.FC = () => {
           ))}
         </View>
 
-        {/* Reference to the "no saved resources" empty state — this is
-            what the Saved Resources screen would show when the list is
-            empty; included here per spec as a reusable component. */}
-        {!hasSavedResources && (
-          <View style={styles.listCard}>
-            <EmptyState
-              icon="bookmark"
-              title="No saved resources"
-              subtitle="Bookmark notes or past questions to find them here."
-            />
-          </View>
-        )}
-
         {/* ---------------------------------------------------------- */}
         {/* LOGOUT BUTTON                                               */}
         {/* ---------------------------------------------------------- */}
-        <TouchableOpacity style={styles.logoutButton} activeOpacity={0.85}>
+        <TouchableOpacity style={styles.logoutButton} activeOpacity={0.85} onPress={handleLogOut}>
           <Feather name="log-out" size={16} color={COLORS.danger} />
           <Text style={styles.logoutButtonText}>Log Out</Text>
         </TouchableOpacity>
@@ -457,7 +359,6 @@ export default ProfileScreen;
 // -----------------------------------------------------------------------
 // STYLES
 // -----------------------------------------------------------------------
-const CARD_GAP = 14;
 const H_PADDING = 20;
 
 const styles = StyleSheet.create({
@@ -522,6 +423,11 @@ const styles = StyleSheet.create({
     borderRadius: 34,
     borderWidth: 2,
     borderColor: COLORS.primaryLight,
+  },
+  avatarPlaceholder: {
+    backgroundColor: COLORS.primaryLight,
+    alignItems: "center",
+    justifyContent: "center",
   },
   verifiedBadge: {
     position: "absolute",
@@ -712,43 +618,10 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     marginBottom: 8,
   },
-  interestChipAccent: {
-    backgroundColor: COLORS.primaryLight,
-  },
   interestChipText: {
     fontSize: 12.5,
     fontWeight: "600",
     color: COLORS.textSecondary,
-  },
-  interestChipTextAccent: {
-    color: COLORS.primary,
-  },
-
-  // ---------------- RECENT ACTIVITY ----------------
-  activityRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingVertical: 14,
-  },
-  activityIconWrap: {
-    width: 34,
-    height: 34,
-    borderRadius: 10,
-    backgroundColor: COLORS.primaryLight,
-    alignItems: "center",
-    justifyContent: "center",
-    marginRight: 12,
-  },
-  activityText: {
-    flex: 1,
-    fontSize: 13,
-    color: COLORS.textPrimary,
-    marginRight: 8,
-    lineHeight: 18,
-  },
-  activityTime: {
-    fontSize: 11,
-    color: COLORS.textMuted,
   },
 
   // ---------------- ACCOUNT MENU ----------------
@@ -778,35 +651,6 @@ const styles = StyleSheet.create({
   menuSubtitle: {
     fontSize: 11.5,
     color: COLORS.textMuted,
-  },
-
-  // ---------------- EMPTY STATE (reusable) ----------------
-  emptyState: {
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: 28,
-  },
-  emptyIconWrap: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
-    backgroundColor: COLORS.primaryLight,
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 12,
-  },
-  emptyTitle: {
-    fontSize: 14.5,
-    fontWeight: "700",
-    color: COLORS.textPrimary,
-    marginBottom: 4,
-  },
-  emptySubtitle: {
-    fontSize: 12.5,
-    color: COLORS.textSecondary,
-    textAlign: "center",
-    lineHeight: 18,
-    maxWidth: 240,
   },
 
   // ---------------- LOGOUT BUTTON ----------------

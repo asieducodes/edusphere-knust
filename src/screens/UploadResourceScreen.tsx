@@ -2,20 +2,24 @@
  * EduSphere — screens/UploadResourceScreen.tsx
  * -----------------------------------------------------------------------
  * Form screen for uploading a new academic resource. Opens on top of the
- * tabs (see navigation/AppNavigator.tsx). File picking is stubbed with a
- * placeholder onPress — swap in expo-document-picker when ready:
- *   npx expo install expo-document-picker
+ * tabs (see navigation/AppNavigator.tsx). Uses expo-document-picker for
+ * real file selection and uploads via resourceService.uploadResource,
+ * with real course/group pickers sourced from the backend.
  * -----------------------------------------------------------------------
  */
 
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, StatusBar } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, StatusBar, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
+import * as DocumentPicker from 'expo-document-picker';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { COLORS, SHADOW } from '../theme/colors';
 import { RootStackParamList } from '../navigation/types';
 import { ScreenHeader, AppTextInput, SelectableChip, SectionCard, PrimaryButton } from '../components/common';
+import { useUploadResource } from '../hooks/useResources';
+import { useMyGroups } from '../hooks/useGroups';
+import { LocalFile, ResourceVisibility } from '../types/resource';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'UploadResource'>;
 
@@ -32,68 +36,148 @@ const CATEGORY_OPTIONS = [
   'Summary Notes',
 ];
 
-type Visibility = 'Public' | 'Group Only' | 'Private';
-
-const VISIBILITY_OPTIONS: { key: Visibility; subtitle: string; icon: keyof typeof Feather.glyphMap }[] = [
+const VISIBILITY_OPTIONS: { key: ResourceVisibility; subtitle: string; icon: keyof typeof Feather.glyphMap }[] = [
   { key: 'Public', subtitle: 'Anyone on EduSphere can access it', icon: 'globe' },
   { key: 'Group Only', subtitle: 'Only members of selected groups can access it', icon: 'users' },
   { key: 'Private', subtitle: 'Only you can access it', icon: 'lock' },
 ];
 
-const RELATED_GROUPS = ['CSM 351 Data Structures', 'MTH 263 Calculus II', 'CSM 357 Database Systems'];
-
-// A stand-in for a real picked file (name/size), since no document-picker
-// package is wired up yet. Swap this out once expo-document-picker is added.
-interface PickedFile {
-  name: string;
-  size: string;
-}
-
 type UploadState = 'idle' | 'uploading' | 'success' | 'error';
 
+// Mirrors the backend's MAX_UPLOAD_SIZE_MB — checked client-side too so a
+// student finds out immediately instead of waiting on a doomed upload.
+const MAX_FILE_SIZE_MB = 20;
+
+// Guesses a file's `type` field for the multipart upload from its
+// extension when expo-document-picker's own mimeType comes back empty.
+function inferMimeType(name: string, mimeType?: string | null): string {
+  if (mimeType) return mimeType;
+  const ext = name.split('.').pop()?.toLowerCase();
+  switch (ext) {
+    case 'pdf':
+      return 'application/pdf';
+    case 'doc':
+      return 'application/msword';
+    case 'docx':
+      return 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+    case 'ppt':
+      return 'application/vnd.ms-powerpoint';
+    case 'pptx':
+      return 'application/vnd.openxmlformats-officedocument.presentationml.presentation';
+    case 'zip':
+      return 'application/zip';
+    default:
+      return 'application/octet-stream';
+  }
+}
+
+function formatFileSize(bytes?: number): string {
+  if (!bytes) return '';
+  const mb = bytes / (1024 * 1024);
+  if (mb >= 1) return `${mb.toFixed(1)} MB`;
+  const kb = bytes / 1024;
+  return `${kb.toFixed(0)} KB`;
+}
+
 const UploadResourceScreen: React.FC<Props> = ({ navigation }) => {
-  const [pickedFile, setPickedFile] = useState<PickedFile | null>(null);
+  const [pickedFile, setPickedFile] = useState<LocalFile | null>(null);
+  const [pickedFileLabel, setPickedFileLabel] = useState<{ name: string; size: string } | null>(null);
 
   const [title, setTitle] = useState('');
-  const [courseCode, setCourseCode] = useState('');
   const [description, setDescription] = useState('');
   const [category, setCategory] = useState<string | null>(null);
-  const [visibility, setVisibility] = useState<Visibility>('Public');
-  const [relatedGroup, setRelatedGroup] = useState<string | null>(null);
+  const [visibility, setVisibility] = useState<ResourceVisibility>('Public');
+
+  const [courseCode, setCourseCode] = useState('');
+
+  const [groupId, setGroupId] = useState<string | null>(null);
 
   const [uploadState, setUploadState] = useState<UploadState>('idle');
   const [progress, setProgress] = useState(0);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  const handleChooseFile = () => {
-    // Placeholder for expo-document-picker. For now, simulate a selection
-    // so the "selected file" UI state is demonstrable.
-    setPickedFile({ name: 'Data Structures Past Questions.pdf', size: '2.4 MB' });
-  };
+  const myGroupsQuery = useMyGroups();
+  const myGroups = myGroupsQuery.data?.items ?? [];
+  const uploadMutation = useUploadResource();
 
-  const handleRemoveFile = () => setPickedFile(null);
+  const handleChooseFile = async () => {
+    const result = await DocumentPicker.getDocumentAsync({
+      type: [
+        'application/pdf',
+        'application/msword',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'application/vnd.ms-powerpoint',
+        'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+        'application/zip',
+        'application/x-zip-compressed',
+      ],
+      copyToCacheDirectory: true,
+    });
 
-  const isFormValid = pickedFile !== null && title.trim().length > 0 && courseCode.trim().length > 0 && category !== null;
+    if (result.canceled || result.assets.length === 0) return;
 
-  const handleUpload = () => {
-    if (!isFormValid) {
-      setUploadState('error');
+    const asset = result.assets[0];
+    if (asset.size && asset.size > MAX_FILE_SIZE_MB * 1024 * 1024) {
+      Alert.alert('File Too Large', `Please choose a file under ${MAX_FILE_SIZE_MB}MB.`);
       return;
     }
 
-    // Placeholder "upload" simulation — replace with a real upload call
-    // (e.g. multipart POST) and drive `progress` from its actual events.
+    setPickedFile({
+      uri: asset.uri,
+      name: asset.name,
+      type: inferMimeType(asset.name, asset.mimeType),
+    });
+    setPickedFileLabel({ name: asset.name, size: formatFileSize(asset.size ?? undefined) });
+  };
+
+  const handleRemoveFile = () => {
+    setPickedFile(null);
+    setPickedFileLabel(null);
+  };
+
+  const isFormValid =
+    pickedFile !== null && title.trim().length > 0 && courseCode.trim().length > 0 && category !== null;
+
+  const handleUpload = () => {
+    if (!isFormValid || !pickedFile || !category) {
+      setUploadState('error');
+      setErrorMessage('Please choose a file and fill in title, course code, and category before uploading.');
+      return;
+    }
+
     setUploadState('uploading');
     setProgress(0);
+    setErrorMessage(null);
 
-    let current = 0;
-    const interval = setInterval(() => {
-      current += 20;
-      setProgress(current);
-      if (current >= 100) {
-        clearInterval(interval);
-        setUploadState('success');
+    uploadMutation.mutate(
+      {
+        payload: {
+          file: pickedFile,
+          title: title.trim(),
+          description: description.trim(),
+          courseCode: courseCode.trim(),
+          category,
+          visibility,
+          groupId: groupId ?? undefined,
+        },
+        onUploadProgress: (event) => {
+          if (event.total) {
+            setProgress(Math.round((event.loaded / event.total) * 100));
+          }
+        },
+      },
+      {
+        onSuccess: () => {
+          setProgress(100);
+          setUploadState('success');
+        },
+        onError: (err) => {
+          const message = (err as { message?: string })?.message ?? 'Something went wrong. Please try again.';
+          setErrorMessage(message);
+          setUploadState('error');
+        },
       }
-    }, 250);
+    );
   };
 
   return (
@@ -127,16 +211,16 @@ const UploadResourceScreen: React.FC<Props> = ({ navigation }) => {
         {/* ---------------------------------------------------------- */}
         {/* FILE UPLOAD AREA                                            */}
         {/* ---------------------------------------------------------- */}
-        {pickedFile ? (
+        {pickedFileLabel ? (
           <View style={styles.selectedFileCard}>
             <View style={styles.selectedFileIconWrap}>
               <Feather name="file-text" size={18} color={COLORS.primary} />
             </View>
             <View style={styles.selectedFileInfo}>
               <Text style={styles.selectedFileName} numberOfLines={1}>
-                {pickedFile.name}
+                {pickedFileLabel.name}
               </Text>
-              <Text style={styles.selectedFileSize}>{pickedFile.size}</Text>
+              {pickedFileLabel.size ? <Text style={styles.selectedFileSize}>{pickedFileLabel.size}</Text> : null}
             </View>
             <TouchableOpacity onPress={handleRemoveFile} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
               <Feather name="x-circle" size={20} color={COLORS.danger} />
@@ -148,7 +232,7 @@ const UploadResourceScreen: React.FC<Props> = ({ navigation }) => {
               <Feather name="upload" size={22} color={COLORS.primary} />
             </View>
             <Text style={styles.uploadDropzoneTitle}>Tap to choose a file</Text>
-            <Text style={styles.uploadDropzoneSubtitle}>PDF, DOCX, PPTX up to 20MB</Text>
+            <Text style={styles.uploadDropzoneSubtitle}>PDF, DOC, DOCX, PPT, PPTX, ZIP — up to {MAX_FILE_SIZE_MB}MB</Text>
           </TouchableOpacity>
         )}
 
@@ -164,7 +248,7 @@ const UploadResourceScreen: React.FC<Props> = ({ navigation }) => {
           />
           <AppTextInput
             label="Course Code"
-            placeholder="e.g. CSM 357"
+            placeholder="e.g. CSM 351"
             value={courseCode}
             onChangeText={setCourseCode}
             autoCapitalize="characters"
@@ -230,26 +314,28 @@ const UploadResourceScreen: React.FC<Props> = ({ navigation }) => {
         {/* ---------------------------------------------------------- */}
         {/* RELATED GROUP (optional)                                    */}
         {/* ---------------------------------------------------------- */}
-        <SectionCard title="Related Group (optional)">
-          {RELATED_GROUPS.map((group, index) => {
-            const isActive = relatedGroup === group;
-            return (
-              <TouchableOpacity
-                key={group}
-                style={[styles.groupOptionRow, index !== RELATED_GROUPS.length - 1 && styles.infoRowDivider]}
-                activeOpacity={0.7}
-                onPress={() => setRelatedGroup(isActive ? null : group)}
-              >
-                <Text style={styles.groupOptionText}>{group}</Text>
-                {isActive ? (
-                  <Feather name="check-circle" size={18} color={COLORS.primary} />
-                ) : (
-                  <View style={styles.groupOptionCircle} />
-                )}
-              </TouchableOpacity>
-            );
-          })}
-        </SectionCard>
+        {myGroups.length > 0 && (
+          <SectionCard title="Related Group (optional)">
+            {myGroups.map((group, index) => {
+              const isActive = groupId === group.id;
+              return (
+                <TouchableOpacity
+                  key={group.id}
+                  style={[styles.groupOptionRow, index !== myGroups.length - 1 && styles.infoRowDivider]}
+                  activeOpacity={0.7}
+                  onPress={() => setGroupId(isActive ? null : group.id)}
+                >
+                  <Text style={styles.groupOptionText}>{group.name}</Text>
+                  {isActive ? (
+                    <Feather name="check-circle" size={18} color={COLORS.primary} />
+                  ) : (
+                    <View style={styles.groupOptionCircle} />
+                  )}
+                </TouchableOpacity>
+              );
+            })}
+          </SectionCard>
+        )}
 
         {/* ---------------------------------------------------------- */}
         {/* UPLOAD GUIDELINES                                           */}
@@ -288,7 +374,7 @@ const UploadResourceScreen: React.FC<Props> = ({ navigation }) => {
           <View style={[styles.stateCard, styles.stateErrorCard]}>
             <Feather name="alert-circle" size={18} color={COLORS.danger} />
             <Text style={styles.stateErrorText}>
-              Please choose a file and fill in title, course code, and category before uploading.
+              {errorMessage ?? 'Please choose a file and fill in title, course, and category before uploading.'}
             </Text>
           </View>
         )}
@@ -298,8 +384,14 @@ const UploadResourceScreen: React.FC<Props> = ({ navigation }) => {
         {/* ---------------------------------------------------------- */}
         <View style={styles.uploadButtonWrap}>
           <PrimaryButton
-            label={uploadState === 'uploading' ? 'Uploading...' : 'Upload Resource'}
-            onPress={handleUpload}
+            label={
+              uploadState === 'uploading'
+                ? 'Uploading...'
+                : uploadState === 'success'
+                ? 'Done'
+                : 'Upload Resource'
+            }
+            onPress={uploadState === 'success' ? () => navigation.goBack() : handleUpload}
             loading={uploadState === 'uploading'}
             icon={uploadState !== 'uploading' ? 'upload' : undefined}
           />

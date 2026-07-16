@@ -7,8 +7,10 @@
  * -----------------------------------------------------------------------
  */
 
-import api, { buildFormData } from './api';
-import { ApiResponse } from '../types/api';
+import * as FileSystem from 'expo-file-system/legacy';
+import api, { API_BASE_URL } from './api';
+import { getToken } from './tokenStorage';
+import { ApiResponse, PaginatedData } from '../types/api';
 import {
   Resource,
   UploadResourcePayload,
@@ -20,8 +22,8 @@ import { PaginationParams } from '../types/api';
 
 /** GET /resources — matches ResourcesScreen's search bar + category
  *  filter chips (Past Questions, Lecture Notes, Slides, etc). */
-export async function getResources(params?: ResourceQueryParams): Promise<ApiResponse<Resource[]>> {
-  const response = await api.get<ApiResponse<Resource[]>>('/resources', { params });
+export async function getResources(params?: ResourceQueryParams): Promise<ApiResponse<PaginatedData<Resource>>> {
+  const response = await api.get<ApiResponse<PaginatedData<Resource>>>('/resources', { params });
   return response.data;
 }
 
@@ -32,26 +34,90 @@ export async function getResourceById(resourceId: string): Promise<ApiResponse<R
   return response.data;
 }
 
+export interface UploadProgressEvent {
+  loaded: number;
+  total: number;
+}
+
 /** POST /resources — multipart/form-data upload. Matches
  *  UploadResourceScreen's form exactly: file, title, description,
- *  course, category, visibility, and an optional related group. */
-export async function uploadResource(payload: UploadResourcePayload): Promise<ApiResponse<Resource>> {
-  const formData = buildFormData(
+ *  course, category, visibility, and an optional related group.
+ *
+ *  Uses expo-file-system's native upload task rather than axios/XHR —
+ *  React Native's XHR polyfill routinely fails to report a real `total`
+ *  for multipart file bodies (axios's onUploadProgress fires but with
+ *  total=0/undefined), which is why the progress bar never animated.
+ *  The native task reads the local file's size upfront and reports real
+ *  totalBytesSent/totalBytesExpectedToSend as the OS-level upload
+ *  session progresses. It also has no JS-configurable timeout, sidestepping
+ *  the same "large upload look like a dead server" problem a short axios
+ *  timeout caused. Bypasses the shared `api` instance entirely, so errors
+ *  are normalized by hand to the same {message, statusCode, errors} shape
+ *  api.ts's interceptor produces, so every caller's error handling still works. */
+export async function uploadResource(
+  payload: UploadResourcePayload,
+  options?: { onUploadProgress?: (event: UploadProgressEvent) => void }
+): Promise<ApiResponse<Resource>> {
+  const token = await getToken();
+
+  const parameters: Record<string, string> = {
+    title: payload.title,
+    description: payload.description,
+    course_code: payload.courseCode,
+    category: payload.category,
+    visibility: payload.visibility,
+  };
+  if (payload.groupId) {
+    parameters.group_id = payload.groupId;
+  }
+
+  const uploadTask = FileSystem.createUploadTask(
+    `${API_BASE_URL}/resources`,
+    payload.file.uri,
     {
-      title: payload.title,
-      description: payload.description,
-      course_id: payload.courseId,
-      category: payload.category,
-      visibility: payload.visibility,
-      group_id: payload.groupId,
+      httpMethod: 'POST',
+      uploadType: FileSystem.FileSystemUploadType.MULTIPART,
+      fieldName: 'file',
+      mimeType: payload.file.type,
+      parameters,
+      headers: token ? { Authorization: `Bearer ${token}` } : undefined,
     },
-    { fieldName: 'file', value: payload.file }
+    (data) => {
+      options?.onUploadProgress?.({ loaded: data.totalBytesSent, total: data.totalBytesExpectedToSend });
+    }
   );
 
-  const response = await api.post<ApiResponse<Resource>>('/resources', formData, {
-    headers: { 'Content-Type': 'multipart/form-data' },
-  });
-  return response.data;
+  let result;
+  try {
+    result = await uploadTask.uploadAsync();
+  } catch {
+    throw { message: 'Unable to reach the server. Check your internet connection.' };
+  }
+
+  if (!result) {
+    throw { message: 'Upload was cancelled.' };
+  }
+
+  let body: (ApiResponse<Resource> & { errors?: Record<string, string[]> }) | undefined;
+  try {
+    body = JSON.parse(result.body);
+  } catch {
+    body = undefined;
+  }
+
+  if (result.status < 200 || result.status >= 300) {
+    throw {
+      message: body?.message || 'Something went wrong. Please try again.',
+      statusCode: result.status,
+      errors: body?.errors,
+    };
+  }
+
+  if (!body) {
+    throw { message: 'Received an invalid response from the server.' };
+  }
+
+  return body;
 }
 
 /** POST /resources/:resourceId/download — matches ResourceDetailsScreen's
@@ -90,7 +156,9 @@ export async function createResourceReview(
 export async function getResourceReviews(
   resourceId: string,
   params?: PaginationParams
-): Promise<ApiResponse<ResourceReview[]>> {
-  const response = await api.get<ApiResponse<ResourceReview[]>>(`/resources/${resourceId}/reviews`, { params });
+): Promise<ApiResponse<PaginatedData<ResourceReview>>> {
+  const response = await api.get<ApiResponse<PaginatedData<ResourceReview>>>(`/resources/${resourceId}/reviews`, {
+    params,
+  });
   return response.data;
 }

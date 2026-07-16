@@ -9,7 +9,7 @@
  * -----------------------------------------------------------------------
  */
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -19,15 +19,20 @@ import {
   TextInput,
   StatusBar,
   Dimensions,
+  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import type { CompositeNavigationProp } from '@react-navigation/native';
 import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { COLORS, SHADOW } from '../theme/colors';
-import { ResourceData, MainTabParamList, RootStackParamList } from '../navigation/types';
+import { MainTabParamList, RootStackParamList } from '../navigation/types';
+import { LoadingView, ErrorView } from '../components/common';
+import { useResources, useSaveResource, useUnsaveResource } from '../hooks/useResources';
+import { useCourses } from '../hooks/useCourses';
+import { Resource } from '../types/resource';
 
 // Navigation from this screen needs to reach screens in the root stack
 // sitting above the tabs — ResourceDetails and UploadResource both live there.
@@ -41,8 +46,6 @@ const { width: SCREEN_WIDTH } = Dimensions.get('window');
 // -----------------------------------------------------------------------
 // TYPES
 // -----------------------------------------------------------------------
-type FileType = 'PDF' | 'DOCX' | 'PPTX';
-
 type FilterKey =
   | 'All'
   | 'Past Questions'
@@ -53,37 +56,6 @@ type FilterKey =
   | 'My Uploads'
   | 'Saved';
 
-interface FeaturedResource {
-  id: string;
-  title: string;
-  courseCode: string;
-  fileType: FileType;
-  size: string;
-  uploaded: string;
-  downloads: number;
-  category: FilterKey;
-}
-
-interface RecentUpload {
-  id: string;
-  title: string;
-  fileType: FileType;
-  size: string;
-  uploaded: string;
-  courseCode: string;
-  category: FilterKey;
-}
-
-interface PopularCourse {
-  id: string;
-  code: string;
-  name: string;
-  resourceCount: number;
-}
-
-// -----------------------------------------------------------------------
-// STATIC SAMPLE DATA
-// -----------------------------------------------------------------------
 const FILTERS: FilterKey[] = [
   'All',
   'Past Questions',
@@ -95,80 +67,14 @@ const FILTERS: FilterKey[] = [
   'Saved',
 ];
 
-const FEATURED_RESOURCES: FeaturedResource[] = [
-  {
-    id: 'ft1',
-    title: 'CSM 357 Past Questions',
-    courseCode: 'CSM 357',
-    fileType: 'PDF',
-    size: '2.4 MB',
-    uploaded: 'Uploaded 2h ago',
-    downloads: 128,
-    category: 'Past Questions',
-  },
-  {
-    id: 'ft2',
-    title: 'MTH 263 Calculus II Notes',
-    courseCode: 'MTH 263',
-    fileType: 'DOCX',
-    size: '1.6 MB',
-    uploaded: 'Uploaded 1d ago',
-    downloads: 86,
-    category: 'Lecture Notes',
-  },
-];
-
-const RECENT_UPLOADS: RecentUpload[] = [
-  {
-    id: 'ru1',
-    title: 'Data Structures - Slide Deck',
-    fileType: 'PPTX',
-    size: '3.1 MB',
-    uploaded: 'Uploaded 2d ago',
-    courseCode: 'CSM 351',
-    category: 'Slides',
-  },
-  {
-    id: 'ru2',
-    title: 'Database Systems Summary Notes',
-    fileType: 'PDF',
-    size: '1.9 MB',
-    uploaded: 'Uploaded 3d ago',
-    courseCode: 'CSM 357',
-    category: 'Lecture Notes',
-  },
-  {
-    id: 'ru3',
-    title: 'Artificial Intelligence Tutorial Questions',
-    fileType: 'PDF',
-    size: '2.7 MB',
-    uploaded: 'Uploaded 4d ago',
-    courseCode: 'CSM 461',
-    category: 'Assignments',
-  },
-  {
-    id: 'ru4',
-    title: 'Microeconomics Revision Notes',
-    fileType: 'DOCX',
-    size: '1.4 MB',
-    uploaded: 'Uploaded 5d ago',
-    courseCode: 'ECN 262',
-    category: 'Study Guides',
-  },
-];
-
-const POPULAR_COURSES: PopularCourse[] = [
-  { id: 'pc1', code: 'CSM 351', name: 'Data Structures', resourceCount: 12 },
-  { id: 'pc2', code: 'CSM 357', name: 'Database Systems', resourceCount: 18 },
-  { id: 'pc3', code: 'MTH 263', name: 'Calculus II', resourceCount: 9 },
-  { id: 'pc4', code: 'CSM 461', name: 'Artificial Intelligence', resourceCount: 15 },
-];
+type FileType = Resource['fileType'];
 
 // File-type visual mapping shared by badges and list icons.
 const FILE_TYPE_STYLES: Record<FileType, { bg: string; color: string; icon: keyof typeof Feather.glyphMap }> = {
   PDF: { bg: '#FDEAEA', color: '#D93A3A', icon: 'file-text' },
   DOCX: { bg: '#E7EEFD', color: '#2D3FE0', icon: 'file-text' },
   PPTX: { bg: '#FEF0E2', color: '#E08A1F', icon: 'file' },
+  ZIP: { bg: '#F1F2F8', color: '#5B6172', icon: 'archive' },
 };
 
 // -----------------------------------------------------------------------
@@ -227,89 +133,87 @@ const EmptyState: React.FC<{ onUpload: () => void }> = ({ onUpload }) => (
   </View>
 );
 
+function relativeTime(iso: string): string {
+  const then = new Date(iso).getTime();
+  const diffMs = Date.now() - then;
+  const minutes = Math.floor(diffMs / 60000);
+  if (minutes < 1) return 'Uploaded just now';
+  if (minutes < 60) return `Uploaded ${minutes}m ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `Uploaded ${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  return `Uploaded ${days}d ago`;
+}
+
+// Maps a screen filter chip to the backend's `category` query param —
+// "All", "My Uploads", and "Saved" aren't categories, they're handled
+// via separate query params / client-side filtering instead.
+const CATEGORY_FILTER_MAP: Partial<Record<FilterKey, string>> = {
+  'Past Questions': 'Past Questions',
+  'Lecture Notes': 'Lecture Notes',
+  Slides: 'Slides',
+  Assignments: 'Assignment',
+  'Study Guides': 'Study Guide',
+};
+
 // -----------------------------------------------------------------------
 // MAIN COMPONENT
 // -----------------------------------------------------------------------
-// Featured/Recent items here carry only display fields — ResourceDetails
-// needs the fuller ResourceData shape (uploader, rating, visibility, etc).
-// These helpers fill in reasonable defaults for the fields this screen's
-// sample data doesn't track yet, so navigation always gets a valid object.
-const toResourceData = (item: {
-  id: string;
-  title: string;
-  fileType: FileType;
-  courseCode: string;
-  size: string;
-  uploaded: string;
-  category: FilterKey;
-  downloads?: number;
-}): ResourceData => ({
-  id: item.id,
-  title: item.title,
-  fileType: item.fileType,
-  courseCode: item.courseCode,
-  category: item.category,
-  description: `Shared study material for ${item.courseCode}.`,
-  size: item.size,
-  uploaded: item.uploaded,
-  downloads: item.downloads ?? 0,
-  saves: 0,
-  rating: 4.5,
-  visibility: 'Public',
-  uploader: {
-    name: 'EduSphere Student',
-    initials: 'ES',
-    programme: 'BSc Computer Science',
-    level: 'Level 300',
-    verified: false,
-  },
-});
-
 const ResourcesScreen: React.FC = () => {
   const navigation = useNavigation<ResourcesScreenNavigationProp>();
   const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [activeFilter, setActiveFilter] = useState<FilterKey>('All');
-  const [savedIds, setSavedIds] = useState<Set<string>>(new Set());
 
-  const toggleSaved = (id: string) => {
-    setSavedIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) {
-        next.delete(id);
-      } else {
-        next.add(id);
-      }
-      return next;
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearch(searchQuery.trim()), 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  const category = CATEGORY_FILTER_MAP[activeFilter];
+  const resourcesQuery = useResources({
+    search: debouncedSearch || undefined,
+    category,
+    saved: activeFilter === 'Saved' ? true : undefined,
+    mine: activeFilter === 'My Uploads' ? true : undefined,
+  });
+  const coursesQuery = useCourses();
+  const saveMutation = useSaveResource();
+  const unsaveMutation = useUnsaveResource();
+
+  useFocusEffect(
+    useCallback(() => {
+      resourcesQuery.refetch();
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [activeFilter, debouncedSearch])
+  );
+
+  const savingIds = new Set([
+    ...(saveMutation.isPending ? [saveMutation.variables as string] : []),
+    ...(unsaveMutation.isPending ? [unsaveMutation.variables as string] : []),
+  ]);
+
+  const toggleSaved = (resource: Resource) => {
+    const mutation = resource.isSaved ? unsaveMutation : saveMutation;
+    mutation.mutate(resource.id, {
+      onError: (err) => {
+        const message = (err as { message?: string })?.message ?? 'Something went wrong. Please try again.';
+        Alert.alert('Save Resource', message);
+      },
     });
   };
 
-  const matchesQuery = (title: string, courseCode: string) => {
-    if (searchQuery.trim().length === 0) return true;
-    const q = searchQuery.toLowerCase();
-    return title.toLowerCase().includes(q) || courseCode.toLowerCase().includes(q);
+  const handleDownload = async (resource: Resource) => {
+    navigation.navigate('ResourceDetails', { resourceId: resource.id });
   };
 
-  const filteredFeatured = useMemo(() => {
-    return FEATURED_RESOURCES.filter((item) => {
-      const matchesFilter =
-        activeFilter === 'All' ||
-        (activeFilter === 'Saved' && savedIds.has(item.id)) ||
-        item.category === activeFilter;
-      return matchesFilter && matchesQuery(item.title, item.courseCode);
-    });
-  }, [activeFilter, searchQuery, savedIds]);
-
-  const filteredRecent = useMemo(() => {
-    return RECENT_UPLOADS.filter((item) => {
-      const matchesFilter =
-        activeFilter === 'All' ||
-        (activeFilter === 'Saved' && savedIds.has(item.id)) ||
-        item.category === activeFilter;
-      return matchesFilter && matchesQuery(item.title, item.courseCode);
-    });
-  }, [activeFilter, searchQuery, savedIds]);
-
-  const hasNoResults = filteredFeatured.length === 0 && filteredRecent.length === 0;
+  const resources = resourcesQuery.data?.items ?? [];
+  const courses = (coursesQuery.data?.items ?? []).slice(0, 6);
+  const isLoading = resourcesQuery.isLoading;
+  const hasError = !resourcesQuery.data && resourcesQuery.isError;
+  const featured = resources.slice(0, 2);
+  const rest = resources.slice(2);
+  const hasNoResults = !isLoading && !hasError && resources.length === 0;
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
@@ -330,7 +234,11 @@ const ResourcesScreen: React.FC = () => {
               <Text style={styles.headerSubtitle}>Find notes, slides, and past questions</Text>
             </View>
 
-            <TouchableOpacity style={styles.uploadIconButton} activeOpacity={0.7}>
+            <TouchableOpacity
+              style={styles.uploadIconButton}
+              activeOpacity={0.7}
+              onPress={() => navigation.navigate('UploadResource')}
+            >
               <Feather name="upload" size={19} color={COLORS.textPrimary} />
             </TouchableOpacity>
           </View>
@@ -382,33 +290,34 @@ const ResourcesScreen: React.FC = () => {
         </ScrollView>
 
         {/* ---------------------------------------------------------- */}
-        {/* EMPTY STATE (shown only when nothing matches)               */}
+        {/* LOADING / ERROR / EMPTY                                     */}
         {/* ---------------------------------------------------------- */}
-        {hasNoResults && (
-          <EmptyState onUpload={() => navigation.navigate('UploadResource')} />
-        )}
+        {isLoading && <LoadingView message="Loading resources..." />}
+        {hasError && <ErrorView onRetry={() => resourcesQuery.refetch()} />}
+        {hasNoResults && <EmptyState onUpload={() => navigation.navigate('UploadResource')} />}
 
         {/* ---------------------------------------------------------- */}
         {/* FEATURED RESOURCES                                          */}
         {/* ---------------------------------------------------------- */}
-        {filteredFeatured.length > 0 && (
+        {!isLoading && !hasError && featured.length > 0 && (
           <>
             <SectionHeader title="Featured Resources" />
             <View style={styles.stackedCards}>
-              {filteredFeatured.map((item) => {
-                const isSaved = savedIds.has(item.id);
+              {featured.map((item) => {
+                const isSaved = !!item.isSaved;
                 return (
                   <TouchableOpacity
                     key={item.id}
                     style={styles.featuredCard}
                     activeOpacity={0.9}
-                    onPress={() => navigation.navigate('ResourceDetails', { resource: toResourceData(item) })}
+                    onPress={() => navigation.navigate('ResourceDetails', { resourceId: item.id })}
                   >
                     <View style={styles.featuredTopRow}>
                       <FileBadge type={item.fileType} />
 
                       <TouchableOpacity
-                        onPress={() => toggleSaved(item.id)}
+                        onPress={() => toggleSaved(item)}
+                        disabled={savingIds.has(item.id)}
                         hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                       >
                         <Feather
@@ -427,17 +336,21 @@ const ResourcesScreen: React.FC = () => {
 
                     <View style={styles.featuredMetaRow}>
                       <Text style={styles.featuredMetaText}>
-                        {item.fileType} • {item.size} • {item.uploaded}
+                        {item.fileType} • {item.size} • {relativeTime(item.createdAt)}
                       </Text>
                     </View>
 
                     <View style={styles.featuredFooterRow}>
                       <View style={styles.downloadCountRow}>
                         <Feather name="download" size={13} color={COLORS.textSecondary} />
-                        <Text style={styles.downloadCountText}>{item.downloads} downloads</Text>
+                        <Text style={styles.downloadCountText}>{item.downloadsCount} downloads</Text>
                       </View>
 
-                      <TouchableOpacity style={styles.downloadButton} activeOpacity={0.85}>
+                      <TouchableOpacity
+                        style={styles.downloadButton}
+                        activeOpacity={0.85}
+                        onPress={() => handleDownload(item)}
+                      >
                         <Feather name="download" size={14} color={COLORS.white} />
                         <Text style={styles.downloadButtonText}>Download</Text>
                       </TouchableOpacity>
@@ -452,19 +365,19 @@ const ResourcesScreen: React.FC = () => {
         {/* ---------------------------------------------------------- */}
         {/* RECENT UPLOADS                                              */}
         {/* ---------------------------------------------------------- */}
-        {filteredRecent.length > 0 && (
+        {!isLoading && !hasError && rest.length > 0 && (
           <>
-            <SectionHeader title="Recent Uploads" onPressViewAll={() => {}} />
+            <SectionHeader title="More Resources" />
             <View style={styles.recentCard}>
-              {filteredRecent.map((item, index) => (
+              {rest.map((item, index) => (
                 <TouchableOpacity
                   key={item.id}
                   style={[
                     styles.recentRow,
-                    index !== filteredRecent.length - 1 && styles.recentRowDivider,
+                    index !== rest.length - 1 && styles.recentRowDivider,
                   ]}
                   activeOpacity={0.7}
-                  onPress={() => navigation.navigate('ResourceDetails', { resource: toResourceData(item) })}
+                  onPress={() => navigation.navigate('ResourceDetails', { resourceId: item.id })}
                 >
                   <FileIcon type={item.fileType} />
 
@@ -474,7 +387,7 @@ const ResourcesScreen: React.FC = () => {
                     </Text>
                     <View style={styles.recentMetaRow}>
                       <Text style={styles.recentMetaText} numberOfLines={1}>
-                        {item.fileType} • {item.size} • {item.uploaded}
+                        {item.fileType} • {item.size} • {relativeTime(item.createdAt)}
                       </Text>
                     </View>
                     <View style={styles.recentCourseChip}>
@@ -482,12 +395,25 @@ const ResourcesScreen: React.FC = () => {
                     </View>
                   </View>
 
-                  <TouchableOpacity style={styles.recentIconButton} activeOpacity={0.7}>
+                  <TouchableOpacity
+                    style={styles.recentIconButton}
+                    activeOpacity={0.7}
+                    onPress={() => handleDownload(item)}
+                  >
                     <Feather name="download" size={16} color={COLORS.primary} />
                   </TouchableOpacity>
 
-                  <TouchableOpacity style={styles.recentIconButton} activeOpacity={0.7}>
-                    <Feather name="more-vertical" size={16} color={COLORS.textMuted} />
+                  <TouchableOpacity
+                    style={styles.recentIconButton}
+                    activeOpacity={0.7}
+                    onPress={() => toggleSaved(item)}
+                    disabled={savingIds.has(item.id)}
+                  >
+                    <Feather
+                      name="bookmark"
+                      size={16}
+                      color={item.isSaved ? COLORS.primary : COLORS.textMuted}
+                    />
                   </TouchableOpacity>
                 </TouchableOpacity>
               ))}
@@ -498,27 +424,31 @@ const ResourcesScreen: React.FC = () => {
         {/* ---------------------------------------------------------- */}
         {/* POPULAR COURSES                                             */}
         {/* ---------------------------------------------------------- */}
-        <SectionHeader title="Popular Courses" />
-
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.popularScroll}
-        >
-          {POPULAR_COURSES.map((course) => (
-            <TouchableOpacity key={course.id} style={styles.popularCard} activeOpacity={0.85}>
-              <View style={styles.popularAccent} />
-              <Text style={styles.popularCode}>{course.code}</Text>
-              <Text style={styles.popularName} numberOfLines={1}>
-                {course.name}
-              </Text>
-              <View style={styles.popularCountRow}>
-                <Feather name="file-text" size={12} color={COLORS.primary} />
-                <Text style={styles.popularCountText}>{course.resourceCount} resources</Text>
-              </View>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
+        {courses.length > 0 && (
+          <>
+            <SectionHeader title="Popular Courses" />
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.popularScroll}
+            >
+              {courses.map((course) => (
+                <TouchableOpacity
+                  key={course.id}
+                  style={styles.popularCard}
+                  activeOpacity={0.85}
+                  onPress={() => setSearchQuery(course.code)}
+                >
+                  <View style={styles.popularAccent} />
+                  <Text style={styles.popularCode}>{course.code}</Text>
+                  <Text style={styles.popularName} numberOfLines={1}>
+                    {course.title}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </>
+        )}
 
         {/* ---------------------------------------------------------- */}
         {/* UPLOAD RESOURCE — large call-to-action card                 */}
@@ -859,16 +789,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: COLORS.textPrimary,
     marginTop: 4,
-  },
-  popularCountRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 10,
-  },
-  popularCountText: {
-    fontSize: 11,
-    color: COLORS.textSecondary,
-    marginLeft: 5,
   },
 
   // ---------------- UPLOAD RESOURCE CARD (CTA) ----------------

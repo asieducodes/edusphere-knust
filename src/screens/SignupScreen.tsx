@@ -25,6 +25,7 @@ import {
   Dimensions,
   Modal,
   FlatList,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -34,33 +35,12 @@ import { COLORS, SHADOW } from '../theme/colors';
 import { AuthStackParamList } from '../navigation/types';
 import { validateSignupForm } from '../utils/authValidation';
 import { useAuth } from '../context/AuthContext';
+import { useDepartments } from '../hooks/useCourses';
+import { PROGRAMME_OPTIONS, LEVEL_OPTIONS, PROGRAMME_TO_DEPARTMENT } from '../constants/academic';
 
 type Props = NativeStackScreenProps<AuthStackParamList, 'Signup'>;
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
-
-// -----------------------------------------------------------------------
-// SAMPLE DROPDOWN OPTIONS
-// -----------------------------------------------------------------------
-const PROGRAMME_OPTIONS = [
-  'BSc Computer Science',
-  'BSc Information Technology',
-  'BSc Mathematics',
-  'BSc Statistics',
-  'BSc Business Administration',
-  'BSc Electrical Engineering',
-];
-
-const DEPARTMENT_OPTIONS = [
-  'Computer Science',
-  'Mathematics',
-  'Statistics',
-  'Accounting and Finance',
-  'Electrical Engineering',
-  'Economics',
-];
-
-const LEVEL_OPTIONS = ['Level 100', 'Level 200', 'Level 300', 'Level 400'];
 
 type PickerField = 'programme' | 'department' | 'level';
 
@@ -127,11 +107,12 @@ const DropdownField: React.FC<{
 // MAIN COMPONENT
 // -----------------------------------------------------------------------
 const SignupScreen: React.FC<Props> = ({ navigation }) => {
-  const { completeSignup } = useAuth();
+  const { register } = useAuth();
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [programme, setProgramme] = useState('');
   const [department, setDepartment] = useState('');
+  const [departmentId, setDepartmentId] = useState('');
   const [level, setLevel] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -139,16 +120,23 @@ const SignupScreen: React.FC<Props> = ({ navigation }) => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [serverError, setServerError] = useState<string | null>(null);
 
   const [activePicker, setActivePicker] = useState<PickerField | null>(null);
+
+  const departmentsQuery = useDepartments();
+  const departments = departmentsQuery.data?.items ?? [];
+  const isLoadingDepartments = departmentsQuery.isLoading;
 
   // ---- Validation (only shown after first submit attempt) -----------
   const { errors } = submitted
     ? validateSignupForm({ fullName, email, programme, department, level, password, confirmPassword })
     : { errors: {} as Record<string, string> };
 
-  const handleCreateAccount = () => {
+  const handleCreateAccount = async () => {
     setSubmitted(true);
+    setServerError(null);
     const { isValid } = validateSignupForm({
       fullName,
       email,
@@ -159,25 +147,21 @@ const SignupScreen: React.FC<Props> = ({ navigation }) => {
       confirmPassword,
     });
 
-    // Placeholder — replace with a real signup API call.
-    console.log('Create account pressed', {
-      fullName,
-      email,
-      programme,
-      department,
-      level,
-      password,
-    });
+    if (!isValid || !departmentId) {
+      if (isValid && !departmentId) setServerError('Please select your department.');
+      return;
+    }
 
-    if (!isValid) return; // Do not proceed, and do not call any backend/context action.
-
-    // Marks the student as authenticated-but-unverified in shared auth
-    // state (see context/AuthContext.tsx) — this doesn't move them into
-    // the main app; RootNavigator keeps showing AuthStack until
-    // isEmailVerified flips true. The explicit navigate below is what
-    // actually shows EmailVerification right now.
-    completeSignup(email);
-    navigation.navigate('EmailVerification', { email });
+    setIsSubmitting(true);
+    try {
+      await register({ fullName, email, password, programme, departmentId, level });
+      navigation.navigate('EmailVerification', { email });
+    } catch (err) {
+      const message = (err as { message?: string })?.message ?? 'Something went wrong. Please try again.';
+      setServerError(message);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleLogInPress = () => {
@@ -191,14 +175,27 @@ const SignupScreen: React.FC<Props> = ({ navigation }) => {
     activePicker === 'programme'
       ? PROGRAMME_OPTIONS
       : activePicker === 'department'
-      ? DEPARTMENT_OPTIONS
+      ? departments.map((d) => d.name)
       : activePicker === 'level'
       ? LEVEL_OPTIONS
       : [];
 
   const handleSelectOption = (option: string) => {
-    if (activePicker === 'programme') setProgramme(option);
-    if (activePicker === 'department') setDepartment(option);
+    if (activePicker === 'programme') {
+      setProgramme(option);
+      // Auto-select the matching department — still fully overridable via
+      // the department picker itself if the match is wrong or missing.
+      const matchedDeptName = PROGRAMME_TO_DEPARTMENT[option];
+      const matchedDept = matchedDeptName ? departments.find((d) => d.name === matchedDeptName) : undefined;
+      if (matchedDept) {
+        setDepartment(matchedDept.name);
+        setDepartmentId(matchedDept.id);
+      }
+    }
+    if (activePicker === 'department') {
+      setDepartment(option);
+      setDepartmentId(departments.find((d) => d.name === option)?.id ?? '');
+    }
     if (activePicker === 'level') setLevel(option);
     closePicker();
   };
@@ -332,9 +329,9 @@ const SignupScreen: React.FC<Props> = ({ navigation }) => {
                 <DropdownField
                   icon="home"
                   value={department}
-                  placeholder="Select department"
+                  placeholder={isLoadingDepartments ? 'Loading...' : 'Select department'}
                   error={errors.department}
-                  onPress={() => openPicker('department')}
+                  onPress={() => !isLoadingDepartments && openPicker('department')}
                 />
                 {errors.department ? <ErrorText text={errors.department} /> : null}
               </View>
@@ -396,13 +393,20 @@ const SignupScreen: React.FC<Props> = ({ navigation }) => {
             </View>
             {errors.confirmPassword ? <ErrorText text={errors.confirmPassword} /> : null}
 
+            {serverError ? <ErrorText text={serverError} /> : null}
+
             {/* Create Account button */}
             <TouchableOpacity
-              style={styles.createAccountButton}
+              style={[styles.createAccountButton, isSubmitting && styles.createAccountButtonDisabled]}
               activeOpacity={0.85}
               onPress={handleCreateAccount}
+              disabled={isSubmitting}
             >
-              <Text style={styles.createAccountButtonText}>Create Account</Text>
+              {isSubmitting ? (
+                <ActivityIndicator color={COLORS.white} size="small" />
+              ) : (
+                <Text style={styles.createAccountButtonText}>Create Account</Text>
+              )}
             </TouchableOpacity>
           </View>
 
@@ -743,6 +747,9 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 14,
     elevation: 6,
+  },
+  createAccountButtonDisabled: {
+    opacity: 0.7,
   },
   createAccountButtonText: {
     fontSize: 15,

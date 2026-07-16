@@ -211,14 +211,15 @@ export const ToggleRow: React.FC<ToggleRowProps> = ({
 );
 
 // -----------------------------------------------------------------------
-// FileTypeBadge — color-coded PDF / DOCX / PPTX badge
+// FileTypeBadge — color-coded PDF / DOCX / PPTX / ZIP badge
 // -----------------------------------------------------------------------
-type FileType = 'PDF' | 'DOCX' | 'PPTX';
+type FileType = 'PDF' | 'DOCX' | 'PPTX' | 'ZIP';
 
 const FILE_TYPE_STYLES: Record<FileType, { bg: string; color: string }> = {
   PDF: { bg: '#FDEAEA', color: '#D93A3A' },
   DOCX: { bg: '#E7EEFD', color: '#2D3FE0' },
   PPTX: { bg: '#FEF0E2', color: '#E08A1F' },
+  ZIP: { bg: '#F1F2F8', color: '#5B6172' },
 };
 
 export const FileTypeBadge: React.FC<{ type: FileType }> = ({ type }) => {
@@ -257,6 +258,46 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
     {actionLabel && onAction ? (
       <TouchableOpacity style={styles.emptyActionButton} onPress={onAction} activeOpacity={0.85}>
         <Text style={styles.emptyActionButtonText}>{actionLabel}</Text>
+      </TouchableOpacity>
+    ) : null}
+  </View>
+);
+
+// -----------------------------------------------------------------------
+// LoadingView — centered spinner (+ optional message), fills its parent
+// -----------------------------------------------------------------------
+interface LoadingViewProps {
+  message?: string;
+}
+
+export const LoadingView: React.FC<LoadingViewProps> = ({ message }) => (
+  <View style={styles.loadingView}>
+    <ActivityIndicator color={COLORS.primary} size="large" />
+    {message ? <Text style={styles.loadingMessage}>{message}</Text> : null}
+  </View>
+);
+
+// -----------------------------------------------------------------------
+// ErrorView — message + retry button, used when a fetch fails
+// -----------------------------------------------------------------------
+interface ErrorViewProps {
+  message?: string;
+  onRetry?: () => void;
+}
+
+export const ErrorView: React.FC<ErrorViewProps> = ({
+  message = 'Something went wrong. Please try again.',
+  onRetry,
+}) => (
+  <View style={styles.errorView}>
+    <View style={styles.errorIconWrap}>
+      <Feather name="alert-triangle" size={24} color={COLORS.danger} />
+    </View>
+    <Text style={styles.errorViewMessage}>{message}</Text>
+    {onRetry ? (
+      <TouchableOpacity style={styles.retryButton} onPress={onRetry} activeOpacity={0.85}>
+        <Feather name="refresh-cw" size={14} color={COLORS.white} />
+        <Text style={styles.retryButtonText}>Try Again</Text>
       </TouchableOpacity>
     ) : null}
   </View>
@@ -542,6 +583,57 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '700',
     color: COLORS.white,
+  },
+
+  // LoadingView
+  loadingView: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 48,
+  },
+  loadingMessage: {
+    fontSize: 13,
+    color: COLORS.textSecondary,
+    marginTop: 12,
+  },
+
+  // ErrorView
+  errorView: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 40,
+    paddingHorizontal: 24,
+  },
+  errorIconWrap: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: '#FDEAEA',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 14,
+  },
+  errorViewMessage: {
+    fontSize: 13,
+    color: COLORS.textSecondary,
+    textAlign: 'center',
+    lineHeight: 18,
+    maxWidth: 260,
+  },
+  retryButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.primary,
+    paddingHorizontal: 18,
+    paddingVertical: 11,
+    borderRadius: 12,
+    marginTop: 16,
+  },
+  retryButtonText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: COLORS.white,
+    marginLeft: 8,
   },
 
   // PrimaryButton

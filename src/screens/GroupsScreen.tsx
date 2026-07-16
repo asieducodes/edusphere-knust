@@ -8,7 +8,7 @@
  * -----------------------------------------------------------------------
  */
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -17,15 +17,19 @@ import {
   TouchableOpacity,
   TextInput,
   StatusBar,
+  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather, Ionicons } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import type { CompositeNavigationProp } from '@react-navigation/native';
 import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { COLORS, SHADOW } from '../theme/colors';
-import { Group, MainTabParamList, RootStackParamList } from '../navigation/types';
+import { MainTabParamList, RootStackParamList } from '../navigation/types';
+import { LoadingView, ErrorView } from '../components/common';
+import { useMyGroups, useDiscoverGroups, useJoinGroup } from '../hooks/useGroups';
+import { Group } from '../types/group';
 
 // Navigation from this screen needs to reach both its sibling tabs
 // (unused here, but this is the standard shape) and screens in the root
@@ -36,111 +40,22 @@ type GroupsScreenNavigationProp = CompositeNavigationProp<
 >;
 
 // -----------------------------------------------------------------------
-// TYPES
+// FILTERS — 'My Groups' shows only groups you've joined; the rest match
+// against a group's tags (same options CreateGroupScreen lets you pick
+// from when creating a group).
 // -----------------------------------------------------------------------
-type FilterKey =
-  | 'All'
-  | 'My Groups'
-  | 'Popular'
-  | 'Computer Science'
-  | 'Business'
-  | 'Engineering'
-  | 'Exam Prep'
-  | 'New Groups';
+type FilterKey = 'All' | 'My Groups' | 'Exam Prep' | 'Assignment Help' | 'Discussion' | 'Resource Sharing' | 'Tutorial' | 'Revision' | 'Project Work';
 
-interface MyGroup {
-  id: string;
-  code: string;
-  title: string;
-  courseName: string;
-  members: number;
-  statusLabel: string;
-  statusType: 'new' | 'meeting' | 'resource';
-  meetingLabel: string;
-  category: FilterKey;
-}
-
-interface DiscoverGroup {
-  id: string;
-  code: string;
-  title: string;
-  description: string;
-  members: number;
-  rating: number;
-  tag: string;
-  category: FilterKey;
-}
-
-// -----------------------------------------------------------------------
-// STATIC SAMPLE DATA
-// -----------------------------------------------------------------------
 const FILTERS: FilterKey[] = [
   'All',
   'My Groups',
-  'Popular',
-  'Computer Science',
-  'Business',
-  'Engineering',
   'Exam Prep',
-  'New Groups',
-];
-
-const MY_GROUPS: MyGroup[] = [
-  {
-    id: 'mg1',
-    code: 'CSM 351',
-    title: 'Data Structures',
-    courseName: 'CSM 351 — Data Structures',
-    members: 24,
-    statusLabel: 'New discussion today',
-    statusType: 'new',
-    meetingLabel: 'Next meeting: Today, 4:00 PM',
-    category: 'Computer Science',
-  },
-  {
-    id: 'mg2',
-    code: 'MTH 263',
-    title: 'Calculus II',
-    courseName: 'MTH 263 — Calculus II',
-    members: 18,
-    statusLabel: '3 new resources',
-    statusType: 'resource',
-    meetingLabel: 'Next meeting: Tomorrow, 10:00 AM',
-    category: 'Exam Prep',
-  },
-];
-
-const DISCOVER_GROUPS: DiscoverGroup[] = [
-  {
-    id: 'dg1',
-    code: 'CSM 461',
-    title: 'Artificial Intelligence',
-    description: 'Weekly deep-dives into ML models, past questions, and project collaboration.',
-    members: 32,
-    rating: 4.7,
-    tag: 'Active discussions',
-    category: 'Computer Science',
-  },
-  {
-    id: 'dg2',
-    code: 'ECN 262',
-    title: 'Microeconomics',
-    description: 'Focused revision sessions ahead of the mid-semester exam.',
-    members: 28,
-    rating: 4.6,
-    tag: 'Exam prep',
-    category: 'Business',
-  },
-  {
-    id: 'dg3',
-    code: 'CSM 357',
-    title: 'Database Systems',
-    description: 'Shared notes, SQL practice sets, and past question archives.',
-    members: 41,
-    rating: 4.8,
-    tag: 'Resource sharing',
-    category: 'Computer Science',
-  },
+  'Assignment Help',
+  'Discussion',
+  'Resource Sharing',
+  'Tutorial',
+  'Revision',
+  'Project Work',
 ];
 
 // -----------------------------------------------------------------------
@@ -161,50 +76,6 @@ const SectionHeader: React.FC<{ title: string; onPressViewAll?: () => void }> = 
     )}
   </View>
 );
-
-/** Status chip used on "My Groups" cards — color varies by status type */
-const StatusChip: React.FC<{ label: string; type: MyGroup['statusType'] }> = ({
-  label,
-  type,
-}) => {
-  const map = {
-    new: { bg: COLORS.successLight, color: COLORS.success },
-    meeting: { bg: COLORS.warningLight, color: COLORS.warning },
-    resource: { bg: COLORS.primaryLight, color: COLORS.primary },
-  };
-  const style = map[type];
-  return (
-    <View style={[styles.statusChip, { backgroundColor: style.bg }]}>
-      <View style={[styles.statusDot, { backgroundColor: style.color }]} />
-      <Text style={[styles.statusChipText, { color: style.color }]} numberOfLines={1}>
-        {label}
-      </Text>
-    </View>
-  );
-};
-
-/** Small overlapping avatar stack representing group members (initials-based) */
-const MemberAvatars: React.FC<{ count: number }> = ({ count }) => {
-  const initials = ['NA', 'KO', 'AB'];
-  return (
-    <View style={styles.avatarStack}>
-      {initials.map((label, index) => (
-        <View
-          key={label}
-          style={[
-            styles.avatarCircle,
-            { marginLeft: index === 0 ? 0 : -10, zIndex: initials.length - index },
-          ]}
-        >
-          <Text style={styles.avatarInitials}>{label}</Text>
-        </View>
-      ))}
-      <View style={styles.avatarCountWrap}>
-        <Text style={styles.avatarCountText}>+{Math.max(count - initials.length, 0)}</Text>
-      </View>
-    </View>
-  );
-};
 
 /** Empty state shown when no groups match the current search / filter */
 const EmptyState: React.FC<{ onCreateGroup: () => void }> = ({ onCreateGroup }) => (
@@ -229,70 +100,67 @@ const EmptyState: React.FC<{ onCreateGroup: () => void }> = ({ onCreateGroup }) 
 const GroupsScreen: React.FC = () => {
   const navigation = useNavigation<GroupsScreenNavigationProp>();
   const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [activeFilter, setActiveFilter] = useState<FilterKey>('All');
 
-  // Converts this screen's local card data into the shared Group shape
-  // expected by GroupDetailsScreen's route params.
-  const openMyGroup = (item: MyGroup) => {
-    const group: Group = {
-      id: item.id,
-      categoryShort: item.code.split(' ')[0].slice(0, 2).toUpperCase(),
-      code: item.code,
-      name: item.courseName.includes('—') ? item.courseName : `${item.code} ${item.title}`,
-      subtitle: item.title,
-      description: `A study group for students taking ${item.code} — ${item.title}.`,
-      members: item.members,
-      rating: 4.8,
-      status: 'Active',
-      groupType: 'Public Group',
-      isJoined: true,
-    };
-    navigation.navigate('GroupDetails', { group });
+  // Debounce search input so we don't fire a request on every keystroke.
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearch(searchQuery.trim()), 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  const myGroupsQuery = useMyGroups();
+  const discoverQuery = useDiscoverGroups(
+    { search: debouncedSearch || undefined, category: activeFilter !== 'All' && activeFilter !== 'My Groups' ? activeFilter : undefined },
+    activeFilter !== 'My Groups'
+  );
+  const joinGroupMutation = useJoinGroup();
+
+  useFocusEffect(
+    useCallback(() => {
+      myGroupsQuery.refetch();
+      if (activeFilter !== 'My Groups') discoverQuery.refetch();
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [activeFilter])
+  );
+
+  // getMyGroups has no search param server-side — filter client-side
+  // instead (a student's own group count is small).
+  let myGroups: Group[] = myGroupsQuery.data?.items ?? [];
+  if (debouncedSearch) {
+    const q = debouncedSearch.toLowerCase();
+    myGroups = myGroups.filter((g) => g.name.toLowerCase().includes(q) || g.courseCode.toLowerCase().includes(q));
+  }
+  if (activeFilter !== 'All' && activeFilter !== 'My Groups') {
+    myGroups = myGroups.filter((g) => g.tags.includes(activeFilter));
+  }
+
+  const discoverGroups: Group[] = activeFilter === 'My Groups' ? [] : discoverQuery.data?.items ?? [];
+
+  const isLoading = myGroupsQuery.isLoading || (activeFilter !== 'My Groups' && discoverQuery.isLoading);
+  const hasNoData = !myGroupsQuery.data && !discoverQuery.data;
+  const hasError = hasNoData && (myGroupsQuery.isError || discoverQuery.isError);
+
+  const refetchAll = () => {
+    myGroupsQuery.refetch();
+    discoverQuery.refetch();
   };
 
-  const openDiscoverGroup = (item: DiscoverGroup) => {
-    const group: Group = {
-      id: item.id,
-      categoryShort: item.code.split(' ')[0].slice(0, 2).toUpperCase(),
-      code: item.code,
-      name: `${item.code} ${item.title}`,
-      subtitle: item.title,
-      description: item.description,
-      members: item.members,
-      rating: item.rating,
-      status: 'Active',
-      groupType: 'Public Group',
-      isJoined: false,
-    };
-    navigation.navigate('GroupDetails', { group });
+  const openGroup = (group: Group) => {
+    navigation.navigate('GroupDetails', { groupId: group.id });
   };
 
-  // Filters + search applied against both lists.
-  const filteredMyGroups = useMemo(() => {
-    return MY_GROUPS.filter((group) => {
-      const matchesFilter =
-        activeFilter === 'All' || activeFilter === 'My Groups' || group.category === activeFilter;
-      const matchesSearch =
-        searchQuery.trim().length === 0 ||
-        group.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        group.code.toLowerCase().includes(searchQuery.toLowerCase());
-      return matchesFilter && matchesSearch;
+  const handleQuickJoin = (group: Group) => {
+    joinGroupMutation.mutate(group.id, {
+      onSuccess: () => navigation.navigate('GroupDetails', { groupId: group.id }),
+      onError: (err) => {
+        const message = (err as { message?: string })?.message ?? 'Something went wrong. Please try again.';
+        Alert.alert('Error', message);
+      },
     });
-  }, [activeFilter, searchQuery]);
+  };
 
-  const filteredDiscoverGroups = useMemo(() => {
-    return DISCOVER_GROUPS.filter((group) => {
-      if (activeFilter === 'My Groups') return false; // discover list hidden under "My Groups" filter
-      const matchesFilter = activeFilter === 'All' || group.category === activeFilter;
-      const matchesSearch =
-        searchQuery.trim().length === 0 ||
-        group.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        group.code.toLowerCase().includes(searchQuery.toLowerCase());
-      return matchesFilter && matchesSearch;
-    });
-  }, [activeFilter, searchQuery]);
-
-  const hasNoResults = filteredMyGroups.length === 0 && filteredDiscoverGroups.length === 0;
+  const hasNoResults = !isLoading && !hasError && myGroups.length === 0 && discoverGroups.length === 0;
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
@@ -313,7 +181,11 @@ const GroupsScreen: React.FC = () => {
               <Text style={styles.headerSubtitle}>Find groups that match your courses</Text>
             </View>
 
-            <TouchableOpacity style={styles.filterIconButton} activeOpacity={0.7}>
+            <TouchableOpacity
+              style={styles.filterIconButton}
+              activeOpacity={0.7}
+              onPress={() => Alert.alert('Filters', "Advanced filters aren't available yet — use the category chips below.")}
+            >
               <Feather name="sliders" size={19} color={COLORS.textPrimary} />
             </TouchableOpacity>
           </View>
@@ -366,6 +238,9 @@ const GroupsScreen: React.FC = () => {
           })}
         </ScrollView>
 
+        {isLoading && <LoadingView message="Loading groups..." />}
+        {hasError && <ErrorView message="Couldn't load groups." onRetry={refetchAll} />}
+
         {/* ---------------------------------------------------------- */}
         {/* EMPTY STATE (shown only when nothing matches)               */}
         {/* ---------------------------------------------------------- */}
@@ -376,42 +251,51 @@ const GroupsScreen: React.FC = () => {
         {/* ---------------------------------------------------------- */}
         {/* MY GROUPS SECTION                                           */}
         {/* ---------------------------------------------------------- */}
-        {filteredMyGroups.length > 0 && (
+        {!isLoading && !hasError && myGroups.length > 0 && (
           <>
-            <SectionHeader title="My Groups" onPressViewAll={() => {}} />
+            <SectionHeader title="My Groups" onPressViewAll={() => setActiveFilter('My Groups')} />
             <View style={styles.stackedCards}>
-              {filteredMyGroups.map((group) => (
+              {myGroups.map((group) => (
                 <View key={group.id} style={styles.myGroupCard}>
                   <View style={styles.myGroupTopRow}>
                     <View style={styles.courseBadge}>
-                      <Text style={styles.courseBadgeText}>{group.code}</Text>
+                      <Text style={styles.courseBadgeText}>{group.courseCode}</Text>
                     </View>
-                    <StatusChip label={group.statusLabel} type={group.statusType} />
+                    <View style={styles.roleChip}>
+                      <Text style={styles.roleChipText}>{group.groupType}</Text>
+                    </View>
                   </View>
 
-                  <Text style={styles.myGroupTitle}>{group.title}</Text>
-                  <Text style={styles.myGroupCourseName}>{group.courseName}</Text>
+                  <Text style={styles.myGroupTitle}>{group.name}</Text>
+                  <Text style={styles.myGroupCourseName}>{group.courseTitle}</Text>
 
                   <View style={styles.myGroupMetaRow}>
-                    <MemberAvatars count={group.members} />
                     <View style={styles.memberCountRow}>
                       <Feather name="users" size={13} color={COLORS.textSecondary} />
-                      <Text style={styles.memberCountText}>{group.members} members</Text>
+                      <Text style={styles.memberCountText}>{group.membersCount} members</Text>
                     </View>
+                    {group.rating !== undefined ? (
+                      <View style={styles.memberCountRow}>
+                        <Ionicons name="star" size={13} color={COLORS.star} />
+                        <Text style={styles.memberCountText}>{group.rating.toFixed(1)}</Text>
+                      </View>
+                    ) : null}
                   </View>
 
                   <View style={styles.myGroupFooterRow}>
                     <View style={styles.meetingRow}>
                       <Feather name="clock" size={13} color={COLORS.textSecondary} />
                       <Text style={styles.meetingText} numberOfLines={1}>
-                        {group.meetingLabel}
+                        {group.meetingDay && group.meetingTime
+                          ? `${group.meetingDay}, ${group.meetingTime}`
+                          : 'No meeting scheduled'}
                       </Text>
                     </View>
 
                     <TouchableOpacity
                       style={styles.openButton}
                       activeOpacity={0.85}
-                      onPress={() => openMyGroup(group)}
+                      onPress={() => openGroup(group)}
                     >
                       <Text style={styles.openButtonText}>Open</Text>
                     </TouchableOpacity>
@@ -425,24 +309,31 @@ const GroupsScreen: React.FC = () => {
         {/* ---------------------------------------------------------- */}
         {/* DISCOVER GROUPS SECTION                                     */}
         {/* ---------------------------------------------------------- */}
-        {filteredDiscoverGroups.length > 0 && (
+        {!isLoading && !hasError && discoverGroups.length > 0 && (
           <>
             <SectionHeader title="Discover Groups" />
             <View style={styles.stackedCards}>
-              {filteredDiscoverGroups.map((group) => (
-                <View key={group.id} style={styles.discoverCard}>
+              {discoverGroups.map((group) => (
+                <TouchableOpacity
+                  key={group.id}
+                  style={styles.discoverCard}
+                  activeOpacity={0.85}
+                  onPress={() => openGroup(group)}
+                >
                   <View style={styles.discoverTopRow}>
                     <View style={styles.courseBadge}>
-                      <Text style={styles.courseBadgeText}>{group.code}</Text>
+                      <Text style={styles.courseBadgeText}>{group.courseCode}</Text>
                     </View>
 
-                    <View style={styles.ratingRow}>
-                      <Ionicons name="star" size={13} color={COLORS.star} />
-                      <Text style={styles.ratingText}>{group.rating.toFixed(1)}</Text>
-                    </View>
+                    {group.rating !== undefined ? (
+                      <View style={styles.ratingRow}>
+                        <Ionicons name="star" size={13} color={COLORS.star} />
+                        <Text style={styles.ratingText}>{group.rating.toFixed(1)}</Text>
+                      </View>
+                    ) : null}
                   </View>
 
-                  <Text style={styles.discoverTitle}>{group.title}</Text>
+                  <Text style={styles.discoverTitle}>{group.name}</Text>
                   <Text style={styles.discoverDescription} numberOfLines={2}>
                     {group.description}
                   </Text>
@@ -451,22 +342,24 @@ const GroupsScreen: React.FC = () => {
                     <View style={styles.discoverFooterLeft}>
                       <View style={styles.memberCountRow}>
                         <Feather name="users" size={13} color={COLORS.textSecondary} />
-                        <Text style={styles.memberCountText}>{group.members} members</Text>
+                        <Text style={styles.memberCountText}>{group.membersCount} members</Text>
                       </View>
-                      <View style={styles.tagChip}>
-                        <Text style={styles.tagChipText}>{group.tag}</Text>
-                      </View>
+                      {group.tags[0] ? (
+                        <View style={styles.tagChip}>
+                          <Text style={styles.tagChipText}>{group.tags[0]}</Text>
+                        </View>
+                      ) : null}
                     </View>
 
                     <TouchableOpacity
                       style={styles.joinButton}
                       activeOpacity={0.85}
-                      onPress={() => openDiscoverGroup(group)}
+                      onPress={() => handleQuickJoin(group)}
                     >
-                      <Text style={styles.joinButtonText}>Join</Text>
+                      <Text style={styles.joinButtonText}>{group.groupType === 'Private' ? 'View' : 'Join'}</Text>
                     </TouchableOpacity>
                   </View>
-                </View>
+                </TouchableOpacity>
               ))}
             </View>
           </>
@@ -647,23 +540,16 @@ const styles = StyleSheet.create({
     color: COLORS.primary,
     letterSpacing: 0.2,
   },
-  statusChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  roleChip: {
     paddingHorizontal: 9,
     paddingVertical: 5,
     borderRadius: 20,
-    maxWidth: 170,
+    backgroundColor: COLORS.chipBg,
   },
-  statusDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    marginRight: 6,
-  },
-  statusChipText: {
+  roleChipText: {
     fontSize: 11,
     fontWeight: '600',
+    color: COLORS.textSecondary,
   },
 
   // ---------------- MY GROUPS CARD ----------------
@@ -693,8 +579,8 @@ const styles = StyleSheet.create({
   myGroupMetaRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
     marginTop: 14,
+    gap: 16,
   },
   memberCountRow: {
     flexDirection: 'row',
@@ -736,43 +622,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '700',
     color: COLORS.primary,
-  },
-
-  // ---------------- MEMBER AVATARS ----------------
-  avatarStack: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  avatarCircle: {
-    width: 26,
-    height: 26,
-    borderRadius: 13,
-    backgroundColor: COLORS.primarySoft,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 2,
-    borderColor: COLORS.card,
-  },
-  avatarInitials: {
-    fontSize: 9,
-    fontWeight: '700',
-    color: COLORS.primary,
-  },
-  avatarCountWrap: {
-    width: 26,
-    height: 26,
-    borderRadius: 13,
-    backgroundColor: COLORS.chipBg,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginLeft: -10,
-    borderWidth: 2,
-    borderColor: COLORS.card,
-  },
-  avatarCountText: {
-    fontSize: 8.5,
-    fontWeight: '700',
-    color: COLORS.textSecondary,
   },
 
   // ---------------- DISCOVER GROUPS CARD ----------------

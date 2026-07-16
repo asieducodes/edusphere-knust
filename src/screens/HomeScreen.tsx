@@ -9,7 +9,7 @@
  * -----------------------------------------------------------------------
  */
 
-import React, { useState } from "react";
+import React, { useState, useCallback } from "react";
 import {
   View,
   Text,
@@ -23,16 +23,23 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Feather, Ionicons } from "@expo/vector-icons";
-import { useNavigation } from "@react-navigation/native";
+import { useNavigation, useFocusEffect } from "@react-navigation/native";
 import type { CompositeNavigationProp } from "@react-navigation/native";
 import type { BottomTabNavigationProp } from "@react-navigation/bottom-tabs";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { COLORS, SHADOW } from "../theme/colors";
 import {
-  Group,
   MainTabParamList,
   RootStackParamList,
 } from "../navigation/types";
+import { useAuth } from "../context/AuthContext";
+import { LoadingView, ErrorView } from "../components/common";
+import { useMyGroups, useRecommendedGroups } from "../hooks/useGroups";
+import { useResources } from "../hooks/useResources";
+import { useUpcomingSessions } from "../hooks/useSessions";
+import { useNotifications } from "../hooks/useNotifications";
+import { Group } from "../types/group";
+import { Resource } from "../types/resource";
 
 type HomeScreenNavigationProp = CompositeNavigationProp<
   BottomTabNavigationProp<MainTabParamList, "Home">,
@@ -41,140 +48,39 @@ type HomeScreenNavigationProp = CompositeNavigationProp<
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
-// -----------------------------------------------------------------------
-// TYPES
-// -----------------------------------------------------------------------
-interface StudyGroup {
-  id: string;
-  code: string;
-  title: string;
-  members: number;
-  status: string;
-  statusType: "new" | "meeting";
-}
-
-interface Session {
-  id: string;
-  title: string;
-  day: string;
-  date: string;
-  time: string;
-  location: string;
-}
-
-interface RecommendedGroup {
-  id: string;
-  code: string;
-  title: string;
-  members: number;
-  rating: number;
-  tag: string;
-}
-
-interface Resource {
-  id: string;
-  title: string;
-  fileType: "PDF" | "DOCX" | "PPTX";
-  size: string;
-  uploaded: string;
-}
-
-interface QuickAction {
-  id: string;
-  label: string;
-  icon: keyof typeof Feather.glyphMap;
-}
-
-// -----------------------------------------------------------------------
-// STATIC SAMPLE DATA
-// -----------------------------------------------------------------------
-const QUICK_ACTIONS: QuickAction[] = [
+const QUICK_ACTIONS: { id: string; label: string; icon: keyof typeof Feather.glyphMap }[] = [
   { id: "1", label: "Find Group", icon: "users" },
   { id: "2", label: "Create Group", icon: "plus-circle" },
   { id: "3", label: "Resources", icon: "file-text" },
   { id: "4", label: "Campus Map", icon: "map-pin" },
 ];
 
-const MY_GROUPS: StudyGroup[] = [
-  {
-    id: "g1",
-    code: "CSM 351",
-    title: "Data Structures",
-    members: 24,
-    status: "New discussion today",
-    statusType: "new",
-  },
-  {
-    id: "g2",
-    code: "MTH 263",
-    title: "Calculus II",
-    members: 18,
-    status: "Next meeting 4:00 PM",
-    statusType: "meeting",
-  },
-];
+// File-type visual mapping shared by the Recent Resources list.
+const FILE_TYPE_STYLES: Record<Resource["fileType"], { bg: string; color: string }> = {
+  PDF: { bg: "#FDEAEA", color: "#D93A3A" },
+  DOCX: { bg: "#E7EEFD", color: "#2D3FE0" },
+  PPTX: { bg: "#FEF0E2", color: "#E08A1F" },
+  ZIP: { bg: "#F1F2F8", color: "#5B6172" },
+};
 
-const SESSIONS: Session[] = [
-  {
-    id: "s1",
-    title: "CSM 351 Study Session",
-    day: "FRI",
-    date: "May 23",
-    time: "4:00 PM – 6:00 PM",
-    location: "CCB, Room 203",
-  },
-  {
-    id: "s2",
-    title: "MTH 263 Tutorial",
-    day: "SAT",
-    date: "May 24",
-    time: "10:00 AM – 12:00 PM",
-    location: "KSB, Room B105",
-  },
-];
+function relativeTime(iso: string): string {
+  const then = new Date(iso).getTime();
+  const diffMs = Date.now() - then;
+  const minutes = Math.floor(diffMs / 60000);
+  if (minutes < 1) return 'Uploaded just now';
+  if (minutes < 60) return `Uploaded ${minutes}m ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `Uploaded ${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  return `Uploaded ${days}d ago`;
+}
 
-const RECOMMENDED: RecommendedGroup[] = [
-  {
-    id: "r1",
-    code: "CSM 461",
-    title: "Artificial Intelligence",
-    members: 32,
-    rating: 4.7,
-    tag: "Active discussions",
-  },
-  {
-    id: "r2",
-    code: "ECN 262",
-    title: "Microeconomics",
-    members: 28,
-    rating: 4.6,
-    tag: "Exam prep",
-  },
-];
-
-const RESOURCES: Resource[] = [
-  {
-    id: "f1",
-    title: "Past Questions - CSM 357",
-    fileType: "PDF",
-    size: "2.4 MB",
-    uploaded: "Uploaded 2h ago",
-  },
-  {
-    id: "f2",
-    title: "Lecture Notes - MTH 263",
-    fileType: "DOCX",
-    size: "1.6 MB",
-    uploaded: "Uploaded 1d ago",
-  },
-  {
-    id: "f3",
-    title: "Data Structures - Slide Deck",
-    fileType: "PPTX",
-    size: "3.1 MB",
-    uploaded: "Uploaded 2d ago",
-  },
-];
+function formatSessionDate(iso: string): { day: string; date: string } {
+  const d = new Date(iso);
+  const day = d.toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase();
+  const date = d.getDate().toString();
+  return { day, date };
+}
 
 // -----------------------------------------------------------------------
 // SMALL REUSABLE COMPONENTS
@@ -182,12 +88,7 @@ const RESOURCES: Resource[] = [
 
 /** File-type badge with color coding by extension */
 const FileBadge: React.FC<{ type: Resource["fileType"] }> = ({ type }) => {
-  const map: Record<Resource["fileType"], { bg: string; color: string }> = {
-    PDF: { bg: "#FDEAEA", color: "#D93A3A" },
-    DOCX: { bg: "#E7EEFD", color: "#2D3FE0" },
-    PPTX: { bg: "#FEF0E2", color: "#E08A1F" },
-  };
-  const style = map[type];
+  const style = FILE_TYPE_STYLES[type];
   return (
     <View style={[styles.fileBadge, { backgroundColor: style.bg }]}>
       <Text style={[styles.fileBadgeText, { color: style.color }]}>{type}</Text>
@@ -250,26 +151,71 @@ const SectionHeader: React.FC<{
 // -----------------------------------------------------------------------
 const HomeScreen: React.FC = () => {
   const navigation = useNavigation<HomeScreenNavigationProp>();
+  const { user } = useAuth();
   const [searchQuery, setSearchQuery] = useState("");
 
-  // Converts a "My Study Groups" card into the shared Group shape
-  // expected by GroupDetailsScreen's route params.
-  const openGroup = (item: StudyGroup) => {
-    const group: Group = {
-      id: item.id,
-      categoryShort: item.code.split(" ")[0].slice(0, 2).toUpperCase(),
-      code: item.code,
-      name: `${item.code} ${item.title}`,
-      subtitle: item.title,
-      description: `A study group for students taking ${item.code} — ${item.title}.`,
-      members: item.members,
-      rating: 4.8,
-      status: "Active",
-      groupType: "Public Group",
-      isJoined: true,
-    };
-    navigation.navigate("GroupDetails", { group });
+  const groupsQuery = useMyGroups();
+  const recommendedQuery = useRecommendedGroups();
+  const resourcesQuery = useResources({ limit: 3 });
+  const sessionsQuery = useUpcomingSessions();
+  const notificationsQuery = useNotifications();
+
+  // isLoading is only true on a genuine first load (no cached data yet) —
+  // a background refetch on revisit sets isFetching instead, leaving
+  // `data` (and therefore the UI) untouched until the new data arrives.
+  // That's what kills the "reload spinner on every screen visit" feeling.
+  const isLoading =
+    groupsQuery.isLoading || recommendedQuery.isLoading || resourcesQuery.isLoading || sessionsQuery.isLoading;
+  const hasNoData =
+    !groupsQuery.data && !recommendedQuery.data && !resourcesQuery.data && !sessionsQuery.data;
+  const hasError =
+    hasNoData &&
+    (groupsQuery.isError || recommendedQuery.isError || resourcesQuery.isError || sessionsQuery.isError);
+
+  const refetchAll = useCallback(() => {
+    groupsQuery.refetch();
+    recommendedQuery.refetch();
+    resourcesQuery.refetch();
+    sessionsQuery.refetch();
+    notificationsQuery.refetch();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Screens inside a bottom-tab navigator stay mounted when you switch
+  // tabs, so without this, revisiting Home after 30s+ elsewhere would show
+  // increasingly stale data until the app fully remounts. refetch() keeps
+  // showing the cached data while it quietly re-fetches, so this doesn't
+  // reintroduce a loading flash.
+  useFocusEffect(refetchAll);
+
+  const myGroups: Group[] = groupsQuery.data?.items ?? [];
+  const recommended: Group[] = recommendedQuery.data?.items ?? [];
+  const resources: Resource[] = resourcesQuery.data?.items ?? [];
+  const sessions = sessionsQuery.data?.items ?? [];
+  const hasUnreadNotifications = notificationsQuery.data?.items.some((n) => !n.isRead) ?? false;
+
+  const openGroup = (item: Group) => {
+    navigation.navigate("GroupDetails", { groupId: item.id });
   };
+
+  const handleQuickAction = (id: string) => {
+    switch (id) {
+      case "1":
+        navigation.navigate("Groups");
+        break;
+      case "2":
+        navigation.navigate("CreateGroup");
+        break;
+      case "3":
+        navigation.navigate("Resources");
+        break;
+      case "4":
+        navigation.navigate("Map");
+        break;
+    }
+  };
+
+  const firstName = user?.fullName?.split(' ')[0] ?? 'there';
 
   return (
     <SafeAreaView style={styles.safeArea} edges={["top"]}>
@@ -292,22 +238,33 @@ const HomeScreen: React.FC = () => {
               <Text style={styles.brandText}>EduSphere</Text>
             </View>
 
-            <TouchableOpacity style={styles.iconButton} activeOpacity={0.7}>
+            <TouchableOpacity
+              style={styles.iconButton}
+              activeOpacity={0.7}
+              onPress={() => navigation.navigate("Notifications")}
+            >
               <Feather name="bell" size={22} color={COLORS.textPrimary} />
-              <View style={styles.notificationDot} />
+              {hasUnreadNotifications ? <View style={styles.notificationDot} /> : null}
             </TouchableOpacity>
           </View>
 
           <View style={styles.greetingRow}>
-            <TouchableOpacity activeOpacity={0.8} style={styles.avatarWrapper}>
-              <Image
-                source={{ uri: "https://i.pravatar.cc/100?img=12" }}
-                style={styles.avatar}
-              />
+            <TouchableOpacity
+              activeOpacity={0.8}
+              style={styles.avatarWrapper}
+              onPress={() => navigation.navigate("Profile")}
+            >
+              {user?.avatarUrl ? (
+                <Image source={{ uri: user.avatarUrl }} style={styles.avatar} />
+              ) : (
+                <View style={[styles.avatar, styles.avatarPlaceholder]}>
+                  <Feather name="user" size={18} color={COLORS.primary} />
+                </View>
+              )}
             </TouchableOpacity>
 
             <View style={styles.greetingBlock}>
-              <Text style={styles.greetingText}>Hi, Nii 👋</Text>
+              <Text style={styles.greetingText}>Hi, {firstName} 👋</Text>
               <Text style={styles.greetingSubtitle}>
                 Find your next study session
               </Text>
@@ -318,7 +275,11 @@ const HomeScreen: React.FC = () => {
         {/* ---------------------------------------------------------- */}
         {/* SEARCH BAR                                                  */}
         {/* ---------------------------------------------------------- */}
-        <View style={styles.searchBarWrapper}>
+        <TouchableOpacity
+          style={styles.searchBarWrapper}
+          activeOpacity={0.8}
+          onPress={() => navigation.navigate("Resources")}
+        >
           <Feather name="search" size={18} color={COLORS.textMuted} />
           <TextInput
             style={styles.searchInput}
@@ -326,9 +287,10 @@ const HomeScreen: React.FC = () => {
             placeholderTextColor={COLORS.textMuted}
             value={searchQuery}
             onChangeText={setSearchQuery}
+            onSubmitEditing={() => navigation.navigate("Resources")}
             returnKeyType="search"
           />
-        </View>
+        </TouchableOpacity>
 
         {/* ---------------------------------------------------------- */}
         {/* QUICK ACTION CARDS (2x2 grid)                               */}
@@ -339,6 +301,7 @@ const HomeScreen: React.FC = () => {
               key={action.id}
               style={styles.quickActionCard}
               activeOpacity={0.8}
+              onPress={() => handleQuickAction(action.id)}
             >
               <View style={styles.quickActionIconWrap}>
                 <Feather name={action.icon} size={20} color={COLORS.primary} />
@@ -348,172 +311,190 @@ const HomeScreen: React.FC = () => {
           ))}
         </View>
 
-        {/* ---------------------------------------------------------- */}
-        {/* MY STUDY GROUPS                                             */}
-        {/* ---------------------------------------------------------- */}
-        <SectionHeader title="My Study Groups" onPressViewAll={() => {}} />
+        {isLoading && <LoadingView message="Loading your dashboard..." />}
+        {hasError && <ErrorView onRetry={refetchAll} />}
 
-        <View style={styles.stackedCards}>
-          {MY_GROUPS.map((group) => (
-            <TouchableOpacity
-              key={group.id}
-              style={styles.groupCard}
-              activeOpacity={0.8}
-              onPress={() => openGroup(group)}
-            >
-              <View style={styles.groupCardTop}>
-                <View style={styles.courseBadge}>
-                  <Text style={styles.courseBadgeText}>{group.code}</Text>
+        {!isLoading && !hasError && (
+          <>
+            {/* ---------------------------------------------------------- */}
+            {/* MY STUDY GROUPS                                             */}
+            {/* ---------------------------------------------------------- */}
+            {myGroups.length > 0 && (
+              <>
+                <SectionHeader title="My Study Groups" onPressViewAll={() => navigation.navigate("Groups")} />
+
+                <View style={styles.stackedCards}>
+                  {myGroups.map((group) => {
+                    const hasMeeting = !!(group.meetingDay && group.meetingTime);
+                    const statusLabel = hasMeeting
+                      ? `${group.meetingDay} • ${group.meetingTime}`
+                      : `${group.membersCount} members`;
+                    return (
+                      <TouchableOpacity
+                        key={group.id}
+                        style={styles.groupCard}
+                        activeOpacity={0.8}
+                        onPress={() => openGroup(group)}
+                      >
+                        <View style={styles.groupCardTop}>
+                          <View style={styles.courseBadge}>
+                            <Text style={styles.courseBadgeText}>{group.courseCode}</Text>
+                          </View>
+                          <StatusChip label={statusLabel} type={hasMeeting ? "meeting" : "new"} />
+                        </View>
+
+                        <Text style={styles.groupTitle}>{group.name}</Text>
+
+                        <View style={styles.groupMetaRow}>
+                          <Feather name="users" size={14} color={COLORS.textSecondary} />
+                          <Text style={styles.groupMetaText}>
+                            {group.membersCount} members
+                          </Text>
+                        </View>
+                      </TouchableOpacity>
+                    );
+                  })}
                 </View>
-                <StatusChip label={group.status} type={group.statusType} />
-              </View>
+              </>
+            )}
 
-              <Text style={styles.groupTitle}>{group.title}</Text>
+            {/* ---------------------------------------------------------- */}
+            {/* UPCOMING SESSIONS                                           */}
+            {/* ---------------------------------------------------------- */}
+            {sessions.length > 0 && (
+              <>
+                <SectionHeader title="Upcoming Sessions" />
 
-              <View style={styles.groupMetaRow}>
-                <Feather name="users" size={14} color={COLORS.textSecondary} />
-                <Text style={styles.groupMetaText}>
-                  {group.members} members
-                </Text>
-              </View>
-            </TouchableOpacity>
-          ))}
-        </View>
+                <View style={styles.stackedCards}>
+                  {sessions.map((session) => {
+                    const { day, date } = formatSessionDate(session.date);
+                    return (
+                      <View key={session.id} style={styles.sessionCard}>
+                        <View style={styles.dateBlock}>
+                          <Text style={styles.dateBlockDay}>{day}</Text>
+                          <Text style={styles.dateBlockDate}>{date}</Text>
+                        </View>
 
-        {/* ---------------------------------------------------------- */}
-        {/* UPCOMING SESSIONS                                           */}
-        {/* ---------------------------------------------------------- */}
-        <SectionHeader title="Upcoming Sessions" />
+                        <View style={styles.sessionInfo}>
+                          <Text style={styles.sessionTitle}>{session.title}</Text>
 
-        <View style={styles.stackedCards}>
-          {SESSIONS.map((session) => (
-            <View key={session.id} style={styles.sessionCard}>
-              <View style={styles.dateBlock}>
-                <Text style={styles.dateBlockDay}>{session.day}</Text>
-                <Text style={styles.dateBlockDate}>
-                  {session.date.split(" ")[1]}
-                </Text>
-              </View>
+                          <View style={styles.sessionMetaRow}>
+                            <Feather name="clock" size={13} color={COLORS.textSecondary} />
+                            <Text style={styles.sessionMetaText}>
+                              {session.startTime} – {session.endTime}
+                            </Text>
+                          </View>
 
-              <View style={styles.sessionInfo}>
-                <Text style={styles.sessionTitle}>{session.title}</Text>
+                          <View style={styles.sessionMetaRow}>
+                            <Feather name="map-pin" size={13} color={COLORS.textSecondary} />
+                            <Text style={styles.sessionMetaText}>{session.location}</Text>
+                          </View>
+                        </View>
 
-                <View style={styles.sessionMetaRow}>
-                  <Feather
-                    name="clock"
-                    size={13}
-                    color={COLORS.textSecondary}
-                  />
-                  <Text style={styles.sessionMetaText}>{session.time}</Text>
+                        <View style={styles.calendarIconWrap}>
+                          <Feather name="calendar" size={18} color={COLORS.primary} />
+                        </View>
+                      </View>
+                    );
+                  })}
                 </View>
+              </>
+            )}
 
-                <View style={styles.sessionMetaRow}>
-                  <Feather
-                    name="map-pin"
-                    size={13}
-                    color={COLORS.textSecondary}
-                  />
-                  <Text style={styles.sessionMetaText}>{session.location}</Text>
+            {/* ---------------------------------------------------------- */}
+            {/* RECOMMENDED GROUPS                                          */}
+            {/* ---------------------------------------------------------- */}
+            {recommended.length > 0 && (
+              <>
+                <SectionHeader title="Recommended Groups" />
+
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.recommendedScroll}
+                >
+                  {recommended.map((group) => (
+                    <View key={group.id} style={styles.recommendedCard}>
+                      <View style={styles.courseBadge}>
+                        <Text style={styles.courseBadgeText}>{group.courseCode}</Text>
+                      </View>
+
+                      <Text style={styles.recommendedTitle} numberOfLines={2}>
+                        {group.name}
+                      </Text>
+
+                      <View style={styles.groupMetaRow}>
+                        <Feather name="users" size={13} color={COLORS.textSecondary} />
+                        <Text style={styles.groupMetaText}>
+                          {group.membersCount} members
+                        </Text>
+                      </View>
+
+                      {group.rating ? (
+                        <View style={styles.groupMetaRow}>
+                          <Ionicons name="star" size={13} color={COLORS.star} />
+                          <Text style={styles.groupMetaText}>
+                            {group.rating.toFixed(1)} rating
+                          </Text>
+                        </View>
+                      ) : null}
+
+                      {group.tags[0] ? (
+                        <View style={styles.tagChip}>
+                          <Text style={styles.tagChipText}>{group.tags[0]}</Text>
+                        </View>
+                      ) : null}
+
+                      <TouchableOpacity
+                        style={styles.joinButton}
+                        activeOpacity={0.85}
+                        onPress={() => openGroup(group)}
+                      >
+                        <Text style={styles.joinButtonText}>View</Text>
+                      </TouchableOpacity>
+                    </View>
+                  ))}
+                </ScrollView>
+              </>
+            )}
+
+            {/* ---------------------------------------------------------- */}
+            {/* RECENT RESOURCES                                            */}
+            {/* ---------------------------------------------------------- */}
+            {resources.length > 0 && (
+              <>
+                <SectionHeader title="Recent Resources" onPressViewAll={() => navigation.navigate("Resources")} />
+
+                <View style={styles.resourcesCard}>
+                  {resources.map((resource, index) => (
+                    <TouchableOpacity
+                      key={resource.id}
+                      style={[
+                        styles.resourceRow,
+                        index !== resources.length - 1 && styles.resourceRowDivider,
+                      ]}
+                      activeOpacity={0.7}
+                      onPress={() => navigation.navigate("ResourceDetails", { resourceId: resource.id })}
+                    >
+                      <FileBadge type={resource.fileType} />
+
+                      <View style={styles.resourceInfo}>
+                        <Text style={styles.resourceTitle} numberOfLines={1}>
+                          {resource.title}
+                        </Text>
+                        <Text style={styles.resourceMeta}>
+                          {resource.fileType} • {resource.size} • {relativeTime(resource.createdAt)}
+                        </Text>
+                      </View>
+
+                      <Feather name="chevron-right" size={17} color={COLORS.textMuted} />
+                    </TouchableOpacity>
+                  ))}
                 </View>
-              </View>
-
-              <View style={styles.calendarIconWrap}>
-                <Feather name="calendar" size={18} color={COLORS.primary} />
-              </View>
-            </View>
-          ))}
-        </View>
-
-        {/* ---------------------------------------------------------- */}
-        {/* RECOMMENDED GROUPS                                          */}
-        {/* ---------------------------------------------------------- */}
-        <SectionHeader title="Recommended Groups" />
-
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.recommendedScroll}
-        >
-          {RECOMMENDED.map((group) => (
-            <View key={group.id} style={styles.recommendedCard}>
-              <View style={styles.courseBadge}>
-                <Text style={styles.courseBadgeText}>{group.code}</Text>
-              </View>
-
-              <Text style={styles.recommendedTitle} numberOfLines={2}>
-                {group.title}
-              </Text>
-
-              <View style={styles.groupMetaRow}>
-                <Feather name="users" size={13} color={COLORS.textSecondary} />
-                <Text style={styles.groupMetaText}>
-                  {group.members} members
-                </Text>
-              </View>
-
-              <View style={styles.groupMetaRow}>
-                <Ionicons name="star" size={13} color={COLORS.star} />
-                <Text style={styles.groupMetaText}>
-                  {group.rating.toFixed(1)} rating
-                </Text>
-              </View>
-
-              <View style={styles.tagChip}>
-                <Text style={styles.tagChipText}>{group.tag}</Text>
-              </View>
-
-              <TouchableOpacity style={styles.joinButton} activeOpacity={0.85}>
-                <Text style={styles.joinButtonText}>Join</Text>
-              </TouchableOpacity>
-            </View>
-          ))}
-        </ScrollView>
-
-        {/* ---------------------------------------------------------- */}
-        {/* RECENT RESOURCES                                            */}
-        {/* ---------------------------------------------------------- */}
-        <SectionHeader title="Recent Resources" onPressViewAll={() => {}} />
-
-        <View style={styles.resourcesCard}>
-          {RESOURCES.map((resource, index) => (
-            <View
-              key={resource.id}
-              style={[
-                styles.resourceRow,
-                index !== RESOURCES.length - 1 && styles.resourceRowDivider,
-              ]}
-            >
-              <FileBadge type={resource.fileType} />
-
-              <View style={styles.resourceInfo}>
-                <Text style={styles.resourceTitle} numberOfLines={1}>
-                  {resource.title}
-                </Text>
-                <Text style={styles.resourceMeta}>
-                  {resource.fileType} • {resource.size} • {resource.uploaded}
-                </Text>
-              </View>
-
-              <TouchableOpacity
-                style={styles.resourceIconButton}
-                activeOpacity={0.7}
-              >
-                <Feather name="download" size={17} color={COLORS.primary} />
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.resourceIconButton}
-                activeOpacity={0.7}
-              >
-                <Feather
-                  name="more-vertical"
-                  size={17}
-                  color={COLORS.textMuted}
-                />
-              </TouchableOpacity>
-            </View>
-          ))}
-        </View>
+              </>
+            )}
+          </>
+        )}
 
         {/* Bottom spacer so content isn't hidden behind the tab bar */}
         <View style={{ height: 100 }} />
@@ -607,6 +588,11 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: 19,
+  },
+  avatarPlaceholder: {
+    backgroundColor: COLORS.primaryLight,
+    alignItems: "center",
+    justifyContent: "center",
   },
   greetingBlock: {
     marginLeft: 12,
