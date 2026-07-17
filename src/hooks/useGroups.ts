@@ -125,6 +125,17 @@ export function useLeaveGroup() {
   });
 }
 
+export function useRemoveMember(groupId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (userId: string) => groupService.removeMember(groupId, userId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.groupMembers(groupId) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.group(groupId) });
+    },
+  });
+}
+
 export function useInviteMember(groupId: string) {
   const queryClient = useQueryClient();
   return useMutation({

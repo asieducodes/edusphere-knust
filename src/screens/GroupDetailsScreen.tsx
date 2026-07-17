@@ -43,9 +43,11 @@ import {
   useCreateGroupPost,
   useCreateGroupSession,
   useInviteMember,
+  useRemoveMember,
 } from '../hooks/useGroups';
 import { useResources } from '../hooks/useResources';
 import { useCreateReport } from '../hooks/useReports';
+import { useAuth } from '../context/AuthContext';
 import { GroupMember } from '../types/group';
 import { Resource } from '../types/resource';
 
@@ -167,7 +169,9 @@ const GroupDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
   const createPostMutation = useCreateGroupPost(groupId);
   const createSessionMutation = useCreateGroupSession(groupId);
   const inviteMutation = useInviteMember(groupId);
+  const removeMemberMutation = useRemoveMember(groupId);
   const reportMutation = useCreateReport();
+  const { user } = useAuth();
 
   useFocusEffect(
     useCallback(() => {
@@ -189,8 +193,26 @@ const GroupDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
   const sessionsCount = sessionsQuery.data?.meta.total ?? 0;
   const resources = resourcesQuery.data?.items ?? [];
   const resourcesCount = resourcesQuery.data?.meta.total ?? 0;
+  const isGroupOwner = members.find((m) => m.id === user?.id)?.role === 'owner';
 
   const isJoinLeaveSubmitting = joinMutation.isPending || leaveMutation.isPending;
+
+  const handleRemoveMember = (member: GroupMember) => {
+    Alert.alert('Remove member?', `Remove ${member.fullName} from this group?`, [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Remove',
+        style: 'destructive',
+        onPress: () =>
+          removeMemberMutation.mutate(member.id, {
+            onError: (err) => {
+              const message = (err as { message?: string })?.message ?? 'Something went wrong. Please try again.';
+              Alert.alert('Error', message);
+            },
+          }),
+      },
+    ]);
+  };
 
   const handleJoinLeave = () => {
     if (!group) return;
@@ -621,8 +643,19 @@ const GroupDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
               >
                 {members.map((member) => {
                   const roleStyle = ROLE_STYLES[member.role];
+                  const canRemove = isGroupOwner && member.role !== 'owner';
                   return (
                     <View key={member.id} style={styles.memberCard}>
+                      {canRemove ? (
+                        <TouchableOpacity
+                          style={styles.memberRemoveButton}
+                          activeOpacity={0.75}
+                          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                          onPress={() => handleRemoveMember(member)}
+                        >
+                          <Feather name="x" size={11} color={COLORS.white} />
+                        </TouchableOpacity>
+                      ) : null}
                       <View style={styles.memberAvatarCircle}>
                         <Text style={styles.memberAvatarInitials}>
                           {member.fullName
@@ -1075,6 +1108,21 @@ const styles = StyleSheet.create({
     width: 84,
     alignItems: 'center',
     marginRight: CARD_GAP,
+    position: 'relative',
+  },
+  memberRemoveButton: {
+    position: 'absolute',
+    top: -2,
+    right: 12,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: COLORS.danger,
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 1,
+    borderWidth: 2,
+    borderColor: COLORS.background,
   },
   memberAvatarCircle: {
     width: 52,

@@ -325,12 +325,20 @@ const GroupsScreen: React.FC = () => {
                       <Text style={styles.courseBadgeText}>{group.courseCode}</Text>
                     </View>
 
-                    {group.rating !== undefined ? (
-                      <View style={styles.ratingRow}>
-                        <Ionicons name="star" size={13} color={COLORS.star} />
-                        <Text style={styles.ratingText}>{group.rating.toFixed(1)}</Text>
-                      </View>
-                    ) : null}
+                    <View style={styles.discoverTopRowRight}>
+                      {group.isJoined ? (
+                        <View style={styles.joinedBadge}>
+                          <Feather name="check" size={11} color={COLORS.success} />
+                          <Text style={styles.joinedBadgeText}>Joined</Text>
+                        </View>
+                      ) : null}
+                      {group.rating !== undefined ? (
+                        <View style={styles.ratingRow}>
+                          <Ionicons name="star" size={13} color={COLORS.star} />
+                          <Text style={styles.ratingText}>{group.rating.toFixed(1)}</Text>
+                        </View>
+                      ) : null}
+                    </View>
                   </View>
 
                   <Text style={styles.discoverTitle}>{group.name}</Text>
@@ -354,9 +362,11 @@ const GroupsScreen: React.FC = () => {
                     <TouchableOpacity
                       style={styles.joinButton}
                       activeOpacity={0.85}
-                      onPress={() => handleQuickJoin(group)}
+                      onPress={() => (group.isJoined ? openGroup(group) : handleQuickJoin(group))}
                     >
-                      <Text style={styles.joinButtonText}>{group.groupType === 'Private' ? 'View' : 'Join'}</Text>
+                      <Text style={styles.joinButtonText}>
+                        {group.isJoined ? 'Open' : group.groupType === 'Private' ? 'View' : 'Join'}
+                      </Text>
                     </TouchableOpacity>
                   </View>
                 </TouchableOpacity>
@@ -636,6 +646,25 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+  },
+  discoverTopRowRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  joinedBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.successLight,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 20,
+  },
+  joinedBadgeText: {
+    fontSize: 11.5,
+    fontWeight: '700',
+    color: COLORS.success,
+    marginLeft: 3,
   },
   ratingRow: {
     flexDirection: 'row',

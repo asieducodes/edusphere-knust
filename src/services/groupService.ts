@@ -103,6 +103,12 @@ export async function getGroupMembers(
   return response.data;
 }
 
+/** DELETE /groups/:groupId/members/:userId — owner-only. */
+export async function removeMember(groupId: string, userId: string): Promise<ApiResponse<null>> {
+  const response = await api.delete<ApiResponse<null>>(`/groups/${groupId}/members/${userId}`);
+  return response.data;
+}
+
 // -----------------------------------------------------------------------
 // DISCUSSIONS (matches GroupDetailsScreen's "Recent Discussions" section)
 // -----------------------------------------------------------------------
