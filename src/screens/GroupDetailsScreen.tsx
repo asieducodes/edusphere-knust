@@ -30,7 +30,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather, Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { COLORS, SHADOW } from '../theme/colors';
+import { ThemeColors, SHADOW } from '../theme/colors';
+import { useTheme } from '../context/ThemeContext';
+import { useLanguage } from '../context/LanguageContext';
 import { RootStackParamList } from '../navigation/types';
 import { LoadingView, ErrorView, AppTextInput, PrimaryButton } from '../components/common';
 import {
@@ -60,80 +62,6 @@ const FILE_TYPE_STYLES: Record<Resource['fileType'], { bg: string; color: string
   ZIP: { bg: '#F1F2F8', color: '#5B6172' },
 };
 
-const ROLE_STYLES: Record<GroupMember['role'], { bg: string; color: string }> = {
-  owner: { bg: COLORS.primaryLight, color: COLORS.primary },
-  member: { bg: COLORS.chipBg, color: COLORS.textSecondary },
-};
-
-// -----------------------------------------------------------------------
-// SMALL REUSABLE COMPONENTS
-// -----------------------------------------------------------------------
-
-/** Section header with title + optional "View all" action */
-const SectionHeader: React.FC<{ title: string; onPressViewAll?: () => void }> = ({
-  title,
-  onPressViewAll,
-}) => (
-  <View style={styles.sectionHeader}>
-    <Text style={styles.sectionTitle}>{title}</Text>
-    {onPressViewAll && (
-      <TouchableOpacity onPress={onPressViewAll} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-        <Text style={styles.viewAllText}>View all</Text>
-      </TouchableOpacity>
-    )}
-  </View>
-);
-
-/** Reusable empty state — used for discussions, resources, sessions, members */
-const EmptyState: React.FC<{
-  icon: keyof typeof Feather.glyphMap;
-  title: string;
-  subtitle: string;
-  actionLabel?: string;
-  onAction?: () => void;
-}> = ({ icon, title, subtitle, actionLabel, onAction }) => (
-  <View style={styles.emptyState}>
-    <View style={styles.emptyIconWrap}>
-      <Feather name={icon} size={22} color={COLORS.primary} />
-    </View>
-    <Text style={styles.emptyTitle}>{title}</Text>
-    <Text style={styles.emptySubtitle}>{subtitle}</Text>
-    {actionLabel && onAction ? (
-      <TouchableOpacity style={styles.emptyActionButton} onPress={onAction} activeOpacity={0.85}>
-        <Text style={styles.emptyActionButtonText}>{actionLabel}</Text>
-      </TouchableOpacity>
-    ) : null}
-  </View>
-);
-
-/** Bottom-sheet modal shell shared by the 3 group-action forms below. */
-const ActionModal: React.FC<{
-  visible: boolean;
-  title: string;
-  onClose: () => void;
-  children: React.ReactNode;
-}> = ({ visible, title, onClose, children }) => (
-  <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-    <KeyboardAvoidingView
-      style={{ flex: 1 }}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-    >
-      <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={onClose}>
-        <View style={styles.modalSheet} onStartShouldSetResponder={() => true}>
-          <View style={styles.modalHandle} />
-          <View style={styles.modalHeaderRow}>
-            <Text style={styles.modalTitle}>{title}</Text>
-            <TouchableOpacity onPress={onClose} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-              <Feather name="x" size={20} color={COLORS.textMuted} />
-            </TouchableOpacity>
-          </View>
-          {children}
-        </View>
-      </TouchableOpacity>
-    </KeyboardAvoidingView>
-  </Modal>
-);
-
 function courseCodeToBadge(courseCode: string): string {
   return courseCode.split(' ')[0]?.slice(0, 2).toUpperCase() || '??';
 }
@@ -143,6 +71,83 @@ function courseCodeToBadge(courseCode: string): string {
 // -----------------------------------------------------------------------
 const GroupDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
   const { groupId } = route.params;
+  const { colors: COLORS, isDark } = useTheme();
+  const { t } = useLanguage();
+  const styles = React.useMemo(() => createStyles(COLORS), [COLORS]);
+
+  const ROLE_STYLES: Record<GroupMember['role'], { bg: string; color: string }> = {
+    owner: { bg: COLORS.primaryLight, color: COLORS.primary },
+    member: { bg: COLORS.chipBg, color: COLORS.textSecondary },
+  };
+
+  // ---- Small reusable pieces, defined here so they close over this
+  // render's styles/COLORS instead of needing them threaded as props. ----
+
+  /** Section header with title + optional "View all" action */
+  const SectionHeader: React.FC<{ title: string; onPressViewAll?: () => void }> = ({
+    title,
+    onPressViewAll,
+  }) => (
+    <View style={styles.sectionHeader}>
+      <Text style={styles.sectionTitle}>{title}</Text>
+      {onPressViewAll && (
+        <TouchableOpacity onPress={onPressViewAll} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+          <Text style={styles.viewAllText}>{t('common.seeAll')}</Text>
+        </TouchableOpacity>
+      )}
+    </View>
+  );
+
+  /** Reusable empty state — used for discussions, resources, sessions, members */
+  const EmptyState: React.FC<{
+    icon: keyof typeof Feather.glyphMap;
+    title: string;
+    subtitle: string;
+    actionLabel?: string;
+    onAction?: () => void;
+  }> = ({ icon, title, subtitle, actionLabel, onAction }) => (
+    <View style={styles.emptyState}>
+      <View style={styles.emptyIconWrap}>
+        <Feather name={icon} size={22} color={COLORS.primary} />
+      </View>
+      <Text style={styles.emptyTitle}>{title}</Text>
+      <Text style={styles.emptySubtitle}>{subtitle}</Text>
+      {actionLabel && onAction ? (
+        <TouchableOpacity style={styles.emptyActionButton} onPress={onAction} activeOpacity={0.85}>
+          <Text style={styles.emptyActionButtonText}>{actionLabel}</Text>
+        </TouchableOpacity>
+      ) : null}
+    </View>
+  );
+
+  /** Bottom-sheet modal shell shared by the 3 group-action forms below. */
+  const ActionModal: React.FC<{
+    visible: boolean;
+    title: string;
+    onClose: () => void;
+    children: React.ReactNode;
+  }> = ({ visible, title, onClose, children }) => (
+    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
+        <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={onClose}>
+          <View style={styles.modalSheet} onStartShouldSetResponder={() => true}>
+            <View style={styles.modalHandle} />
+            <View style={styles.modalHeaderRow}>
+              <Text style={styles.modalTitle}>{title}</Text>
+              <TouchableOpacity onPress={onClose} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                <Feather name="x" size={20} color={COLORS.textMuted} />
+              </TouchableOpacity>
+            </View>
+            {children}
+          </View>
+        </TouchableOpacity>
+      </KeyboardAvoidingView>
+    </Modal>
+  );
+
 
   const [activeModal, setActiveModal] = useState<'discussion' | 'session' | 'invite' | null>(null);
   const [modalError, setModalError] = useState<string | null>(null);
@@ -198,16 +203,16 @@ const GroupDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
   const isJoinLeaveSubmitting = joinMutation.isPending || leaveMutation.isPending;
 
   const handleRemoveMember = (member: GroupMember) => {
-    Alert.alert('Remove member?', `Remove ${member.fullName} from this group?`, [
-      { text: 'Cancel', style: 'cancel' },
+    Alert.alert(t('groupDetails.removeMemberTitle'), t('groupDetails.removeMemberBody', { name: member.fullName }), [
+      { text: t('common.cancel'), style: 'cancel' },
       {
-        text: 'Remove',
+        text: t('groupDetails.remove'),
         style: 'destructive',
         onPress: () =>
           removeMemberMutation.mutate(member.id, {
             onError: (err) => {
-              const message = (err as { message?: string })?.message ?? 'Something went wrong. Please try again.';
-              Alert.alert('Error', message);
+              const message = (err as { message?: string })?.message ?? t('common.somethingWentWrong');
+              Alert.alert(t('common.error'), message);
             },
           }),
       },
@@ -219,8 +224,8 @@ const GroupDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
     const mutation = group.isJoined ? leaveMutation : joinMutation;
     mutation.mutate(groupId, {
       onError: (err) => {
-        const message = (err as { message?: string })?.message ?? 'Something went wrong. Please try again.';
-        Alert.alert('Error', message);
+        const message = (err as { message?: string })?.message ?? t('common.somethingWentWrong');
+        Alert.alert(t('common.error'), message);
       },
     });
   };
@@ -241,19 +246,19 @@ const GroupDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
   };
 
   const handleReportGroup = () => {
-    Alert.alert('Report this group?', 'Our team will review it.', [
-      { text: 'Cancel', style: 'cancel' },
+    Alert.alert(t('groupDetails.reportGroupTitle'), t('groupDetails.reportGroupBody'), [
+      { text: t('common.cancel'), style: 'cancel' },
       {
-        text: 'Report',
+        text: t('common.report'),
         style: 'destructive',
         onPress: () =>
           reportMutation.mutate(
-            { targetType: 'group', targetId: groupId, reason: 'Inappropriate or misleading group' },
+            { targetType: 'group', targetId: groupId, reason: t('groupDetails.reasonInappropriateGroup') },
             {
-              onSuccess: () => Alert.alert('Reported', 'Thanks — our team will review this group.'),
+              onSuccess: () => Alert.alert(t('groupDetails.reported'), t('groupDetails.reportedGroupBody')),
               onError: (err) => {
-                const message = (err as { message?: string })?.message ?? 'Something went wrong. Please try again.';
-                Alert.alert('Error', message);
+                const message = (err as { message?: string })?.message ?? t('common.somethingWentWrong');
+                Alert.alert(t('common.error'), message);
               },
             }
           ),
@@ -263,10 +268,10 @@ const GroupDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
 
   const handlePressOptions = () => {
     if (!group) return;
-    Alert.alert(group.name, 'Group options', [
-      { text: 'Share Group', onPress: handleShareGroup },
-      { text: 'Report Group', style: 'destructive', onPress: handleReportGroup },
-      { text: 'Cancel', style: 'cancel' },
+    Alert.alert(group.name, t('groupDetails.groupOptions'), [
+      { text: t('groupDetails.shareGroup'), onPress: handleShareGroup },
+      { text: t('groupDetails.reportGroup'), style: 'destructive', onPress: handleReportGroup },
+      { text: t('common.cancel'), style: 'cancel' },
     ]);
   };
 
@@ -275,7 +280,7 @@ const GroupDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
 
   const handleSubmitDiscussion = () => {
     if (!discussionTitle.trim()) {
-      setModalError('Please enter a title.');
+      setModalError(t('groupDetails.titleRequired'));
       return;
     }
     setModalError(null);
@@ -287,14 +292,14 @@ const GroupDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
           setDiscussionBody('');
           closeModal();
         },
-        onError: (err) => setModalError((err as { message?: string })?.message ?? 'Something went wrong. Please try again.'),
+        onError: (err) => setModalError((err as { message?: string })?.message ?? t('common.somethingWentWrong')),
       }
     );
   };
 
   const handleSubmitSession = () => {
     if (!sessionTitle.trim() || !sessionDate.trim() || !sessionStartTime.trim() || !sessionEndTime.trim() || !sessionLocation.trim()) {
-      setModalError('Please fill in every field.');
+      setModalError(t('groupDetails.fillEveryField'));
       return;
     }
     setModalError(null);
@@ -315,14 +320,14 @@ const GroupDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
           setSessionLocation('');
           closeModal();
         },
-        onError: (err) => setModalError((err as { message?: string })?.message ?? 'Something went wrong. Please try again.'),
+        onError: (err) => setModalError((err as { message?: string })?.message ?? t('common.somethingWentWrong')),
       }
     );
   };
 
   const handleSubmitInvite = () => {
     if (!inviteEmail.trim()) {
-      setModalError('Please enter an email address.');
+      setModalError(t('groupDetails.emailRequired'));
       return;
     }
     setModalError(null);
@@ -332,9 +337,9 @@ const GroupDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
         onSuccess: () => {
           setInviteEmail('');
           closeModal();
-          Alert.alert('Invite sent', 'They’ll see it once they sign in.');
+          Alert.alert(t('groupDetails.inviteSent'), t('groupDetails.inviteSentBody'));
         },
-        onError: (err) => setModalError((err as { message?: string })?.message ?? 'Something went wrong. Please try again.'),
+        onError: (err) => setModalError((err as { message?: string })?.message ?? t('common.somethingWentWrong')),
       }
     );
   };
@@ -342,8 +347,8 @@ const GroupDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
   if (groupQuery.isLoading) {
     return (
       <SafeAreaView style={styles.safeArea} edges={['top']}>
-        <StatusBar barStyle="dark-content" backgroundColor={COLORS.background} />
-        <LoadingView message="Loading group..." />
+        <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={COLORS.background} />
+        <LoadingView message={t('groupDetails.loading')} />
       </SafeAreaView>
     );
   }
@@ -351,15 +356,15 @@ const GroupDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
   if (groupQuery.isError || !group) {
     return (
       <SafeAreaView style={styles.safeArea} edges={['top']}>
-        <StatusBar barStyle="dark-content" backgroundColor={COLORS.background} />
+        <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={COLORS.background} />
         <View style={styles.header}>
           <TouchableOpacity style={styles.headerIconButton} activeOpacity={0.7} onPress={() => navigation.goBack()}>
             <Feather name="arrow-left" size={20} color={COLORS.textPrimary} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Group Details</Text>
+          <Text style={styles.headerTitle}>{t('groupDetails.title')}</Text>
           <View style={styles.headerIconButton} />
         </View>
-        <ErrorView message="Couldn't load this group." onRetry={() => groupQuery.refetch()} />
+        <ErrorView message={t('groupDetails.loadError')} onRetry={() => groupQuery.refetch()} />
       </SafeAreaView>
     );
   }
@@ -407,7 +412,7 @@ const GroupDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
             </View>
 
             <View style={styles.typeChip}>
-              <Text style={styles.typeChipText}>{group.groupType} Group</Text>
+              <Text style={styles.typeChipText}>{t('groupDetails.groupTypeSuffix', { type: group.groupType })}</Text>
             </View>
           </View>
 
@@ -420,12 +425,12 @@ const GroupDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
           <View style={styles.heroMetaRow}>
             <View style={styles.heroMetaItem}>
               <Feather name="users" size={14} color={COLORS.textSecondary} />
-              <Text style={styles.heroMetaText}>{group.membersCount} members</Text>
+              <Text style={styles.heroMetaText}>{t('common.members', { count: group.membersCount })}</Text>
             </View>
             {group.rating !== undefined ? (
               <View style={styles.heroMetaItem}>
                 <Ionicons name="star" size={14} color={COLORS.star} />
-                <Text style={styles.heroMetaText}>{group.rating.toFixed(1)} rating</Text>
+                <Text style={styles.heroMetaText}>{t('groupDetails.rating', { value: group.rating.toFixed(1) })}</Text>
               </View>
             ) : null}
           </View>
@@ -437,7 +442,7 @@ const GroupDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
             disabled={isJoinLeaveSubmitting}
           >
             <Text style={styles.heroActionButtonText}>
-              {isJoinLeaveSubmitting ? 'Please wait...' : group.isJoined ? 'Leave Group' : 'Join Group'}
+              {isJoinLeaveSubmitting ? t('groupDetails.pleaseWait') : group.isJoined ? t('groupDetails.leaveGroup') : t('groupDetails.joinGroup')}
             </Text>
           </TouchableOpacity>
         </View>
@@ -451,35 +456,35 @@ const GroupDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
               <Feather name="users" size={16} color={COLORS.primary} />
             </View>
             <Text style={styles.statValue}>{group.membersCount}</Text>
-            <Text style={styles.statLabel}>Members</Text>
+            <Text style={styles.statLabel}>{t('groupDetails.membersLabel')}</Text>
           </View>
           <View style={styles.statCard}>
             <View style={styles.statIconWrap}>
               <Feather name="file-text" size={16} color={COLORS.primary} />
             </View>
             <Text style={styles.statValue}>{resourcesCount}</Text>
-            <Text style={styles.statLabel}>Resources</Text>
+            <Text style={styles.statLabel}>{t('groupDetails.resourcesLabel')}</Text>
           </View>
           <View style={styles.statCard}>
             <View style={styles.statIconWrap}>
               <Feather name="calendar" size={16} color={COLORS.primary} />
             </View>
             <Text style={styles.statValue}>{sessionsCount}</Text>
-            <Text style={styles.statLabel}>Sessions</Text>
+            <Text style={styles.statLabel}>{t('groupDetails.sessionsLabel')}</Text>
           </View>
           <View style={styles.statCard}>
             <View style={styles.statIconWrap}>
               <Feather name="message-circle" size={16} color={COLORS.primary} />
             </View>
             <Text style={styles.statValue}>{discussionsCount}</Text>
-            <Text style={styles.statLabel}>Discussions</Text>
+            <Text style={styles.statLabel}>{t('groupDetails.discussionsLabel')}</Text>
           </View>
         </View>
 
         {!group.isJoined ? (
           <View style={styles.joinPrompt}>
             <Feather name="lock" size={13} color={COLORS.textMuted} />
-            <Text style={styles.joinPromptText}>Join this group to see discussions, sessions, and members.</Text>
+            <Text style={styles.joinPromptText}>{t('groupDetails.joinPrompt')}</Text>
           </View>
         ) : null}
 
@@ -488,7 +493,7 @@ const GroupDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
         {/* ---------------------------------------------------------- */}
         {group.isJoined && (
           <>
-            <SectionHeader title="Upcoming Sessions" />
+            <SectionHeader title={t('groupDetails.upcomingSessions')} />
             {hasSessions ? (
               <View style={styles.stackedCards}>
                 {sessions.map((session) => (
@@ -511,7 +516,7 @@ const GroupDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
                     </View>
                     <View style={styles.sessionMetaRow}>
                       <Feather name="users" size={13} color={COLORS.textSecondary} />
-                      <Text style={styles.sessionMetaText}>{session.attendeesCount} attending</Text>
+                      <Text style={styles.sessionMetaText}>{t('groupDetails.attending', { count: session.attendeesCount ?? 0 })}</Text>
                     </View>
                   </View>
                 ))}
@@ -521,8 +526,8 @@ const GroupDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
                 <View style={styles.emptyStateCard}>
                   <EmptyState
                     icon="calendar"
-                    title="No upcoming sessions"
-                    subtitle="Schedule a session so members know when to meet."
+                    title={t('groupDetails.noUpcomingSessions')}
+                    subtitle={t('groupDetails.scheduleSessionHint')}
                   />
                 </View>
               </View>
@@ -535,7 +540,7 @@ const GroupDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
         {/* ---------------------------------------------------------- */}
         {group.isJoined && (
           <>
-            <SectionHeader title="Recent Discussions" />
+            <SectionHeader title={t('groupDetails.recentDiscussions')} />
             {hasDiscussions ? (
               <View style={styles.listCard}>
                 {posts.map((item, index) => (
@@ -561,7 +566,7 @@ const GroupDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
                         {item.title}
                       </Text>
                       <Text style={styles.discussionMeta}>
-                        Asked by {item.authorName} • {item.repliesCount} replies
+                        {t('groupDetails.askedBy', { name: item.authorName, count: item.repliesCount })}
                       </Text>
                     </View>
 
@@ -573,8 +578,8 @@ const GroupDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
               <View style={styles.listCard}>
                 <EmptyState
                   icon="message-circle"
-                  title="No discussions yet"
-                  subtitle="Start the first conversation in this group."
+                  title={t('groupDetails.noDiscussionsYet')}
+                  subtitle={t('groupDetails.startFirstConversation')}
                 />
               </View>
             )}
@@ -585,7 +590,7 @@ const GroupDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
         {/* SHARED RESOURCES                                            */}
         {/* ---------------------------------------------------------- */}
         <SectionHeader
-          title="Shared Resources"
+          title={t('groupDetails.sharedResources')}
           onPressViewAll={() => navigation.navigate('MainTabs', { screen: 'Resources' })}
         />
         {hasResources ? (
@@ -621,9 +626,9 @@ const GroupDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
           <View style={styles.listCard}>
             <EmptyState
               icon="folder"
-              title="No resources shared"
-              subtitle="Upload the first file for this group."
-              actionLabel="Upload Resource"
+              title={t('groupDetails.noResourcesShared')}
+              subtitle={t('groupDetails.uploadFirstFile')}
+              actionLabel={t('groupDetails.uploadResource')}
               onAction={() => navigation.navigate('UploadResource')}
             />
           </View>
@@ -634,7 +639,7 @@ const GroupDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
         {/* ---------------------------------------------------------- */}
         {group.isJoined && (
           <>
-            <SectionHeader title="Members" />
+            <SectionHeader title={t('groupDetails.membersLabel')} />
             {hasMembers ? (
               <ScrollView
                 horizontal
@@ -671,7 +676,7 @@ const GroupDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
                       </Text>
                       <View style={[styles.roleChip, { backgroundColor: roleStyle.bg }]}>
                         <Text style={[styles.roleChipText, { color: roleStyle.color }]}>
-                          {member.role === 'owner' ? 'Owner' : 'Member'}
+                          {member.role === 'owner' ? t('groupDetails.owner') : t('groupDetails.member')}
                         </Text>
                       </View>
                     </View>
@@ -687,7 +692,7 @@ const GroupDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
         {/* ---------------------------------------------------------- */}
         {group.isJoined && (
           <>
-            <SectionHeader title="Group Actions" />
+            <SectionHeader title={t('groupDetails.groupActions')} />
             <View style={styles.actionsGrid}>
               <TouchableOpacity
                 style={styles.primaryActionCard}
@@ -697,7 +702,7 @@ const GroupDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
                 <View style={styles.primaryActionIconWrap}>
                   <Feather name="message-square" size={18} color={COLORS.white} />
                 </View>
-                <Text style={styles.primaryActionLabel}>Start Discussion</Text>
+                <Text style={styles.primaryActionLabel}>{t('groupDetails.startDiscussion')}</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
@@ -708,7 +713,7 @@ const GroupDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
                 <View style={styles.secondaryActionIconWrap}>
                   <Feather name="upload" size={18} color={COLORS.primary} />
                 </View>
-                <Text style={styles.secondaryActionLabel}>Upload Resource</Text>
+                <Text style={styles.secondaryActionLabel}>{t('groupDetails.uploadResource')}</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
@@ -719,7 +724,7 @@ const GroupDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
                 <View style={styles.secondaryActionIconWrap}>
                   <Feather name="calendar" size={18} color={COLORS.primary} />
                 </View>
-                <Text style={styles.secondaryActionLabel}>Schedule Session</Text>
+                <Text style={styles.secondaryActionLabel}>{t('groupDetails.scheduleSession')}</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
@@ -730,7 +735,7 @@ const GroupDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
                 <View style={styles.secondaryActionIconWrap}>
                   <Feather name="user-plus" size={18} color={COLORS.primary} />
                 </View>
-                <Text style={styles.secondaryActionLabel}>Invite Member</Text>
+                <Text style={styles.secondaryActionLabel}>{t('groupDetails.inviteMember')}</Text>
               </TouchableOpacity>
             </View>
           </>
@@ -743,32 +748,32 @@ const GroupDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
       {/* ------------------------------------------------------------ */}
       {/* GROUP ACTION MODALS                                           */}
       {/* ------------------------------------------------------------ */}
-      <ActionModal visible={activeModal === 'discussion'} title="Start Discussion" onClose={closeModal}>
-        <AppTextInput label="Title" value={discussionTitle} onChangeText={setDiscussionTitle} placeholder="What's your question?" />
+      <ActionModal visible={activeModal === 'discussion'} title={t('groupDetails.startDiscussion')} onClose={closeModal}>
+        <AppTextInput label={t('groupDetails.discussionTitleLabel')} value={discussionTitle} onChangeText={setDiscussionTitle} placeholder={t('groupDetails.discussionTitlePlaceholder')} />
         <AppTextInput
-          label="Details (optional)"
+          label={t('groupDetails.discussionDetailsLabel')}
           value={discussionBody}
           onChangeText={setDiscussionBody}
-          placeholder="Add more context..."
+          placeholder={t('groupDetails.discussionDetailsPlaceholder')}
           multiline
         />
         {modalError ? <Text style={styles.modalErrorText}>{modalError}</Text> : null}
-        <PrimaryButton label="Post Discussion" onPress={handleSubmitDiscussion} loading={isModalSubmitting} />
+        <PrimaryButton label={t('groupDetails.postDiscussion')} onPress={handleSubmitDiscussion} loading={isModalSubmitting} />
       </ActionModal>
 
-      <ActionModal visible={activeModal === 'session'} title="Schedule Session" onClose={closeModal}>
-        <AppTextInput label="Title" value={sessionTitle} onChangeText={setSessionTitle} placeholder="e.g. Data Structures Revision" />
-        <AppTextInput label="Date" value={sessionDate} onChangeText={setSessionDate} placeholder="e.g. 2026-08-01" />
-        <AppTextInput label="Start Time" value={sessionStartTime} onChangeText={setSessionStartTime} placeholder="e.g. 4:00 PM" />
-        <AppTextInput label="End Time" value={sessionEndTime} onChangeText={setSessionEndTime} placeholder="e.g. 6:00 PM" />
-        <AppTextInput label="Location" value={sessionLocation} onChangeText={setSessionLocation} placeholder="e.g. CCB, Room 203" />
+      <ActionModal visible={activeModal === 'session'} title={t('groupDetails.scheduleSession')} onClose={closeModal}>
+        <AppTextInput label={t('groupDetails.discussionTitleLabel')} value={sessionTitle} onChangeText={setSessionTitle} placeholder={t('groupDetails.sessionTitlePlaceholder')} />
+        <AppTextInput label={t('groupDetails.sessionDateLabel')} value={sessionDate} onChangeText={setSessionDate} placeholder={t('groupDetails.sessionDatePlaceholder')} />
+        <AppTextInput label={t('groupDetails.sessionStartTimeLabel')} value={sessionStartTime} onChangeText={setSessionStartTime} placeholder={t('groupDetails.sessionStartTimePlaceholder')} />
+        <AppTextInput label={t('groupDetails.sessionEndTimeLabel')} value={sessionEndTime} onChangeText={setSessionEndTime} placeholder={t('groupDetails.sessionEndTimePlaceholder')} />
+        <AppTextInput label={t('groupDetails.sessionLocationLabel')} value={sessionLocation} onChangeText={setSessionLocation} placeholder={t('groupDetails.sessionLocationPlaceholder')} />
         {modalError ? <Text style={styles.modalErrorText}>{modalError}</Text> : null}
-        <PrimaryButton label="Schedule Session" onPress={handleSubmitSession} loading={isModalSubmitting} />
+        <PrimaryButton label={t('groupDetails.scheduleSession')} onPress={handleSubmitSession} loading={isModalSubmitting} />
       </ActionModal>
 
-      <ActionModal visible={activeModal === 'invite'} title="Invite Member" onClose={closeModal}>
+      <ActionModal visible={activeModal === 'invite'} title={t('groupDetails.inviteMember')} onClose={closeModal}>
         <AppTextInput
-          label="KNUST Email"
+          label={t('groupDetails.knustEmailLabel')}
           value={inviteEmail}
           onChangeText={setInviteEmail}
           placeholder="student@knust.edu.gh"
@@ -776,7 +781,7 @@ const GroupDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
           keyboardType="email-address"
         />
         {modalError ? <Text style={styles.modalErrorText}>{modalError}</Text> : null}
-        <PrimaryButton label="Send Invite" onPress={handleSubmitInvite} loading={isModalSubmitting} />
+        <PrimaryButton label={t('groupDetails.sendInvite')} onPress={handleSubmitInvite} loading={isModalSubmitting} />
       </ActionModal>
     </SafeAreaView>
   );
@@ -790,7 +795,8 @@ export default GroupDetailsScreen;
 const CARD_GAP = 14;
 const H_PADDING = 20;
 
-const styles = StyleSheet.create({
+function createStyles(COLORS: ThemeColors) {
+  return StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: COLORS.background,
@@ -1290,4 +1296,5 @@ const styles = StyleSheet.create({
     color: COLORS.danger,
     marginBottom: 12,
   },
-});
+  });
+}
