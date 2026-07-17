@@ -26,6 +26,7 @@ export const lightColors = {
   warningLight: '#FEF3E2',
   star: '#F5A623',
   danger: '#E14B4B',
+  dangerLight: '#FDEAEA',
   white: '#FFFFFF',
   chipBg: '#F1F2F8',
 };
@@ -46,6 +47,7 @@ export const darkColors: typeof lightColors = {
   warningLight: '#3A2C10',
   star: '#F6B94A',
   danger: '#F16565',
+  dangerLight: '#3A1A1E',
   white: '#FFFFFF',
   chipBg: '#20222C',
 };

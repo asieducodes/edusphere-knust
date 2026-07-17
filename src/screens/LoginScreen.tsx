@@ -575,7 +575,7 @@ function createStyles(COLORS: ThemeColors) {
 
     // ---------------- Form card ----------------
     formCard: {
-      backgroundColor: COLORS.white,
+      backgroundColor: COLORS.card,
       borderRadius: 26,
       marginHorizontal: H_PADDING,
       padding: 22,
@@ -597,7 +597,7 @@ function createStyles(COLORS: ThemeColors) {
       borderRadius: 14,
       paddingHorizontal: 14,
       height: 52,
-      backgroundColor: COLORS.white,
+      backgroundColor: COLORS.card,
     },
     inputWrapperError: {
       borderColor: COLORS.danger,

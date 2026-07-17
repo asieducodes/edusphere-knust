@@ -662,7 +662,7 @@ function createStyles(COLORS: ThemeColors) {
       width: 56,
       height: 56,
       borderRadius: 28,
-      backgroundColor: '#FDEAEA',
+      backgroundColor: COLORS.dangerLight,
       alignItems: 'center',
       justifyContent: 'center',
       marginBottom: 14,

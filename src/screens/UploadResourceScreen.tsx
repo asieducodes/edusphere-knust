@@ -673,7 +673,7 @@ function createStyles(COLORS: ThemeColors) {
   stateErrorCard: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    backgroundColor: '#FDEAEA',
+    backgroundColor: COLORS.dangerLight,
   },
   stateErrorText: {
     flex: 1,

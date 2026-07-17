@@ -1265,7 +1265,7 @@ function createStyles(COLORS: ThemeColors) {
     justifyContent: 'flex-end',
   },
   modalSheet: {
-    backgroundColor: COLORS.white,
+    backgroundColor: COLORS.card,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     paddingHorizontal: 20,

@@ -568,7 +568,7 @@ function createStyles(COLORS: ThemeColors) {
 
   // ---------------- Email sent card ----------------
   card: {
-    backgroundColor: COLORS.white,
+    backgroundColor: COLORS.card,
     borderRadius: 24,
     marginHorizontal: H_PADDING,
     padding: 18,

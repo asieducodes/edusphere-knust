@@ -661,7 +661,7 @@ function createStyles(COLORS: ThemeColors) {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#FDEAEA",
+    backgroundColor: COLORS.dangerLight,
     marginHorizontal: H_PADDING,
     marginTop: 24,
     paddingVertical: 14,

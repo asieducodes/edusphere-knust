@@ -251,7 +251,7 @@ function createStyles(COLORS: ThemeColors) {
   errorBanner: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FDEAEA',
+    backgroundColor: COLORS.dangerLight,
     borderRadius: 12,
     padding: 12,
     marginTop: 20,
