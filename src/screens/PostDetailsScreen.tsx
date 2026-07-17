@@ -31,7 +31,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { COLORS, SHADOW } from '../theme/colors';
+import { ThemeColors, SHADOW } from '../theme/colors';
+import { useTheme } from '../context/ThemeContext';
+import { useLanguage } from '../context/LanguageContext';
 import { RootStackParamList } from '../navigation/types';
 import { ScreenHeader, LoadingView, ErrorView, EmptyState } from '../components/common';
 import {
@@ -48,16 +50,16 @@ import { PostComment } from '../types/group';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'PostDetails'>;
 
-function relativeTime(iso: string): string {
+function relativeTime(iso: string, t: (path: string, options?: Record<string, string | number>) => string): string {
   const then = new Date(iso).getTime();
   const diffMs = Date.now() - then;
   const minutes = Math.floor(diffMs / 60000);
-  if (minutes < 1) return 'Just now';
-  if (minutes < 60) return `${minutes}m ago`;
+  if (minutes < 1) return t('common.justNow');
+  if (minutes < 60) return t('common.minutesAgo', { count: minutes });
   const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}h ago`;
+  if (hours < 24) return t('common.hoursAgo', { count: hours });
   const days = Math.floor(hours / 24);
-  return `${days}d ago`;
+  return t('common.daysAgo', { count: days });
 }
 
 function initials(name: string): string {
@@ -72,6 +74,9 @@ function initials(name: string): string {
 const PostDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
   const { postId, groupId } = route.params;
   const { user } = useAuth();
+  const { colors: COLORS, isDark } = useTheme();
+  const { t } = useLanguage();
+  const styles = React.useMemo(() => createStyles(COLORS), [COLORS]);
 
   const [replyText, setReplyText] = useState('');
 
@@ -110,24 +115,24 @@ const PostDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
       {
         onSuccess: () => setReplyText(''),
         onError: (err) => {
-          const message = (err as { message?: string })?.message ?? 'Something went wrong. Please try again.';
-          Alert.alert('Error', message);
+          const message = (err as { message?: string })?.message ?? t('common.somethingWentWrong');
+          Alert.alert(t('common.error'), message);
         },
       }
     );
   };
 
   const handleDeleteComment = (comment: PostComment) => {
-    Alert.alert('Delete reply?', 'This can\'t be undone.', [
-      { text: 'Cancel', style: 'cancel' },
+    Alert.alert(t('postDetails.deleteReplyTitle'), t('postDetails.deleteReplyBody'), [
+      { text: t('common.cancel'), style: 'cancel' },
       {
-        text: 'Delete',
+        text: t('common.delete'),
         style: 'destructive',
         onPress: () =>
           deleteCommentMutation.mutate(comment.id, {
             onError: (err) => {
-              const message = (err as { message?: string })?.message ?? 'Something went wrong. Please try again.';
-              Alert.alert('Error', message);
+              const message = (err as { message?: string })?.message ?? t('common.somethingWentWrong');
+              Alert.alert(t('common.error'), message);
             },
           }),
       },
@@ -135,17 +140,17 @@ const PostDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
   };
 
   const handleDeletePost = () => {
-    Alert.alert('Delete discussion?', 'This will remove the post and all its replies. This can\'t be undone.', [
-      { text: 'Cancel', style: 'cancel' },
+    Alert.alert(t('postDetails.deleteDiscussionTitle'), t('postDetails.deleteDiscussionBody'), [
+      { text: t('common.cancel'), style: 'cancel' },
       {
-        text: 'Delete',
+        text: t('common.delete'),
         style: 'destructive',
         onPress: () =>
           deletePostMutation.mutate(postId, {
             onSuccess: () => navigation.goBack(),
             onError: (err) => {
-              const message = (err as { message?: string })?.message ?? 'Something went wrong. Please try again.';
-              Alert.alert('Error', message);
+              const message = (err as { message?: string })?.message ?? t('common.somethingWentWrong');
+              Alert.alert(t('common.error'), message);
             },
           }),
       },
@@ -153,19 +158,19 @@ const PostDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
   };
 
   const handleReportPost = () => {
-    Alert.alert('Report this discussion?', 'Our team will review it.', [
-      { text: 'Cancel', style: 'cancel' },
+    Alert.alert(t('postDetails.reportDiscussionTitle'), t('groupDetails.reportGroupBody'), [
+      { text: t('common.cancel'), style: 'cancel' },
       {
-        text: 'Report',
+        text: t('common.report'),
         style: 'destructive',
         onPress: () =>
           reportMutation.mutate(
-            { targetType: 'post', targetId: postId, reason: 'Inappropriate or off-topic content' },
+            { targetType: 'post', targetId: postId, reason: t('postDetails.reasonInappropriatePost') },
             {
-              onSuccess: () => Alert.alert('Reported', 'Thanks — our team will review this discussion.'),
+              onSuccess: () => Alert.alert(t('postDetails.reported'), t('postDetails.reportedDiscussionBody')),
               onError: (err) => {
-                const message = (err as { message?: string })?.message ?? 'Something went wrong. Please try again.';
-                Alert.alert('Error', message);
+                const message = (err as { message?: string })?.message ?? t('common.somethingWentWrong');
+                Alert.alert(t('common.error'), message);
               },
             }
           ),
@@ -175,14 +180,14 @@ const PostDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
 
   const handlePressOptions = () => {
     if (canDeletePost) {
-      Alert.alert('Discussion options', undefined, [
-        { text: 'Delete Discussion', style: 'destructive', onPress: handleDeletePost },
-        { text: 'Cancel', style: 'cancel' },
+      Alert.alert(t('postDetails.discussionOptions'), undefined, [
+        { text: t('postDetails.deleteDiscussion'), style: 'destructive', onPress: handleDeletePost },
+        { text: t('common.cancel'), style: 'cancel' },
       ]);
     } else {
-      Alert.alert('Discussion options', undefined, [
-        { text: 'Report Discussion', style: 'destructive', onPress: handleReportPost },
-        { text: 'Cancel', style: 'cancel' },
+      Alert.alert(t('postDetails.discussionOptions'), undefined, [
+        { text: t('postDetails.reportDiscussion'), style: 'destructive', onPress: handleReportPost },
+        { text: t('common.cancel'), style: 'cancel' },
       ]);
     }
   };
@@ -192,9 +197,9 @@ const PostDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
   if (isLoading) {
     return (
       <SafeAreaView style={styles.safeArea} edges={['top']}>
-        <StatusBar barStyle="dark-content" backgroundColor={COLORS.background} />
-        <ScreenHeader title="Discussion" onBack={() => navigation.goBack()} />
-        <LoadingView message="Loading discussion..." />
+        <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={COLORS.background} />
+        <ScreenHeader title={t('postDetails.discussion')} onBack={() => navigation.goBack()} />
+        <LoadingView message={t('postDetails.loading')} />
       </SafeAreaView>
     );
   }
@@ -202,9 +207,9 @@ const PostDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
   if (!post) {
     return (
       <SafeAreaView style={styles.safeArea} edges={['top']}>
-        <StatusBar barStyle="dark-content" backgroundColor={COLORS.background} />
-        <ScreenHeader title="Discussion" onBack={() => navigation.goBack()} />
-        <ErrorView message="Couldn't find this discussion." onRetry={() => postsQuery.refetch()} />
+        <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={COLORS.background} />
+        <ScreenHeader title={t('postDetails.discussion')} onBack={() => navigation.goBack()} />
+        <ErrorView message={t('postDetails.notFound')} onRetry={() => postsQuery.refetch()} />
       </SafeAreaView>
     );
   }
@@ -214,7 +219,7 @@ const PostDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
       <StatusBar barStyle="dark-content" backgroundColor={COLORS.background} />
 
       <ScreenHeader
-        title="Discussion"
+        title={t('postDetails.discussion')}
         onBack={() => navigation.goBack()}
         rightIcon="more-vertical"
         onPressRight={handlePressOptions}
@@ -240,7 +245,7 @@ const PostDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
               </View>
               <View style={styles.postHeaderText}>
                 <Text style={styles.authorName}>{post.authorName}</Text>
-                <Text style={styles.timestamp}>{relativeTime(post.createdAt)}</Text>
+                <Text style={styles.timestamp}>{relativeTime(post.createdAt, t)}</Text>
               </View>
             </View>
 
@@ -252,11 +257,13 @@ const PostDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
           {/* REPLIES                                                     */}
           {/* ---------------------------------------------------------- */}
           <Text style={styles.repliesHeading}>
-            {post.repliesCount} {post.repliesCount === 1 ? 'Reply' : 'Replies'}
+            {post.repliesCount === 1
+              ? t('postDetails.reply', { count: post.repliesCount })
+              : t('postDetails.replies', { count: post.repliesCount })}
           </Text>
 
           {commentsQuery.isLoading ? (
-            <LoadingView message="Loading replies..." />
+            <LoadingView message={t('postDetails.loadingReplies')} />
           ) : comments.length > 0 ? (
             <View style={styles.repliesList}>
               {comments.map((comment) => (
@@ -267,7 +274,7 @@ const PostDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
                   <View style={styles.commentBody}>
                     <View style={styles.commentHeaderRow}>
                       <Text style={styles.commentAuthor}>{comment.authorName}</Text>
-                      <Text style={styles.commentTimestamp}>{relativeTime(comment.createdAt)}</Text>
+                      <Text style={styles.commentTimestamp}>{relativeTime(comment.createdAt, t)}</Text>
                       {canDeleteComment(comment) ? (
                         <TouchableOpacity
                           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
@@ -286,8 +293,8 @@ const PostDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
             <View style={styles.emptyRepliesCard}>
               <EmptyState
                 icon="message-circle"
-                title="No replies yet"
-                subtitle="Be the first to respond to this discussion."
+                title={t('postDetails.noRepliesYet')}
+                subtitle={t('postDetails.beFirstToRespond')}
               />
             </View>
           )}
@@ -303,7 +310,7 @@ const PostDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
             style={styles.composerInput}
             value={replyText}
             onChangeText={setReplyText}
-            placeholder="Write a reply..."
+            placeholder={t('postDetails.writeReplyPlaceholder')}
             placeholderTextColor={COLORS.textMuted}
             multiline
           />
@@ -332,7 +339,8 @@ export default PostDetailsScreen;
 // -----------------------------------------------------------------------
 const H_PADDING = 20;
 
-const styles = StyleSheet.create({
+function createStyles(COLORS: ThemeColors) {
+  return StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: COLORS.background,
@@ -498,4 +506,5 @@ const styles = StyleSheet.create({
   composerSendButtonDisabled: {
     opacity: 0.5,
   },
-});
+  });
+}
