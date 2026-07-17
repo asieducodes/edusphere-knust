@@ -239,7 +239,7 @@ const GroupDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
     if (!group) return;
     Share.share({
       title: group.name,
-      message: `Check out "${group.name}" (${group.courseCode}) on EduSphere.`,
+      message: t('groupDetails.shareMessage', { name: group.name, courseCode: group.courseCode }),
     }).catch(() => {
       // Share sheet dismissed/cancelled — nothing to do.
     });
@@ -376,7 +376,7 @@ const GroupDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
-      <StatusBar barStyle="dark-content" backgroundColor={COLORS.background} />
+      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={COLORS.background} />
 
       {/* ---------------------------------------------------------- */}
       {/* HEADER                                                      */}
@@ -390,7 +390,7 @@ const GroupDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
           <Feather name="arrow-left" size={20} color={COLORS.textPrimary} />
         </TouchableOpacity>
 
-        <Text style={styles.headerTitle}>Group Details</Text>
+        <Text style={styles.headerTitle}>{t('groupDetails.title')}</Text>
 
         <TouchableOpacity style={styles.headerIconButton} activeOpacity={0.7} onPress={handlePressOptions}>
           <Feather name="more-vertical" size={20} color={COLORS.textPrimary} />

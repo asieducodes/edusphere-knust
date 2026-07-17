@@ -85,7 +85,7 @@ const ResourceDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
     if (!resource) return;
     Share.share({
       title: resource.title,
-      message: `Check out "${resource.title}" (${resource.courseCode}) on EduSphere.`,
+      message: t('resourceDetails.shareMessage', { title: resource.title, courseCode: resource.courseCode }),
     }).catch(() => {
       // Share sheet dismissed/cancelled — nothing to do.
     });

@@ -254,6 +254,7 @@ const en = {
   },
   groupDetails: {
     title: 'Group Details',
+    shareMessage: 'Check out "{name}" ({courseCode}) on EduSphere.',
     loading: 'Loading group...',
     loadError: "Couldn't load this group.",
     groupTypeSuffix: '{type} Group',
@@ -341,6 +342,7 @@ const en = {
   },
   resourceDetails: {
     title: 'Resource Details',
+    shareMessage: 'Check out "{title}" ({courseCode}) on EduSphere.',
     loading: 'Loading resource...',
     notFound: "Couldn't load this resource.",
     moreActions: 'More actions',

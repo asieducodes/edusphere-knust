@@ -250,6 +250,7 @@ const fr: TranslationDictionary = {
   },
   groupDetails: {
     title: 'Détails du groupe',
+    shareMessage: 'Découvrez « {name} » ({courseCode}) sur EduSphere.',
     loading: 'Chargement du groupe...',
     loadError: "Impossible de charger ce groupe.",
     groupTypeSuffix: 'Groupe {type}',
@@ -337,6 +338,7 @@ const fr: TranslationDictionary = {
   },
   resourceDetails: {
     title: 'Détails de la ressource',
+    shareMessage: 'Découvrez « {title} » ({courseCode}) sur EduSphere.',
     loading: 'Chargement de la ressource...',
     notFound: 'Impossible de charger cette ressource.',
     moreActions: 'Plus d’actions',
