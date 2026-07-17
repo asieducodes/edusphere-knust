@@ -9,14 +9,13 @@
  * -----------------------------------------------------------------------
  */
 
-import React, { useState, useCallback } from "react";
+import React, { useCallback } from "react";
 import {
   View,
   Text,
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  TextInput,
   Image,
   StatusBar,
   Dimensions,
@@ -152,7 +151,6 @@ const SectionHeader: React.FC<{
 const HomeScreen: React.FC = () => {
   const navigation = useNavigation<HomeScreenNavigationProp>();
   const { user } = useAuth();
-  const [searchQuery, setSearchQuery] = useState("");
 
   const groupsQuery = useMyGroups();
   const recommendedQuery = useRecommendedGroups();
@@ -275,20 +273,14 @@ const HomeScreen: React.FC = () => {
         {/* ---------------------------------------------------------- */}
         {/* SEARCH BAR                                                  */}
         {/* ---------------------------------------------------------- */}
-        <View style={styles.searchBarWrapper}>
+        <TouchableOpacity
+          style={styles.searchBarWrapper}
+          activeOpacity={0.8}
+          onPress={() => navigation.navigate("Search")}
+        >
           <Feather name="search" size={18} color={COLORS.textMuted} />
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Search courses, groups, notes..."
-            placeholderTextColor={COLORS.textMuted}
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-            onSubmitEditing={() =>
-              navigation.navigate("Resources", { initialSearch: searchQuery.trim() || undefined })
-            }
-            returnKeyType="search"
-          />
-        </View>
+          <Text style={styles.searchPlaceholderText}>Search groups, resources, courses...</Text>
+        </TouchableOpacity>
 
         {/* ---------------------------------------------------------- */}
         {/* QUICK ACTION CARDS (2x2 grid)                               */}
@@ -623,6 +615,12 @@ const styles = StyleSheet.create({
     marginLeft: 10,
     fontSize: 14.5,
     color: COLORS.textPrimary,
+  },
+  searchPlaceholderText: {
+    flex: 1,
+    marginLeft: 10,
+    fontSize: 14.5,
+    color: COLORS.textMuted,
   },
 
   // ---------------- QUICK ACTIONS ----------------

@@ -46,6 +46,7 @@ export type MainStackParamList = {
   MainTabs: NavigatorScreenParams<MainTabParamList> | undefined;
   GroupDetails: { groupId: string };
   PostDetails: { postId: string; groupId: string };
+  Search: { initialQuery?: string } | undefined;
   CreateGroup: undefined;
   ResourceDetails: { resourceId: string };
   UploadResource: undefined;

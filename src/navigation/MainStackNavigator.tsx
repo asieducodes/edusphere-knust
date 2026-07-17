@@ -20,6 +20,7 @@ import { MainStackParamList } from "./types";
 import MainTabNavigator from "./MainTabNavigator";
 import GroupDetailsScreen from "../screens/GroupDetailsScreen";
 import PostDetailsScreen from "../screens/PostDetailsScreen";
+import SearchScreen from "../screens/SearchScreen";
 import CreateGroupScreen from "../screens/CreateGroupScreen";
 import ResourceDetailsScreen from "../screens/ResourceDetailsScreen";
 import UploadResourceScreen from "../screens/UploadResourceScreen";
@@ -37,6 +38,7 @@ const MainStackNavigator: React.FC = () => {
       <Stack.Screen name="MainTabs" component={MainTabNavigator} />
       <Stack.Screen name="GroupDetails" component={GroupDetailsScreen} />
       <Stack.Screen name="PostDetails" component={PostDetailsScreen} />
+      <Stack.Screen name="Search" component={SearchScreen} />
       <Stack.Screen name="CreateGroup" component={CreateGroupScreen} />
       <Stack.Screen name="ResourceDetails" component={ResourceDetailsScreen} />
       <Stack.Screen name="UploadResource" component={UploadResourceScreen} />
