@@ -14,7 +14,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import * as DocumentPicker from 'expo-document-picker';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { COLORS, SHADOW } from '../theme/colors';
+import { ThemeColors, SHADOW } from '../theme/colors';
+import { useTheme } from '../context/ThemeContext';
+import { useLanguage } from '../context/LanguageContext';
 import { RootStackParamList } from '../navigation/types';
 import { ScreenHeader, AppTextInput, SelectableChip, SectionCard, PrimaryButton } from '../components/common';
 import { useUploadResource } from '../hooks/useResources';
@@ -36,10 +38,20 @@ const CATEGORY_OPTIONS = [
   'Summary Notes',
 ];
 
-const VISIBILITY_OPTIONS: { key: ResourceVisibility; subtitle: string; icon: keyof typeof Feather.glyphMap }[] = [
-  { key: 'Public', subtitle: 'Anyone on EduSphere can access it', icon: 'globe' },
-  { key: 'Group Only', subtitle: 'Only members of selected groups can access it', icon: 'users' },
-  { key: 'Private', subtitle: 'Only you can access it', icon: 'lock' },
+const CATEGORY_LABEL_KEYS: Record<string, string> = {
+  'Past Questions': 'uploadResource.categoryPastQuestions',
+  'Lecture Notes': 'uploadResource.categoryLectureNotes',
+  Slides: 'uploadResource.categorySlides',
+  Assignment: 'uploadResource.categoryAssignment',
+  'Study Guide': 'uploadResource.categoryStudyGuide',
+  'Tutorial Questions': 'uploadResource.categoryTutorialQuestions',
+  'Summary Notes': 'uploadResource.categorySummaryNotes',
+};
+
+const VISIBILITY_OPTIONS: { key: ResourceVisibility; labelKey: string; subtitleKey: string; icon: keyof typeof Feather.glyphMap }[] = [
+  { key: 'Public', labelKey: 'uploadResource.visibilityPublic', subtitleKey: 'uploadResource.visibilityPublicSubtitle', icon: 'globe' },
+  { key: 'Group Only', labelKey: 'uploadResource.visibilityGroupOnly', subtitleKey: 'uploadResource.visibilityGroupOnlySubtitle', icon: 'users' },
+  { key: 'Private', labelKey: 'uploadResource.visibilityPrivate', subtitleKey: 'uploadResource.visibilityPrivateSubtitle', icon: 'lock' },
 ];
 
 type UploadState = 'idle' | 'uploading' | 'success' | 'error';
@@ -80,6 +92,10 @@ function formatFileSize(bytes?: number): string {
 }
 
 const UploadResourceScreen: React.FC<Props> = ({ navigation }) => {
+  const { colors: COLORS, isDark } = useTheme();
+  const { t } = useLanguage();
+  const styles = React.useMemo(() => createStyles(COLORS), [COLORS]);
+
   const [pickedFile, setPickedFile] = useState<LocalFile | null>(null);
   const [pickedFileLabel, setPickedFileLabel] = useState<{ name: string; size: string } | null>(null);
 
@@ -118,7 +134,7 @@ const UploadResourceScreen: React.FC<Props> = ({ navigation }) => {
 
     const asset = result.assets[0];
     if (asset.size && asset.size > MAX_FILE_SIZE_MB * 1024 * 1024) {
-      Alert.alert('File Too Large', `Please choose a file under ${MAX_FILE_SIZE_MB}MB.`);
+      Alert.alert(t('uploadResource.fileTooLargeTitle'), t('uploadResource.fileTooLargeBody', { size: MAX_FILE_SIZE_MB }));
       return;
     }
 
@@ -141,7 +157,7 @@ const UploadResourceScreen: React.FC<Props> = ({ navigation }) => {
   const handleUpload = () => {
     if (!isFormValid || !pickedFile || !category) {
       setUploadState('error');
-      setErrorMessage('Please choose a file and fill in title, course code, and category before uploading.');
+      setErrorMessage(t('uploadResource.fillRequiredFields'));
       return;
     }
 
@@ -172,7 +188,7 @@ const UploadResourceScreen: React.FC<Props> = ({ navigation }) => {
           setUploadState('success');
         },
         onError: (err) => {
-          const message = (err as { message?: string })?.message ?? 'Something went wrong. Please try again.';
+          const message = (err as { message?: string })?.message ?? t('common.somethingWentWrong');
           setErrorMessage(message);
           setUploadState('error');
         },
@@ -182,11 +198,11 @@ const UploadResourceScreen: React.FC<Props> = ({ navigation }) => {
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
-      <StatusBar barStyle="dark-content" backgroundColor={COLORS.background} />
+      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={COLORS.background} />
 
       <ScreenHeader
-        title="Upload Resource"
-        subtitle="Share helpful materials with students"
+        title={t('uploadResource.title')}
+        subtitle={t('uploadResource.subtitle')}
         onBack={() => navigation.goBack()}
       />
 
@@ -204,7 +220,7 @@ const UploadResourceScreen: React.FC<Props> = ({ navigation }) => {
             <Feather name="upload-cloud" size={20} color={COLORS.white} />
           </View>
           <Text style={styles.introText}>
-            Upload notes, slides, past questions, or study guides to help your coursemates.
+            {t('uploadResource.introText')}
           </Text>
         </View>
 
@@ -231,31 +247,31 @@ const UploadResourceScreen: React.FC<Props> = ({ navigation }) => {
             <View style={styles.uploadDropzoneIconWrap}>
               <Feather name="upload" size={22} color={COLORS.primary} />
             </View>
-            <Text style={styles.uploadDropzoneTitle}>Tap to choose a file</Text>
-            <Text style={styles.uploadDropzoneSubtitle}>PDF, DOC, DOCX, PPT, PPTX, ZIP — up to {MAX_FILE_SIZE_MB}MB</Text>
+            <Text style={styles.uploadDropzoneTitle}>{t('uploadResource.tapToChoose')}</Text>
+            <Text style={styles.uploadDropzoneSubtitle}>{t('uploadResource.fileTypesHint', { size: MAX_FILE_SIZE_MB })}</Text>
           </TouchableOpacity>
         )}
 
         {/* ---------------------------------------------------------- */}
         {/* RESOURCE DETAILS FORM                                       */}
         {/* ---------------------------------------------------------- */}
-        <SectionCard title="Resource Details">
+        <SectionCard title={t('uploadResource.resourceDetails')}>
           <AppTextInput
-            label="Resource Title"
-            placeholder="e.g. Data Structures Past Questions"
+            label={t('uploadResource.resourceTitleLabel')}
+            placeholder={t('uploadResource.resourceTitlePlaceholder')}
             value={title}
             onChangeText={setTitle}
           />
           <AppTextInput
-            label="Course Code"
-            placeholder="e.g. CSM 351"
+            label={t('uploadResource.courseCodeLabel')}
+            placeholder={t('uploadResource.courseCodePlaceholder')}
             value={courseCode}
             onChangeText={setCourseCode}
             autoCapitalize="characters"
           />
           <AppTextInput
-            label="Description"
-            placeholder="Briefly describe this resource..."
+            label={t('uploadResource.descriptionLabel')}
+            placeholder={t('uploadResource.descriptionPlaceholder')}
             value={description}
             onChangeText={setDescription}
             multiline
@@ -266,10 +282,10 @@ const UploadResourceScreen: React.FC<Props> = ({ navigation }) => {
         {/* ---------------------------------------------------------- */}
         {/* CATEGORY                                                    */}
         {/* ---------------------------------------------------------- */}
-        <SectionCard title="Category">
+        <SectionCard title={t('uploadResource.category')}>
           <View style={styles.chipsWrap}>
             {CATEGORY_OPTIONS.map((cat) => (
-              <SelectableChip key={cat} label={cat} selected={category === cat} onPress={() => setCategory(cat)} />
+              <SelectableChip key={cat} label={t(CATEGORY_LABEL_KEYS[cat])} selected={category === cat} onPress={() => setCategory(cat)} />
             ))}
           </View>
         </SectionCard>
@@ -277,7 +293,7 @@ const UploadResourceScreen: React.FC<Props> = ({ navigation }) => {
         {/* ---------------------------------------------------------- */}
         {/* VISIBILITY                                                  */}
         {/* ---------------------------------------------------------- */}
-        <SectionCard title="Visibility">
+        <SectionCard title={t('uploadResource.visibility')}>
           {VISIBILITY_OPTIONS.map((option, index) => {
             const isActive = visibility === option.key;
             return (
@@ -302,9 +318,9 @@ const UploadResourceScreen: React.FC<Props> = ({ navigation }) => {
                 />
                 <View style={{ flex: 1 }}>
                   <Text style={[styles.visibilityLabel, isActive && styles.visibilityLabelActive]}>
-                    {option.key}
+                    {t(option.labelKey)}
                   </Text>
-                  <Text style={styles.visibilitySubtitle}>{option.subtitle}</Text>
+                  <Text style={styles.visibilitySubtitle}>{t(option.subtitleKey)}</Text>
                 </View>
               </TouchableOpacity>
             );
@@ -315,7 +331,7 @@ const UploadResourceScreen: React.FC<Props> = ({ navigation }) => {
         {/* RELATED GROUP (optional)                                    */}
         {/* ---------------------------------------------------------- */}
         {myGroups.length > 0 && (
-          <SectionCard title="Related Group (optional)">
+          <SectionCard title={t('uploadResource.relatedGroup')}>
             {myGroups.map((group, index) => {
               const isActive = groupId === group.id;
               return (
@@ -343,8 +359,7 @@ const UploadResourceScreen: React.FC<Props> = ({ navigation }) => {
         <View style={styles.guidelinesCard}>
           <Feather name="alert-triangle" size={16} color={COLORS.warning} />
           <Text style={styles.guidelinesText}>
-            Only upload academic materials you have permission to share. Avoid duplicate, misleading, or
-            inappropriate files.
+            {t('uploadResource.guidelinesText')}
           </Text>
         </View>
 
@@ -355,7 +370,7 @@ const UploadResourceScreen: React.FC<Props> = ({ navigation }) => {
           <View style={styles.stateCard}>
             <View style={styles.stateRow}>
               <Feather name="upload-cloud" size={16} color={COLORS.primary} />
-              <Text style={styles.stateUploadingText}>Uploading… {progress}%</Text>
+              <Text style={styles.stateUploadingText}>{t('uploadResource.uploading', { progress })}</Text>
             </View>
             <View style={styles.progressTrack}>
               <View style={[styles.progressFill, { width: `${progress}%` }]} />
@@ -366,7 +381,7 @@ const UploadResourceScreen: React.FC<Props> = ({ navigation }) => {
         {uploadState === 'success' && (
           <View style={[styles.stateCard, styles.stateSuccessCard]}>
             <Feather name="check-circle" size={18} color={COLORS.success} />
-            <Text style={styles.stateSuccessText}>Resource uploaded successfully!</Text>
+            <Text style={styles.stateSuccessText}>{t('uploadResource.uploadedSuccess')}</Text>
           </View>
         )}
 
@@ -374,7 +389,7 @@ const UploadResourceScreen: React.FC<Props> = ({ navigation }) => {
           <View style={[styles.stateCard, styles.stateErrorCard]}>
             <Feather name="alert-circle" size={18} color={COLORS.danger} />
             <Text style={styles.stateErrorText}>
-              {errorMessage ?? 'Please choose a file and fill in title, course, and category before uploading.'}
+              {errorMessage ?? t('uploadResource.fillRequiredFields')}
             </Text>
           </View>
         )}
@@ -386,10 +401,10 @@ const UploadResourceScreen: React.FC<Props> = ({ navigation }) => {
           <PrimaryButton
             label={
               uploadState === 'uploading'
-                ? 'Uploading...'
+                ? t('uploadResource.uploadingButton')
                 : uploadState === 'success'
-                ? 'Done'
-                : 'Upload Resource'
+                ? t('uploadResource.done')
+                : t('uploadResource.uploadButton')
             }
             onPress={uploadState === 'success' ? () => navigation.goBack() : handleUpload}
             loading={uploadState === 'uploading'}
@@ -410,7 +425,8 @@ export default UploadResourceScreen;
 // -----------------------------------------------------------------------
 const H_PADDING = 20;
 
-const styles = StyleSheet.create({
+function createStyles(COLORS: ThemeColors) {
+  return StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: COLORS.background,
@@ -671,4 +687,5 @@ const styles = StyleSheet.create({
   uploadButtonWrap: {
     paddingHorizontal: H_PADDING,
   },
-});
+  });
+}
