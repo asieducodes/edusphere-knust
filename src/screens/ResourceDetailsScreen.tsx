@@ -14,7 +14,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather, Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { COLORS, SHADOW } from '../theme/colors';
+import { ThemeColors, SHADOW } from '../theme/colors';
+import { useTheme } from '../context/ThemeContext';
+import { useLanguage } from '../context/LanguageContext';
 import { RootStackParamList } from '../navigation/types';
 import {
   ScreenHeader,
@@ -49,6 +51,9 @@ function initialsOf(fullName: string): string {
 
 const ResourceDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
   const { resourceId } = route.params;
+  const { colors: COLORS, isDark } = useTheme();
+  const { t } = useLanguage();
+  const styles = React.useMemo(() => createStyles(COLORS), [COLORS]);
 
   const resourceQuery = useResource(resourceId);
   const resource = resourceQuery.data;
@@ -93,8 +98,8 @@ const ResourceDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
         Linking.openURL(data.fileUrl).catch(() => undefined);
       },
       onError: (err) => {
-        const message = (err as { message?: string })?.message ?? 'Something went wrong. Please try again.';
-        Alert.alert('Download failed', message);
+        const message = (err as { message?: string })?.message ?? t('common.somethingWentWrong');
+        Alert.alert(t('resourceDetails.downloadFailed'), message);
       },
     });
   };
@@ -104,27 +109,27 @@ const ResourceDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
     const mutation = resource.isSaved ? unsaveMutation : saveMutation;
     mutation.mutate(resource.id, {
       onError: (err) => {
-        const message = (err as { message?: string })?.message ?? 'Something went wrong. Please try again.';
-        Alert.alert('Error', message);
+        const message = (err as { message?: string })?.message ?? t('common.somethingWentWrong');
+        Alert.alert(t('common.error'), message);
       },
     });
   };
 
   const handleReport = () => {
     if (!resource) return;
-    Alert.alert('Report Resource', 'Are you sure you want to report this resource?', [
-      { text: 'Cancel', style: 'cancel' },
+    Alert.alert(t('resourceDetails.reportResource'), t('resourceDetails.reportResourceConfirm'), [
+      { text: t('common.cancel'), style: 'cancel' },
       {
-        text: 'Report',
+        text: t('common.report'),
         style: 'destructive',
         onPress: () => {
           reportMutation.mutate(
-            { targetType: 'resource', targetId: resource.id, reason: 'Inappropriate or incorrect content' },
+            { targetType: 'resource', targetId: resource.id, reason: t('resourceDetails.reasonInappropriateResource') },
             {
-              onSuccess: () => Alert.alert('Reported', 'Thanks — our team will review this resource.'),
+              onSuccess: () => Alert.alert(t('postDetails.reported'), t('resourceDetails.reportedResourceBody')),
               onError: (err) => {
-                const message = (err as { message?: string })?.message ?? 'Something went wrong. Please try again.';
-                Alert.alert('Error', message);
+                const message = (err as { message?: string })?.message ?? t('common.somethingWentWrong');
+                Alert.alert(t('common.error'), message);
               },
             }
           );
@@ -136,8 +141,8 @@ const ResourceDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
   if (resourceQuery.isLoading) {
     return (
       <SafeAreaView style={styles.safeArea} edges={['top']}>
-        <StatusBar barStyle="dark-content" backgroundColor={COLORS.background} />
-        <LoadingView message="Loading resource..." />
+        <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={COLORS.background} />
+        <LoadingView message={t('resourceDetails.loading')} />
       </SafeAreaView>
     );
   }
@@ -145,26 +150,26 @@ const ResourceDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
   if (resourceQuery.isError || !resource) {
     return (
       <SafeAreaView style={styles.safeArea} edges={['top']}>
-        <StatusBar barStyle="dark-content" backgroundColor={COLORS.background} />
-        <ScreenHeader title="Resource Details" onBack={() => navigation.goBack()} />
-        <ErrorView message="Couldn't load this resource." onRetry={() => resourceQuery.refetch()} />
+        <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={COLORS.background} />
+        <ScreenHeader title={t('resourceDetails.title')} onBack={() => navigation.goBack()} />
+        <ErrorView message={t('resourceDetails.notFound')} onRetry={() => resourceQuery.refetch()} />
       </SafeAreaView>
     );
   }
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
-      <StatusBar barStyle="dark-content" backgroundColor={COLORS.background} />
+      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={COLORS.background} />
 
       <ScreenHeader
-        title="Resource Details"
+        title={t('resourceDetails.title')}
         onBack={() => navigation.goBack()}
         rightIcon="more-vertical"
         onPressRight={() =>
-          Alert.alert(resource.title, 'More actions', [
-            { text: 'Share', onPress: handleShare },
-            { text: 'Report', onPress: handleReport, style: 'destructive' },
-            { text: 'Cancel', style: 'cancel' },
+          Alert.alert(resource.title, t('resourceDetails.moreActions'), [
+            { text: t('common.share'), onPress: handleShare },
+            { text: t('common.report'), onPress: handleReport, style: 'destructive' },
+            { text: t('common.cancel'), style: 'cancel' },
           ])
         }
       />
@@ -205,11 +210,11 @@ const ResourceDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
           <View style={styles.heroStatsRow}>
             <View style={styles.heroStatItem}>
               <Feather name="download" size={13} color={COLORS.textSecondary} />
-              <Text style={styles.heroStatText}>{resource.downloadsCount} downloads</Text>
+              <Text style={styles.heroStatText}>{t('resourceDetails.downloads', { count: resource.downloadsCount })}</Text>
             </View>
             <View style={styles.heroStatItem}>
               <Feather name="bookmark" size={13} color={COLORS.textSecondary} />
-              <Text style={styles.heroStatText}>{resource.savesCount} saves</Text>
+              <Text style={styles.heroStatText}>{t('resourceDetails.saves', { count: resource.savesCount })}</Text>
             </View>
             {resource.rating !== undefined ? (
               <View style={styles.heroStatItem}>
@@ -227,7 +232,7 @@ const ResourceDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
         {/* ---------------------------------------------------------- */}
         {/* UPLOADED BY                                                 */}
         {/* ---------------------------------------------------------- */}
-        <SectionCard title="Uploaded By">
+        <SectionCard title={t('resourceDetails.uploadedBy')}>
           <View style={styles.uploaderRow}>
             <View style={styles.uploaderAvatar}>
               <Text style={styles.uploaderInitials}>{initialsOf(resource.uploadedBy.fullName)}</Text>
@@ -241,25 +246,25 @@ const ResourceDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
         {/* ---------------------------------------------------------- */}
         {/* RESOURCE METADATA                                           */}
         {/* ---------------------------------------------------------- */}
-        <SectionCard title="Resource Details">
-          <InfoRow icon="file-text" label="File Type" value={resource.fileType} />
-          <InfoRow icon="book-open" label="Course" value={resource.courseCode} />
-          <InfoRow icon="tag" label="Category" value={resource.category} />
-          <InfoRow icon="hard-drive" label="Size" value={resource.size} />
-          <InfoRow icon="eye" label="Visibility" value={resource.visibility} isLast />
+        <SectionCard title={t('resourceDetails.resourceDetailsSection')}>
+          <InfoRow icon="file-text" label={t('resourceDetails.fileType')} value={resource.fileType} />
+          <InfoRow icon="book-open" label={t('resourceDetails.course')} value={resource.courseCode} />
+          <InfoRow icon="tag" label={t('resourceDetails.category')} value={resource.category} />
+          <InfoRow icon="hard-drive" label={t('resourceDetails.size')} value={resource.size} />
+          <InfoRow icon="eye" label={t('resourceDetails.visibility')} value={resource.visibility} isLast />
         </SectionCard>
 
         {/* ---------------------------------------------------------- */}
         {/* ACTION BUTTONS                                              */}
         {/* ---------------------------------------------------------- */}
         <View style={styles.actionsWrap}>
-          <PrimaryButton label="Download Resource" onPress={handleDownload} icon="download" />
+          <PrimaryButton label={t('resourceDetails.downloadResource')} onPress={handleDownload} icon="download" />
           <View style={{ height: 10 }} />
           <View style={styles.actionsRow}>
             <View style={{ flex: 1 }}>
               <SecondaryButton
-                label="Preview"
-                onPress={() => Alert.alert('Preview', "Previewing this resource isn't available yet.")}
+                label={t('resourceDetails.preview')}
+                onPress={() => Alert.alert(t('resourceDetails.preview'), t('resourceDetails.previewUnavailable'))}
                 icon="eye"
               />
             </View>
@@ -283,7 +288,7 @@ const ResourceDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
         {related.length > 0 && (
           <>
             <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>Related Resources</Text>
+              <Text style={styles.sectionTitle}>{t('resourceDetails.relatedResources')}</Text>
             </View>
             <View style={styles.listCard}>
               {related.map((item, index) => (
@@ -315,7 +320,7 @@ const ResourceDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
         {reviews.length > 0 && (
           <>
             <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>Student Feedback</Text>
+              <Text style={styles.sectionTitle}>{t('resourceDetails.studentFeedback')}</Text>
             </View>
             <View style={styles.listCard}>
               {reviews.map((item, index) => (
@@ -324,7 +329,7 @@ const ResourceDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
                   <View style={styles.feedbackTextBlock}>
                     {item.comment ? <Text style={styles.feedbackText}>&ldquo;{item.comment}&rdquo;</Text> : null}
                     <Text style={styles.feedbackMeta}>
-                      {item.rating}/5 • By {item.authorName}
+                      {t('resourceDetails.ratingBy', { rating: item.rating, name: item.authorName })}
                     </Text>
                   </View>
                 </View>
@@ -338,7 +343,7 @@ const ResourceDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
         {/* ---------------------------------------------------------- */}
         <TouchableOpacity style={styles.reportButton} activeOpacity={0.7} onPress={handleReport}>
           <Feather name="flag" size={14} color={COLORS.textMuted} />
-          <Text style={styles.reportButtonText}>Report Resource</Text>
+          <Text style={styles.reportButtonText}>{t('resourceDetails.reportResource')}</Text>
         </TouchableOpacity>
 
         <View style={{ height: 40 }} />
@@ -354,7 +359,8 @@ export default ResourceDetailsScreen;
 // -----------------------------------------------------------------------
 const H_PADDING = 20;
 
-const styles = StyleSheet.create({
+function createStyles(COLORS: ThemeColors) {
+  return StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: COLORS.background,
@@ -575,4 +581,5 @@ const styles = StyleSheet.create({
     color: COLORS.textMuted,
     marginLeft: 6,
   },
-});
+  });
+}
