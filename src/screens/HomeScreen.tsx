@@ -275,11 +275,7 @@ const HomeScreen: React.FC = () => {
         {/* ---------------------------------------------------------- */}
         {/* SEARCH BAR                                                  */}
         {/* ---------------------------------------------------------- */}
-        <TouchableOpacity
-          style={styles.searchBarWrapper}
-          activeOpacity={0.8}
-          onPress={() => navigation.navigate("Resources")}
-        >
+        <View style={styles.searchBarWrapper}>
           <Feather name="search" size={18} color={COLORS.textMuted} />
           <TextInput
             style={styles.searchInput}
@@ -287,10 +283,12 @@ const HomeScreen: React.FC = () => {
             placeholderTextColor={COLORS.textMuted}
             value={searchQuery}
             onChangeText={setSearchQuery}
-            onSubmitEditing={() => navigation.navigate("Resources")}
+            onSubmitEditing={() =>
+              navigation.navigate("Resources", { initialSearch: searchQuery.trim() || undefined })
+            }
             returnKeyType="search"
           />
-        </TouchableOpacity>
+        </View>
 
         {/* ---------------------------------------------------------- */}
         {/* QUICK ACTION CARDS (2x2 grid)                               */}

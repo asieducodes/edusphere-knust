@@ -23,8 +23,8 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
-import { useNavigation, useFocusEffect } from '@react-navigation/native';
-import type { CompositeNavigationProp } from '@react-navigation/native';
+import { useNavigation, useRoute, useFocusEffect } from '@react-navigation/native';
+import type { CompositeNavigationProp, RouteProp } from '@react-navigation/native';
 import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { COLORS, SHADOW } from '../theme/colors';
@@ -40,6 +40,7 @@ type ResourcesScreenNavigationProp = CompositeNavigationProp<
   BottomTabNavigationProp<MainTabParamList, 'Resources'>,
   NativeStackNavigationProp<RootStackParamList>
 >;
+type ResourcesScreenRouteProp = RouteProp<MainTabParamList, 'Resources'>;
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -161,9 +162,25 @@ const CATEGORY_FILTER_MAP: Partial<Record<FilterKey, string>> = {
 // -----------------------------------------------------------------------
 const ResourcesScreen: React.FC = () => {
   const navigation = useNavigation<ResourcesScreenNavigationProp>();
+  const route = useRoute<ResourcesScreenRouteProp>();
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [activeFilter, setActiveFilter] = useState<FilterKey>('All');
+
+  // Picks up the query HomeScreen's search bar handed off (see
+  // MainTabParamList's Resources.initialSearch) instead of landing here
+  // with the query silently dropped. Cleared right after so it doesn't
+  // keep re-applying itself over a search the student edits by hand.
+  useFocusEffect(
+    useCallback(() => {
+      const initialSearch = route.params?.initialSearch;
+      if (initialSearch) {
+        setSearchQuery(initialSearch);
+        navigation.setParams({ initialSearch: undefined });
+      }
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [route.params?.initialSearch])
+  );
 
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedSearch(searchQuery.trim()), 300);

@@ -20,7 +20,9 @@ import type { AppNotification } from '../types/notification';
 export type MainTabParamList = {
   Home: undefined;
   Groups: undefined;
-  Resources: undefined;
+  /** initialSearch lets HomeScreen's search bar hand off the typed query
+   *  instead of just switching tabs and discarding it. */
+  Resources: { initialSearch?: string } | undefined;
   Map: undefined;
   Profile: undefined;
 };
