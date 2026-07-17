@@ -27,7 +27,9 @@ import { useNavigation, useFocusEffect } from "@react-navigation/native";
 import type { CompositeNavigationProp } from "@react-navigation/native";
 import type { BottomTabNavigationProp } from "@react-navigation/bottom-tabs";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import { COLORS, SHADOW } from "../theme/colors";
+import { ThemeColors, SHADOW } from "../theme/colors";
+import { useTheme } from "../context/ThemeContext";
+import { useLanguage } from "../context/LanguageContext";
 import { MainTabParamList, RootStackParamList } from "../navigation/types";
 import { useAuth } from "../context/AuthContext";
 import { LoadingView, ErrorView } from "../components/common";
@@ -65,23 +67,23 @@ interface MenuRow {
 }
 
 // -----------------------------------------------------------------------
-// SMALL REUSABLE COMPONENTS
-// -----------------------------------------------------------------------
-
-/** Section header — Profile screen sections don't need "View all" links,
- *  so this is a simpler title-only variant of the pattern used elsewhere. */
-const SectionHeader: React.FC<{ title: string }> = ({ title }) => (
-  <View style={styles.sectionHeader}>
-    <Text style={styles.sectionTitle}>{title}</Text>
-  </View>
-);
-
-// -----------------------------------------------------------------------
 // MAIN COMPONENT
 // -----------------------------------------------------------------------
 const ProfileScreen: React.FC = () => {
   const navigation = useNavigation<ProfileScreenNavigationProp>();
   const { logout } = useAuth();
+  const { colors: COLORS, isDark } = useTheme();
+  const { t } = useLanguage();
+  const styles = React.useMemo(() => createStyles(COLORS), [COLORS]);
+
+  /** Section header — Profile screen sections don't need "View all" links,
+   *  so this is a simpler title-only variant of the pattern used elsewhere. */
+  const SectionHeader: React.FC<{ title: string }> = ({ title }) => (
+    <View style={styles.sectionHeader}>
+      <Text style={styles.sectionTitle}>{title}</Text>
+    </View>
+  );
+
 
   const profileQuery = useMyProfile();
   const statsQuery = useProfileStats();
@@ -112,14 +114,14 @@ const ProfileScreen: React.FC = () => {
       navigation.navigate("Notifications");
       return;
     }
-    Alert.alert(item.label, "This section isn't available yet.");
+    Alert.alert(item.label, t('profile.sectionUnavailable'));
   };
 
   const handleLogOut = () => {
-    Alert.alert("Log Out", "Are you sure you want to log out?", [
-      { text: "Cancel", style: "cancel" },
+    Alert.alert(t('profile.logOutConfirmTitle'), t('profile.logOutConfirmBody'), [
+      { text: t('common.cancel'), style: "cancel" },
       {
-        text: "Log Out",
+        text: t('profile.logOut'),
         style: "destructive",
         // logout() always clears local session state even if the
         // server-side call fails (see AuthContext.tsx) — nothing else to
@@ -134,8 +136,8 @@ const ProfileScreen: React.FC = () => {
   if (isLoading) {
     return (
       <SafeAreaView style={styles.safeArea} edges={["top"]}>
-        <StatusBar barStyle="dark-content" backgroundColor={COLORS.background} />
-        <LoadingView message="Loading profile..." />
+        <StatusBar barStyle={isDark ? "light-content" : "dark-content"} backgroundColor={COLORS.background} />
+        <LoadingView message={t('profile.loading')} />
       </SafeAreaView>
     );
   }
@@ -143,39 +145,39 @@ const ProfileScreen: React.FC = () => {
   if (hasError || !user) {
     return (
       <SafeAreaView style={styles.safeArea} edges={["top"]}>
-        <StatusBar barStyle="dark-content" backgroundColor={COLORS.background} />
+        <StatusBar barStyle={isDark ? "light-content" : "dark-content"} backgroundColor={COLORS.background} />
         <ErrorView onRetry={refetchAll} />
       </SafeAreaView>
     );
   }
 
   const STATS: StatItem[] = [
-    { id: "st1", icon: "users", value: String(counts.groups), label: "Groups" },
-    { id: "st2", icon: "file-text", value: String(counts.uploads), label: "Resources" },
-    { id: "st3", icon: "calendar", value: String(counts.sessions), label: "Sessions" },
-    { id: "st4", icon: "star", value: user.rating ? user.rating.toFixed(1) : "—", label: "Rating" },
+    { id: "st1", icon: "users", value: String(counts.groups), label: t('profile.statGroups') },
+    { id: "st2", icon: "file-text", value: String(counts.uploads), label: t('profile.statResources') },
+    { id: "st3", icon: "calendar", value: String(counts.sessions), label: t('profile.statSessions') },
+    { id: "st4", icon: "star", value: user.rating ? user.rating.toFixed(1) : "—", label: t('profile.statRating') },
   ];
 
   const ACADEMIC_INFO: AcademicInfoRow[] = [
-    { id: "ai1", icon: "book-open", label: "Programme", value: user.programme || "Not set" },
-    { id: "ai2", icon: "layers", label: "Department", value: user.department || "Not set" },
-    { id: "ai3", icon: "home", label: "College", value: user.college || "Not set" },
-    { id: "ai4", icon: "bar-chart-2", label: "Level", value: user.level || "Not set" },
-    { id: "ai5", icon: "mail", label: "Student Email", value: user.email },
+    { id: "ai1", icon: "book-open", label: t('profile.programme'), value: user.programme || t('profile.notSet') },
+    { id: "ai2", icon: "layers", label: t('profile.department'), value: user.department || t('profile.notSet') },
+    { id: "ai3", icon: "home", label: t('profile.college'), value: user.college || t('profile.notSet') },
+    { id: "ai4", icon: "bar-chart-2", label: t('profile.level'), value: user.level || t('profile.notSet') },
+    { id: "ai5", icon: "mail", label: t('profile.studentEmail'), value: user.email },
   ];
 
   const ACCOUNT_MENU: MenuRow[] = [
-    { id: "mn1", icon: "bookmark", label: "Saved Resources", subtitle: `${counts.saved} saved items` },
-    { id: "mn2", icon: "upload", label: "My Uploads", subtitle: `${counts.uploads} files shared` },
-    { id: "mn3", icon: "users", label: "My Study Groups", subtitle: `${counts.groups} active groups` },
-    { id: "mn4", icon: "bell", label: "Notifications", subtitle: "Manage alerts" },
-    { id: "mn5", icon: "shield", label: "Privacy & Security", subtitle: "Password, data" },
-    { id: "mn6", icon: "help-circle", label: "Help & Support", subtitle: "FAQs, contact us" },
+    { id: "mn1", icon: "bookmark", label: t('profile.savedResources'), subtitle: t('profile.savedItems', { count: counts.saved }) },
+    { id: "mn2", icon: "upload", label: t('profile.myUploads'), subtitle: t('profile.filesShared', { count: counts.uploads }) },
+    { id: "mn3", icon: "users", label: t('profile.myStudyGroups'), subtitle: t('profile.activeGroups', { count: counts.groups }) },
+    { id: "mn4", icon: "bell", label: t('profile.notifications'), subtitle: t('profile.manageAlerts') },
+    { id: "mn5", icon: "shield", label: t('profile.privacySecurity'), subtitle: t('profile.passwordData') },
+    { id: "mn6", icon: "help-circle", label: t('profile.helpSupport'), subtitle: t('profile.faqsContactUs') },
   ];
 
   return (
     <SafeAreaView style={styles.safeArea} edges={["top"]}>
-      <StatusBar barStyle="dark-content" backgroundColor={COLORS.background} />
+      <StatusBar barStyle={isDark ? "light-content" : "dark-content"} backgroundColor={COLORS.background} />
 
       <ScrollView
         style={styles.container}
@@ -187,7 +189,7 @@ const ProfileScreen: React.FC = () => {
         {/* ---------------------------------------------------------- */}
         <View style={styles.header}>
           <View style={styles.headerTopRow}>
-            <Text style={styles.headerTitle}>Profile</Text>
+            <Text style={styles.headerTitle}>{t('profile.title')}</Text>
             <TouchableOpacity
               style={styles.settingsIconButton}
               activeOpacity={0.7}
@@ -222,14 +224,14 @@ const ProfileScreen: React.FC = () => {
               <View style={styles.profileNameRow}>
                 <Text style={styles.profileName}>{user.fullName}</Text>
               </View>
-              <Text style={styles.profileProgramme}>{user.programme || "Programme not set"}</Text>
+              <Text style={styles.profileProgramme}>{user.programme || t('profile.programmeNotSet')}</Text>
               <View style={styles.profileMetaRow}>
                 {user.level ? (
                   <View style={styles.levelBadge}>
                     <Text style={styles.levelBadgeText}>{user.level}</Text>
                   </View>
                 ) : null}
-                <Text style={styles.profileUniversity}>KNUST</Text>
+                <Text style={styles.profileUniversity}>{t('profile.knust')}</Text>
               </View>
             </View>
           </View>
@@ -237,7 +239,7 @@ const ProfileScreen: React.FC = () => {
           {user.isEmailVerified ? (
             <View style={styles.verifiedStrip}>
               <Feather name="shield" size={13} color={COLORS.primary} />
-              <Text style={styles.verifiedStripText}>Verified Student</Text>
+              <Text style={styles.verifiedStripText}>{t('profile.verifiedStudent')}</Text>
             </View>
           ) : null}
 
@@ -247,7 +249,7 @@ const ProfileScreen: React.FC = () => {
             onPress={() => navigation.navigate("EditProfile")}
           >
             <Feather name="edit-2" size={14} color={COLORS.primary} />
-            <Text style={styles.editProfileButtonText}>Edit Profile</Text>
+            <Text style={styles.editProfileButtonText}>{t('profile.editProfile')}</Text>
           </TouchableOpacity>
         </View>
 
@@ -269,7 +271,7 @@ const ProfileScreen: React.FC = () => {
         {/* ---------------------------------------------------------- */}
         {/* ACADEMIC INFORMATION                                        */}
         {/* ---------------------------------------------------------- */}
-        <SectionHeader title="Academic Information" />
+        <SectionHeader title={t('profile.academicInformation')} />
         <View style={styles.listCard}>
           {ACADEMIC_INFO.map((row, index) => (
             <View
@@ -297,7 +299,7 @@ const ProfileScreen: React.FC = () => {
         {/* ---------------------------------------------------------- */}
         {user.interests && user.interests.length > 0 && (
           <>
-            <SectionHeader title="Study Interests" />
+            <SectionHeader title={t('profile.studyInterests')} />
             <View style={styles.interestsWrap}>
               {user.interests.map((interest) => (
                 <View key={interest} style={styles.interestChip}>
@@ -311,7 +313,7 @@ const ProfileScreen: React.FC = () => {
         {/* ---------------------------------------------------------- */}
         {/* ACCOUNT MENU                                                */}
         {/* ---------------------------------------------------------- */}
-        <SectionHeader title="Account" />
+        <SectionHeader title={t('profile.account')} />
         <View style={styles.listCard}>
           {ACCOUNT_MENU.map((item, index) => (
             <TouchableOpacity
@@ -344,7 +346,7 @@ const ProfileScreen: React.FC = () => {
         {/* ---------------------------------------------------------- */}
         <TouchableOpacity style={styles.logoutButton} activeOpacity={0.85} onPress={handleLogOut}>
           <Feather name="log-out" size={16} color={COLORS.danger} />
-          <Text style={styles.logoutButtonText}>Log Out</Text>
+          <Text style={styles.logoutButtonText}>{t('profile.logOut')}</Text>
         </TouchableOpacity>
 
         {/* Bottom spacer so content isn't hidden behind the tab bar */}
@@ -361,7 +363,8 @@ export default ProfileScreen;
 // -----------------------------------------------------------------------
 const H_PADDING = 20;
 
-const styles = StyleSheet.create({
+function createStyles(COLORS: ThemeColors) {
+  return StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: COLORS.background,
@@ -670,4 +673,5 @@ const styles = StyleSheet.create({
     color: COLORS.danger,
     marginLeft: 8,
   },
-});
+  });
+}
