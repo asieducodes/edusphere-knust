@@ -40,7 +40,9 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
 import type { DimensionValue } from "react-native";
-import { COLORS, SHADOW } from "../theme/colors";
+import { ThemeColors, SHADOW } from "../theme/colors";
+import { useTheme } from "../context/ThemeContext";
+import { useLanguage } from "../context/LanguageContext";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
@@ -180,180 +182,195 @@ const NEARBY_PLACES: NearbyPlace[] = [
   { id: "np5", label: "Department Block", distance: "1.4 km", icon: "home" },
 ];
 
-// Status chip visual mapping
-const STATUS_STYLES: Record<StatusType, { bg: string; color: string }> = {
-  open: { bg: COLORS.successLight, color: COLORS.success },
-  busy: { bg: "#FDEAEA", color: COLORS.danger },
-  available: { bg: COLORS.primaryLight, color: COLORS.primary },
+const FILTER_LABEL_KEYS: Record<FilterKey, string> = {
+  All: "map.filterAll",
+  Libraries: "map.filterLibraries",
+  "Lecture Halls": "map.filterLectureHalls",
+  "Study Spots": "map.filterStudySpots",
+  Cafeterias: "map.filterCafeterias",
+  Departments: "map.filterDepartments",
+  Hostels: "map.filterHostels",
+  Nearby: "map.filterNearby",
 };
 
-// -----------------------------------------------------------------------
-// SMALL REUSABLE COMPONENTS
-// -----------------------------------------------------------------------
-
-/** Section header with title + optional "View all" action */
-const SectionHeader: React.FC<{
-  title: string;
-  onPressViewAll?: () => void;
-}> = ({ title, onPressViewAll }) => (
-  <View style={styles.sectionHeader}>
-    <Text style={styles.sectionTitle}>{title}</Text>
-    {onPressViewAll && (
-      <TouchableOpacity
-        onPress={onPressViewAll}
-        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-      >
-        <Text style={styles.viewAllText}>View all</Text>
-      </TouchableOpacity>
-    )}
-  </View>
-);
-
-/** Status chip used on study spot cards */
-const StatusChip: React.FC<{ label: string; type: StatusType }> = ({
-  label,
-  type,
-}) => {
-  const style = STATUS_STYLES[type];
-  return (
-    <View style={[styles.statusChip, { backgroundColor: style.bg }]}>
-      <View style={[styles.statusDot, { backgroundColor: style.color }]} />
-      <Text style={[styles.statusChipText, { color: style.color }]}>
-        {label}
-      </Text>
-    </View>
-  );
-};
-
-/**
- * Static map placeholder — SWAP POINT for react-native-maps later.
- *
- * Built entirely from Views: a soft base, faint "road" lines, a couple of
- * green-space blobs, and absolutely-positioned pin markers with labels.
- * No external assets or map SDK required.
- */
-const StaticMapPlaceholder: React.FC<{ places: MapPlace[] }> = ({ places }) => {
-  return (
-    <View style={styles.mapCard}>
-      {/* Decorative "roads" */}
-      <View
-        style={[
-          styles.mapRoad,
-          {
-            top: "30%",
-            left: "-10%",
-            width: "120%",
-            transform: [{ rotate: "-6deg" }],
-          },
-        ]}
-      />
-      <View
-        style={[
-          styles.mapRoad,
-          {
-            top: "62%",
-            left: "-10%",
-            width: "120%",
-            transform: [{ rotate: "4deg" }],
-          },
-        ]}
-      />
-      <View
-        style={[
-          styles.mapRoadVertical,
-          {
-            left: "35%",
-            top: "-10%",
-            height: "120%",
-            transform: [{ rotate: "3deg" }],
-          },
-        ]}
-      />
-      <View
-        style={[
-          styles.mapRoadVertical,
-          {
-            left: "72%",
-            top: "-10%",
-            height: "120%",
-            transform: [{ rotate: "-4deg" }],
-          },
-        ]}
-      />
-
-      {/* Decorative green space */}
-      <View
-        style={[
-          styles.mapGreenSpace,
-          { top: "10%", left: "45%", width: 90, height: 60 },
-        ]}
-      />
-      <View
-        style={[
-          styles.mapGreenSpace,
-          { top: "55%", left: "8%", width: 70, height: 50 },
-        ]}
-      />
-
-      {/* Markers */}
-      {places.map((place) => (
-        <View
-          key={place.id}
-          style={[styles.mapMarkerWrap, { top: place.top, left: place.left }]}
-        >
-          {place.isPrimary && <View style={styles.mapMarkerPulse} />}
-          <View
-            style={[styles.mapPin, place.isPrimary && styles.mapPinPrimary]}
-          >
-            <Feather
-              name="map-pin"
-              size={place.isPrimary ? 16 : 13}
-              color={COLORS.white}
-            />
-          </View>
-          <View style={styles.mapPinLabelWrap}>
-            <Text style={styles.mapPinLabel} numberOfLines={1}>
-              {place.name}
-            </Text>
-          </View>
-        </View>
-      ))}
-
-      {/* Current location floating button */}
-      <TouchableOpacity
-        style={styles.currentLocationButton}
-        activeOpacity={0.85}
-      >
-        <Feather name="navigation" size={18} color={COLORS.white} />
-      </TouchableOpacity>
-    </View>
-  );
-};
-
-/** Empty state shown when no locations match the current search / filter */
-const EmptyState: React.FC<{ onShowAll: () => void }> = ({ onShowAll }) => (
-  <View style={styles.emptyState}>
-    <View style={styles.emptyIconWrap}>
-      <Feather name="map-pin" size={28} color={COLORS.primary} />
-    </View>
-    <Text style={styles.emptyTitle}>No locations found</Text>
-    <Text style={styles.emptySubtitle}>
-      Try searching for another building or study spot.
-    </Text>
-    <TouchableOpacity
-      style={styles.emptyShowAllButton}
-      onPress={onShowAll}
-      activeOpacity={0.85}
-    >
-      <Text style={styles.emptyShowAllButtonText}>Show All Locations</Text>
-    </TouchableOpacity>
-  </View>
-);
 
 // -----------------------------------------------------------------------
 // MAIN COMPONENT
 // -----------------------------------------------------------------------
 const MapScreen: React.FC = () => {
+  const { colors: COLORS, isDark } = useTheme();
+  const { t } = useLanguage();
+  const styles = React.useMemo(() => createStyles(COLORS), [COLORS]);
+
+  // Status chip visual mapping
+  const STATUS_STYLES: Record<StatusType, { bg: string; color: string }> = {
+    open: { bg: COLORS.successLight, color: COLORS.success },
+    busy: { bg: "#FDEAEA", color: COLORS.danger },
+    available: { bg: COLORS.primaryLight, color: COLORS.primary },
+  };
+
+  // ---- Small reusable pieces, defined here so they close over this
+  // render's styles/COLORS instead of needing them threaded as props. ----
+
+  /** Section header with title + optional "View all" action */
+  const SectionHeader: React.FC<{
+    title: string;
+    onPressViewAll?: () => void;
+  }> = ({ title, onPressViewAll }) => (
+    <View style={styles.sectionHeader}>
+      <Text style={styles.sectionTitle}>{title}</Text>
+      {onPressViewAll && (
+        <TouchableOpacity
+          onPress={onPressViewAll}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        >
+          <Text style={styles.viewAllText}>{t('common.seeAll')}</Text>
+        </TouchableOpacity>
+      )}
+    </View>
+  );
+
+  /** Status chip used on study spot cards */
+  const StatusChip: React.FC<{ label: string; type: StatusType }> = ({
+    label,
+    type,
+  }) => {
+    const style = STATUS_STYLES[type];
+    return (
+      <View style={[styles.statusChip, { backgroundColor: style.bg }]}>
+        <View style={[styles.statusDot, { backgroundColor: style.color }]} />
+        <Text style={[styles.statusChipText, { color: style.color }]}>
+          {label}
+        </Text>
+      </View>
+    );
+  };
+
+  /**
+   * Static map placeholder — SWAP POINT for react-native-maps later.
+   *
+   * Built entirely from Views: a soft base, faint "road" lines, a couple of
+   * green-space blobs, and absolutely-positioned pin markers with labels.
+   * No external assets or map SDK required.
+   */
+  const StaticMapPlaceholder: React.FC<{ places: MapPlace[] }> = ({ places }) => {
+    return (
+      <View style={styles.mapCard}>
+        {/* Decorative "roads" */}
+        <View
+          style={[
+            styles.mapRoad,
+            {
+              top: "30%",
+              left: "-10%",
+              width: "120%",
+              transform: [{ rotate: "-6deg" }],
+            },
+          ]}
+        />
+        <View
+          style={[
+            styles.mapRoad,
+            {
+              top: "62%",
+              left: "-10%",
+              width: "120%",
+              transform: [{ rotate: "4deg" }],
+            },
+          ]}
+        />
+        <View
+          style={[
+            styles.mapRoadVertical,
+            {
+              left: "35%",
+              top: "-10%",
+              height: "120%",
+              transform: [{ rotate: "3deg" }],
+            },
+          ]}
+        />
+        <View
+          style={[
+            styles.mapRoadVertical,
+            {
+              left: "72%",
+              top: "-10%",
+              height: "120%",
+              transform: [{ rotate: "-4deg" }],
+            },
+          ]}
+        />
+
+        {/* Decorative green space */}
+        <View
+          style={[
+            styles.mapGreenSpace,
+            { top: "10%", left: "45%", width: 90, height: 60 },
+          ]}
+        />
+        <View
+          style={[
+            styles.mapGreenSpace,
+            { top: "55%", left: "8%", width: 70, height: 50 },
+          ]}
+        />
+
+        {/* Markers */}
+        {places.map((place) => (
+          <View
+            key={place.id}
+            style={[styles.mapMarkerWrap, { top: place.top, left: place.left }]}
+          >
+            {place.isPrimary && <View style={styles.mapMarkerPulse} />}
+            <View
+              style={[styles.mapPin, place.isPrimary && styles.mapPinPrimary]}
+            >
+              <Feather
+                name="map-pin"
+                size={place.isPrimary ? 16 : 13}
+                color={COLORS.white}
+              />
+            </View>
+            <View style={styles.mapPinLabelWrap}>
+              <Text style={styles.mapPinLabel} numberOfLines={1}>
+                {place.name}
+              </Text>
+            </View>
+          </View>
+        ))}
+
+        {/* Current location floating button */}
+        <TouchableOpacity
+          style={styles.currentLocationButton}
+          activeOpacity={0.85}
+        >
+          <Feather name="navigation" size={18} color={COLORS.white} />
+        </TouchableOpacity>
+      </View>
+    );
+  };
+
+  /** Empty state shown when no locations match the current search / filter */
+  const EmptyState: React.FC<{ onShowAll: () => void }> = ({ onShowAll }) => (
+    <View style={styles.emptyState}>
+      <View style={styles.emptyIconWrap}>
+        <Feather name="map-pin" size={28} color={COLORS.primary} />
+      </View>
+      <Text style={styles.emptyTitle}>{t('map.noLocationsFound')}</Text>
+      <Text style={styles.emptySubtitle}>
+        {t('map.noLocationsSubtitle')}
+      </Text>
+      <TouchableOpacity
+        style={styles.emptyShowAllButton}
+        onPress={onShowAll}
+        activeOpacity={0.85}
+      >
+        <Text style={styles.emptyShowAllButtonText}>{t('map.showAllLocations')}</Text>
+      </TouchableOpacity>
+    </View>
+  );
+
   const [searchQuery, setSearchQuery] = useState("");
   const [activeFilter, setActiveFilter] = useState<FilterKey>("All");
 
@@ -373,7 +390,7 @@ const MapScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={styles.safeArea} edges={["top"]}>
-      <StatusBar barStyle="dark-content" backgroundColor={COLORS.background} />
+      <StatusBar barStyle={isDark ? "light-content" : "dark-content"} backgroundColor={COLORS.background} />
 
       <ScrollView
         style={styles.container}
@@ -386,9 +403,9 @@ const MapScreen: React.FC = () => {
         <View style={styles.header}>
           <View style={styles.headerTopRow}>
             <View>
-              <Text style={styles.headerTitle}>Campus Map</Text>
+              <Text style={styles.headerTitle}>{t('map.title')}</Text>
               <Text style={styles.headerSubtitle}>
-                Find study spots and meeting locations
+                {t('map.subtitle')}
               </Text>
             </View>
 
@@ -408,7 +425,7 @@ const MapScreen: React.FC = () => {
           <Feather name="search" size={18} color={COLORS.textMuted} />
           <TextInput
             style={styles.searchInput}
-            placeholder="Search buildings, libraries, study spots..."
+            placeholder={t('map.searchPlaceholder')}
             placeholderTextColor={COLORS.textMuted}
             value={searchQuery}
             onChangeText={setSearchQuery}
@@ -447,7 +464,7 @@ const MapScreen: React.FC = () => {
                     isActive && styles.filterChipTextActive,
                   ]}
                 >
-                  {filter}
+                  {t(FILTER_LABEL_KEYS[filter])}
                 </Text>
               </TouchableOpacity>
             );
@@ -479,7 +496,7 @@ const MapScreen: React.FC = () => {
         {filteredSpots.length > 0 && (
           <>
             <SectionHeader
-              title="Recommended Study Spots"
+              title={t('map.recommendedSpots')}
               onPressViewAll={() => {}}
             />
             <View style={styles.stackedCards}>
@@ -523,7 +540,7 @@ const MapScreen: React.FC = () => {
                           color={COLORS.primary}
                         />
                         <Text style={styles.directionsButtonText}>
-                          Directions
+                          {t('map.directions')}
                         </Text>
                       </TouchableOpacity>
                     </View>
@@ -537,7 +554,7 @@ const MapScreen: React.FC = () => {
         {/* ---------------------------------------------------------- */}
         {/* UPCOMING MEETING LOCATIONS                                  */}
         {/* ---------------------------------------------------------- */}
-        <SectionHeader title="Upcoming Meeting Locations" />
+        <SectionHeader title={t('map.upcomingMeetingLocations')} />
         <View style={styles.stackedCards}>
           {MEETING_LOCATIONS.map((meeting) => (
             <View key={meeting.id} style={styles.meetingCard}>
@@ -552,7 +569,7 @@ const MapScreen: React.FC = () => {
                   activeOpacity={0.85}
                 >
                   <Feather name="map" size={12} color={COLORS.white} />
-                  <Text style={styles.viewOnMapButtonText}>View on Map</Text>
+                  <Text style={styles.viewOnMapButtonText}>{t('map.viewOnMap')}</Text>
                 </TouchableOpacity>
               </View>
 
@@ -578,7 +595,7 @@ const MapScreen: React.FC = () => {
         {/* ---------------------------------------------------------- */}
         {/* NEARBY ON CAMPUS                                            */}
         {/* ---------------------------------------------------------- */}
-        <SectionHeader title="Nearby on Campus" />
+        <SectionHeader title={t('map.nearbyOnCampus')} />
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -617,7 +634,8 @@ const CARD_GAP = 14;
 const H_PADDING = 20;
 const MAP_HEIGHT = 260;
 
-const styles = StyleSheet.create({
+function createStyles(COLORS: ThemeColors) {
+  return StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: COLORS.background,
@@ -1046,4 +1064,5 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: COLORS.white,
   },
-});
+  });
+}
