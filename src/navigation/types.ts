@@ -47,6 +47,7 @@ export type MainStackParamList = {
   GroupDetails: { groupId: string };
   PostDetails: { postId: string; groupId: string };
   Search: { initialQuery?: string } | undefined;
+  Settings: undefined;
   CreateGroup: undefined;
   ResourceDetails: { resourceId: string };
   UploadResource: undefined;

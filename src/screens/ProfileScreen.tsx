@@ -191,7 +191,7 @@ const ProfileScreen: React.FC = () => {
             <TouchableOpacity
               style={styles.settingsIconButton}
               activeOpacity={0.7}
-              onPress={() => Alert.alert("Settings", "Settings aren't available yet.")}
+              onPress={() => navigation.navigate("Settings")}
             >
               <Feather name="settings" size={19} color={COLORS.textPrimary} />
             </TouchableOpacity>
