@@ -31,7 +31,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Feather, FontAwesome5, MaterialCommunityIcons } from '@expo/vector-icons';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { COLORS, SHADOW } from '../theme/colors';
+import { ThemeColors, SHADOW } from '../theme/colors';
+import { useTheme } from '../context/ThemeContext';
+import { useLanguage } from '../context/LanguageContext';
 import { AuthStackParamList } from '../navigation/types';
 import { validateSignupForm } from '../utils/authValidation';
 import { useAuth } from '../context/AuthContext';
@@ -45,69 +47,80 @@ const { width: SCREEN_WIDTH } = Dimensions.get('window');
 type PickerField = 'programme' | 'department' | 'level';
 
 // -----------------------------------------------------------------------
-// SMALL DECORATIVE PIECES (same approach as LoginScreen.tsx)
-// -----------------------------------------------------------------------
-const GhostIcon: React.FC<{ children: React.ReactNode; style: object }> = ({ children, style }) => (
-  <View style={[styles.ghostIcon, style]}>{children}</View>
-);
-
-const DotGrid: React.FC<{ rows: number; cols: number; style: object }> = ({ rows, cols, style }) => {
-  const dots = [];
-  for (let r = 0; r < rows; r++) {
-    for (let c = 0; c < cols; c++) {
-      dots.push(<View key={`${r}-${c}`} style={styles.dotGridDot} />);
-    }
-  }
-  return <View style={[styles.dotGridWrap, style, { width: cols * 14 }]}>{dots}</View>;
-};
-
-/** Same logo emblem as LoginScreen.tsx / SplashScreen.tsx, kept identical
- *  so the brand mark reads as one consistent asset across the app. */
-const LogoEmblem: React.FC = () => (
-  <View style={styles.logoWrap}>
-    <View style={styles.nodeArc} />
-    <View style={[styles.node, styles.nodeTop]} />
-    <View style={[styles.node, styles.nodeLeft]} />
-    <View style={[styles.node, styles.nodeRight]} />
-
-    <View style={styles.logoCircle}>
-      <FontAwesome5 name="graduation-cap" size={40} color={COLORS.primary} style={styles.capIcon} />
-      <View style={styles.bookWrap}>
-        <Feather name="book-open" size={26} color={COLORS.white} />
-      </View>
-    </View>
-  </View>
-);
-
-/** A pressable row styled to look like a dropdown/select input. Opens the
- *  shared picker modal rather than a native <Picker> — keeps styling
- *  fully under our control and consistent with the other text inputs. */
-const DropdownField: React.FC<{
-  icon: keyof typeof Feather.glyphMap;
-  value: string;
-  placeholder: string;
-  error?: string;
-  onPress: () => void;
-  style?: object;
-}> = ({ icon, value, placeholder, error, onPress, style }) => (
-  <TouchableOpacity
-    style={[styles.inputWrapper, error && styles.inputWrapperError, style]}
-    activeOpacity={0.8}
-    onPress={onPress}
-  >
-    <Feather name={icon} size={17} color={COLORS.textMuted} />
-    <Text style={[styles.dropdownText, !value && styles.dropdownPlaceholder]} numberOfLines={1}>
-      {value || placeholder}
-    </Text>
-    <Feather name="chevron-down" size={17} color={COLORS.textMuted} />
-  </TouchableOpacity>
-);
-
-// -----------------------------------------------------------------------
 // MAIN COMPONENT
 // -----------------------------------------------------------------------
 const SignupScreen: React.FC<Props> = ({ navigation }) => {
   const { register } = useAuth();
+  const { colors: COLORS, isDark } = useTheme();
+  const { t } = useLanguage();
+  const styles = React.useMemo(() => createStyles(COLORS), [COLORS]);
+
+  // ---- Small decorative + form pieces, defined here so they close over
+  // this render's styles/COLORS instead of needing them threaded as props.
+  const GhostIcon: React.FC<{ children: React.ReactNode; style: object }> = ({ children, style }) => (
+    <View style={[styles.ghostIcon, style]}>{children}</View>
+  );
+
+  const DotGrid: React.FC<{ rows: number; cols: number; style: object }> = ({ rows, cols, style }) => {
+    const dots = [];
+    for (let r = 0; r < rows; r++) {
+      for (let c = 0; c < cols; c++) {
+        dots.push(<View key={`${r}-${c}`} style={styles.dotGridDot} />);
+      }
+    }
+    return <View style={[styles.dotGridWrap, style, { width: cols * 14 }]}>{dots}</View>;
+  };
+
+  /** Same logo emblem as LoginScreen.tsx / SplashScreen.tsx, kept identical
+   *  so the brand mark reads as one consistent asset across the app. */
+  const LogoEmblem: React.FC = () => (
+    <View style={styles.logoWrap}>
+      <View style={styles.nodeArc} />
+      <View style={[styles.node, styles.nodeTop]} />
+      <View style={[styles.node, styles.nodeLeft]} />
+      <View style={[styles.node, styles.nodeRight]} />
+
+      <View style={styles.logoCircle}>
+        <FontAwesome5 name="graduation-cap" size={40} color={COLORS.primary} style={styles.capIcon} />
+        <View style={styles.bookWrap}>
+          <Feather name="book-open" size={26} color={COLORS.white} />
+        </View>
+      </View>
+    </View>
+  );
+
+  /** A pressable row styled to look like a dropdown/select input. Opens the
+   *  shared picker modal rather than a native <Picker> — keeps styling
+   *  fully under our control and consistent with the other text inputs. */
+  const DropdownField: React.FC<{
+    icon: keyof typeof Feather.glyphMap;
+    value: string;
+    placeholder: string;
+    error?: string;
+    onPress: () => void;
+    style?: object;
+  }> = ({ icon, value, placeholder, error, onPress, style }) => (
+    <TouchableOpacity
+      style={[styles.inputWrapper, error && styles.inputWrapperError, style]}
+      activeOpacity={0.8}
+      onPress={onPress}
+    >
+      <Feather name={icon} size={17} color={COLORS.textMuted} />
+      <Text style={[styles.dropdownText, !value && styles.dropdownPlaceholder]} numberOfLines={1}>
+        {value || placeholder}
+      </Text>
+      <Feather name="chevron-down" size={17} color={COLORS.textMuted} />
+    </TouchableOpacity>
+  );
+
+  /** Small shared error text row, used under every field in this form. */
+  const ErrorText: React.FC<{ text: string }> = ({ text }) => (
+    <View style={styles.errorRow}>
+      <Feather name="alert-circle" size={12} color={COLORS.danger} />
+      <Text style={styles.errorText}>{text}</Text>
+    </View>
+  );
+
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [programme, setProgramme] = useState('');
@@ -148,7 +161,7 @@ const SignupScreen: React.FC<Props> = ({ navigation }) => {
     });
 
     if (!isValid || !departmentId) {
-      if (isValid && !departmentId) setServerError('Please select your department.');
+      if (isValid && !departmentId) setServerError(t('signup.departmentMissing'));
       return;
     }
 
@@ -157,7 +170,7 @@ const SignupScreen: React.FC<Props> = ({ navigation }) => {
       await register({ fullName, email, password, programme, departmentId, level });
       navigation.navigate('EmailVerification', { email });
     } catch (err) {
-      const message = (err as { message?: string })?.message ?? 'Something went wrong. Please try again.';
+      const message = (err as { message?: string })?.message ?? t('common.somethingWentWrong');
       setServerError(message);
     } finally {
       setIsSubmitting(false);
@@ -202,7 +215,7 @@ const SignupScreen: React.FC<Props> = ({ navigation }) => {
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
-      <StatusBar barStyle="dark-content" backgroundColor={COLORS.background} />
+      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={COLORS.background} />
 
       {/* Decorative background layer */}
       <View style={styles.backgroundLayer} pointerEvents="none">
@@ -258,15 +271,15 @@ const SignupScreen: React.FC<Props> = ({ navigation }) => {
           <View style={styles.brandingSection}>
             <LogoEmblem />
             <Text style={styles.appName}>EduSphere</Text>
-            <Text style={styles.appSubtitle}>Campus Study Group & Resource Finder</Text>
+            <Text style={styles.appSubtitle}>{t('splash.tagline')}</Text>
           </View>
 
           {/* ---------------------------------------------------------- */}
           {/* SIGNUP HEADING                                              */}
           {/* ---------------------------------------------------------- */}
           <View style={styles.headingSection}>
-            <Text style={styles.headingTitle}>Create your account</Text>
-            <Text style={styles.headingSubtitle}>Join thousands of KNUST students learning together</Text>
+            <Text style={styles.headingTitle}>{t('signup.createAccount')}</Text>
+            <Text style={styles.headingSubtitle}>{t('signup.subtitle')}</Text>
           </View>
 
           {/* ---------------------------------------------------------- */}
@@ -274,12 +287,12 @@ const SignupScreen: React.FC<Props> = ({ navigation }) => {
           {/* ---------------------------------------------------------- */}
           <View style={styles.formCard}>
             {/* Full Name */}
-            <Text style={styles.fieldLabel}>Full Name</Text>
+            <Text style={styles.fieldLabel}>{t('signup.fullNameLabel')}</Text>
             <View style={[styles.inputWrapper, errors.fullName && styles.inputWrapperError]}>
               <Feather name="user" size={17} color={COLORS.textMuted} />
               <TextInput
                 style={styles.input}
-                placeholder="Enter your full name"
+                placeholder={t('signup.fullNamePlaceholder')}
                 placeholderTextColor={COLORS.textMuted}
                 value={fullName}
                 onChangeText={setFullName}
@@ -288,7 +301,7 @@ const SignupScreen: React.FC<Props> = ({ navigation }) => {
             {errors.fullName ? <ErrorText text={errors.fullName} /> : null}
 
             {/* KNUST Email */}
-            <Text style={[styles.fieldLabel, { marginTop: 18 }]}>KNUST Email</Text>
+            <Text style={[styles.fieldLabel, { marginTop: 18 }]}>{t('signup.emailLabel')}</Text>
             <View style={[styles.inputWrapper, errors.email && styles.inputWrapperError]}>
               <Feather name="mail" size={17} color={COLORS.textMuted} />
               <TextInput
@@ -307,16 +320,16 @@ const SignupScreen: React.FC<Props> = ({ navigation }) => {
             ) : (
               <View style={styles.helperRow}>
                 <MaterialCommunityIcons name="shield-check" size={14} color={COLORS.primary} />
-                <Text style={styles.helperText}>KNUST students only</Text>
+                <Text style={styles.helperText}>{t('signup.knustOnly')}</Text>
               </View>
             )}
 
             {/* Programme */}
-            <Text style={[styles.fieldLabel, { marginTop: 18 }]}>Programme</Text>
+            <Text style={[styles.fieldLabel, { marginTop: 18 }]}>{t('signup.programmeLabel')}</Text>
             <DropdownField
               icon="award"
               value={programme}
-              placeholder="Select your programme"
+              placeholder={t('signup.programmePlaceholder')}
               error={errors.programme}
               onPress={() => openPicker('programme')}
             />
@@ -325,11 +338,11 @@ const SignupScreen: React.FC<Props> = ({ navigation }) => {
             {/* Department + Level, side by side */}
             <View style={styles.rowFields}>
               <View style={styles.rowFieldHalf}>
-                <Text style={styles.fieldLabel}>Department</Text>
+                <Text style={styles.fieldLabel}>{t('signup.departmentLabel')}</Text>
                 <DropdownField
                   icon="home"
                   value={department}
-                  placeholder={isLoadingDepartments ? 'Loading...' : 'Select department'}
+                  placeholder={isLoadingDepartments ? t('signup.loading') : t('signup.departmentPlaceholder')}
                   error={errors.department}
                   onPress={() => !isLoadingDepartments && openPicker('department')}
                 />
@@ -337,11 +350,11 @@ const SignupScreen: React.FC<Props> = ({ navigation }) => {
               </View>
 
               <View style={[styles.rowFieldHalf, { marginLeft: 12 }]}>
-                <Text style={styles.fieldLabel}>Level</Text>
+                <Text style={styles.fieldLabel}>{t('signup.levelLabel')}</Text>
                 <DropdownField
                   icon="bar-chart-2"
                   value={level}
-                  placeholder="Select level"
+                  placeholder={t('signup.levelPlaceholder')}
                   error={errors.level}
                   onPress={() => openPicker('level')}
                 />
@@ -350,12 +363,12 @@ const SignupScreen: React.FC<Props> = ({ navigation }) => {
             </View>
 
             {/* Password */}
-            <Text style={[styles.fieldLabel, { marginTop: 18 }]}>Password</Text>
+            <Text style={[styles.fieldLabel, { marginTop: 18 }]}>{t('signup.passwordLabel')}</Text>
             <View style={[styles.inputWrapper, errors.password && styles.inputWrapperError]}>
               <Feather name="lock" size={17} color={COLORS.textMuted} />
               <TextInput
                 style={styles.input}
-                placeholder="Create a password"
+                placeholder={t('signup.passwordPlaceholder')}
                 placeholderTextColor={COLORS.textMuted}
                 value={password}
                 onChangeText={setPassword}
@@ -372,12 +385,12 @@ const SignupScreen: React.FC<Props> = ({ navigation }) => {
             {errors.password ? <ErrorText text={errors.password} /> : null}
 
             {/* Confirm Password */}
-            <Text style={[styles.fieldLabel, { marginTop: 18 }]}>Confirm Password</Text>
+            <Text style={[styles.fieldLabel, { marginTop: 18 }]}>{t('signup.confirmPasswordLabel')}</Text>
             <View style={[styles.inputWrapper, errors.confirmPassword && styles.inputWrapperError]}>
               <Feather name="lock" size={17} color={COLORS.textMuted} />
               <TextInput
                 style={styles.input}
-                placeholder="Confirm your password"
+                placeholder={t('signup.confirmPasswordPlaceholder')}
                 placeholderTextColor={COLORS.textMuted}
                 value={confirmPassword}
                 onChangeText={setConfirmPassword}
@@ -405,7 +418,7 @@ const SignupScreen: React.FC<Props> = ({ navigation }) => {
               {isSubmitting ? (
                 <ActivityIndicator color={COLORS.white} size="small" />
               ) : (
-                <Text style={styles.createAccountButtonText}>Create Account</Text>
+                <Text style={styles.createAccountButtonText}>{t('signup.createAccountButton')}</Text>
               )}
             </TouchableOpacity>
           </View>
@@ -414,15 +427,15 @@ const SignupScreen: React.FC<Props> = ({ navigation }) => {
           {/* LOG IN + TRUST BADGE                                        */}
           {/* ---------------------------------------------------------- */}
           <View style={styles.loginRow}>
-            <Text style={styles.loginRowText}>Already have an account? </Text>
+            <Text style={styles.loginRowText}>{t('signup.haveAccount')}</Text>
             <TouchableOpacity onPress={handleLogInPress} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-              <Text style={styles.loginRowLink}>Log In</Text>
+              <Text style={styles.loginRowLink}>{t('signup.logIn')}</Text>
             </TouchableOpacity>
           </View>
 
           <View style={styles.trustBadgeRow}>
             <MaterialCommunityIcons name="shield-check" size={14} color={COLORS.primary} />
-            <Text style={styles.trustBadgeText}>Verified KNUST access</Text>
+            <Text style={styles.trustBadgeText}>{t('signup.trustBadge')}</Text>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -436,10 +449,10 @@ const SignupScreen: React.FC<Props> = ({ navigation }) => {
             <View style={styles.modalHandle} />
             <Text style={styles.modalTitle}>
               {activePicker === 'programme'
-                ? 'Select Programme'
+                ? t('signup.selectProgramme')
                 : activePicker === 'department'
-                ? 'Select Department'
-                : 'Select Level'}
+                ? t('signup.selectDepartment')
+                : t('signup.selectLevel')}
             </Text>
             <FlatList
               data={pickerOptions}
@@ -459,14 +472,6 @@ const SignupScreen: React.FC<Props> = ({ navigation }) => {
   );
 };
 
-/** Small shared error text row, used under every field in this form. */
-const ErrorText: React.FC<{ text: string }> = ({ text }) => (
-  <View style={styles.errorRow}>
-    <Feather name="alert-circle" size={12} color={COLORS.danger} />
-    <Text style={styles.errorText}>{text}</Text>
-  </View>
-);
-
 export default SignupScreen;
 
 // -----------------------------------------------------------------------
@@ -475,10 +480,11 @@ export default SignupScreen;
 const LOGO_SIZE = 100;
 const H_PADDING = 24;
 
-const styles = StyleSheet.create({
+function createStyles(COLORS: ThemeColors) {
+  return StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#FBFCFE',
+    backgroundColor: COLORS.background,
   },
   scrollContent: {
     paddingBottom: 40,
@@ -825,4 +831,5 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: COLORS.textPrimary,
   },
-});
+  });
+}
