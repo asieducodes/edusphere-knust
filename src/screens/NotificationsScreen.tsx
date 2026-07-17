@@ -13,7 +13,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { COLORS } from '../theme/colors';
+import { ThemeColors } from '../theme/colors';
+import { useTheme } from '../context/ThemeContext';
+import { useLanguage } from '../context/LanguageContext';
 import { RootStackParamList } from '../navigation/types';
 import { ScreenHeader, LoadingView, ErrorView, EmptyState } from '../components/common';
 import { useNotifications, useMarkNotificationRead, useMarkAllNotificationsRead } from '../hooks/useNotifications';
@@ -30,19 +32,23 @@ const TYPE_ICON: Record<NotificationType, keyof typeof Feather.glyphMap> = {
   system: 'bell',
 };
 
-function relativeTime(iso: string): string {
+function relativeTime(iso: string, t: (path: string, options?: Record<string, string | number>) => string): string {
   const then = new Date(iso).getTime();
   const diffMs = Date.now() - then;
   const minutes = Math.floor(diffMs / 60000);
-  if (minutes < 1) return 'Just now';
-  if (minutes < 60) return `${minutes}m ago`;
+  if (minutes < 1) return t('notifications.justNow');
+  if (minutes < 60) return t('notifications.minutesAgo', { count: minutes });
   const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}h ago`;
+  if (hours < 24) return t('notifications.hoursAgo', { count: hours });
   const days = Math.floor(hours / 24);
-  return `${days}d ago`;
+  return t('notifications.daysAgo', { count: days });
 }
 
 const NotificationsScreen: React.FC<Props> = ({ navigation }) => {
+  const { colors: COLORS, isDark } = useTheme();
+  const { t } = useLanguage();
+  const styles = React.useMemo(() => createStyles(COLORS), [COLORS]);
+
   const notificationsQuery = useNotifications();
   const markReadMutation = useMarkNotificationRead();
   const markAllReadMutation = useMarkAllNotificationsRead();
@@ -74,23 +80,23 @@ const NotificationsScreen: React.FC<Props> = ({ navigation }) => {
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
-      <StatusBar barStyle="dark-content" backgroundColor={COLORS.background} />
+      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={COLORS.background} />
 
       <ScreenHeader
-        title="Notifications"
+        title={t('notifications.title')}
         onBack={() => navigation.goBack()}
-        rightText={hasUnread ? (markingAll ? 'Marking...' : 'Mark all read') : undefined}
+        rightText={hasUnread ? (markingAll ? t('notifications.markingAll') : t('notifications.markAllRead')) : undefined}
         onPressRight={handleMarkAllRead}
       />
 
-      {isLoading && <LoadingView message="Loading notifications..." />}
+      {isLoading && <LoadingView message={t('notifications.loading')} />}
       {hasError && <ErrorView onRetry={() => notificationsQuery.refetch()} />}
 
       {!isLoading && !hasError && notifications.length === 0 && (
         <EmptyState
           icon="bell"
-          title="No notifications yet"
-          subtitle="You'll see group invites, replies, and reminders here."
+          title={t('notifications.emptyTitle')}
+          subtitle={t('notifications.emptySubtitle')}
         />
       )}
 
@@ -115,7 +121,7 @@ const NotificationsScreen: React.FC<Props> = ({ navigation }) => {
                 <Text style={styles.body} numberOfLines={2}>
                   {item.body}
                 </Text>
-                <Text style={styles.time}>{relativeTime(item.createdAt)}</Text>
+                <Text style={styles.time}>{relativeTime(item.createdAt, t)}</Text>
               </View>
               {!item.isRead ? <View style={styles.unreadDot} /> : null}
             </TouchableOpacity>
@@ -133,7 +139,8 @@ export default NotificationsScreen;
 // -----------------------------------------------------------------------
 const H_PADDING = 20;
 
-const styles = StyleSheet.create({
+function createStyles(COLORS: ThemeColors) {
+  return StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: COLORS.background,
@@ -190,4 +197,5 @@ const styles = StyleSheet.create({
     marginLeft: 8,
     marginTop: 4,
   },
-});
+  });
+}

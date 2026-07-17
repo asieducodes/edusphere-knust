@@ -15,7 +15,9 @@ import { View, Text, StyleSheet, ScrollView, StatusBar } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { COLORS, SHADOW } from '../theme/colors';
+import { ThemeColors, SHADOW } from '../theme/colors';
+import { useTheme } from '../context/ThemeContext';
+import { useLanguage } from '../context/LanguageContext';
 import { RootStackParamList } from '../navigation/types';
 import { ScreenHeader, PrimaryButton, SecondaryButton } from '../components/common';
 import { useAcceptGroupInvite, useRejectGroupInvite } from '../hooks/useGroups';
@@ -32,13 +34,13 @@ const TYPE_ICON: Record<NotificationType, keyof typeof Feather.glyphMap> = {
   system: 'bell',
 };
 
-const TYPE_LABEL: Record<NotificationType, string> = {
-  group_invite: 'Group Invite',
-  discussion_reply: 'Discussion Reply',
-  session_reminder: 'Session Reminder',
-  resource_upload: 'New Resource',
-  rating_received: 'Rating Received',
-  system: 'EduSphere',
+const TYPE_LABEL_KEYS: Record<NotificationType, string> = {
+  group_invite: 'notifications.type.group_invite',
+  discussion_reply: 'notifications.type.discussion_reply',
+  session_reminder: 'notifications.type.session_reminder',
+  resource_upload: 'notifications.type.resource_upload',
+  rating_received: 'notifications.type.rating_received',
+  system: 'notifications.type.system',
 };
 
 function formatTimestamp(iso: string): string {
@@ -55,6 +57,10 @@ function formatTimestamp(iso: string): string {
 type InviteState = 'idle' | 'processing' | 'accepted' | 'rejected' | 'error';
 
 const NotificationDetailScreen: React.FC<Props> = ({ route, navigation }) => {
+  const { colors: COLORS, isDark } = useTheme();
+  const { t } = useLanguage();
+  const styles = React.useMemo(() => createStyles(COLORS), [COLORS]);
+
   const { notification } = route.params;
   const groupId = typeof notification.data?.groupId === 'string' ? notification.data.groupId : undefined;
   const resourceId = typeof notification.data?.resourceId === 'string' ? notification.data.resourceId : undefined;
@@ -75,7 +81,7 @@ const NotificationDetailScreen: React.FC<Props> = ({ route, navigation }) => {
     acceptMutation.mutate(inviteId, {
       onSuccess: () => setInviteState('accepted'),
       onError: (err) => {
-        const message = (err as { message?: string })?.message ?? 'Something went wrong. Please try again.';
+        const message = (err as { message?: string })?.message ?? t('notifications.somethingWentWrong');
         setErrorMessage(message);
         setInviteState('error');
       },
@@ -89,7 +95,7 @@ const NotificationDetailScreen: React.FC<Props> = ({ route, navigation }) => {
     rejectMutation.mutate(inviteId, {
       onSuccess: () => setInviteState('rejected'),
       onError: (err) => {
-        const message = (err as { message?: string })?.message ?? 'Something went wrong. Please try again.';
+        const message = (err as { message?: string })?.message ?? t('notifications.somethingWentWrong');
         setErrorMessage(message);
         setInviteState('error');
       },
@@ -98,9 +104,9 @@ const NotificationDetailScreen: React.FC<Props> = ({ route, navigation }) => {
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
-      <StatusBar barStyle="dark-content" backgroundColor={COLORS.background} />
+      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={COLORS.background} />
 
-      <ScreenHeader title="Notification" onBack={() => navigation.goBack()} />
+      <ScreenHeader title={t('notifications.detailTitle')} onBack={() => navigation.goBack()} />
 
       <ScrollView
         style={styles.container}
@@ -112,7 +118,7 @@ const NotificationDetailScreen: React.FC<Props> = ({ route, navigation }) => {
             <Feather name={TYPE_ICON[notification.type]} size={22} color={COLORS.primary} />
           </View>
 
-          <Text style={styles.typeLabel}>{TYPE_LABEL[notification.type]}</Text>
+          <Text style={styles.typeLabel}>{t(TYPE_LABEL_KEYS[notification.type])}</Text>
           <Text style={styles.title}>{notification.title}</Text>
           <Text style={styles.timestamp}>{formatTimestamp(notification.createdAt)}</Text>
 
@@ -128,25 +134,25 @@ const NotificationDetailScreen: React.FC<Props> = ({ route, navigation }) => {
           {isInvite && inviteState === 'accepted' && (
             <View style={styles.successBanner}>
               <Feather name="check-circle" size={14} color={COLORS.success} />
-              <Text style={styles.successBannerText}>You've joined the group!</Text>
+              <Text style={styles.successBannerText}>{t('notifications.joinedGroup')}</Text>
             </View>
           )}
 
           {isInvite && inviteState === 'rejected' && (
             <View style={styles.neutralBanner}>
               <Feather name="x-circle" size={14} color={COLORS.textSecondary} />
-              <Text style={styles.neutralBannerText}>Invite declined.</Text>
+              <Text style={styles.neutralBannerText}>{t('notifications.inviteDeclined')}</Text>
             </View>
           )}
 
           {isInvite && (inviteState === 'idle' || inviteState === 'processing' || inviteState === 'error') && (
             <View style={styles.actionRow}>
               <View style={styles.actionHalf}>
-                <SecondaryButton label={inviteState === 'processing' ? 'Please wait...' : 'Decline'} onPress={handleDecline} />
+                <SecondaryButton label={inviteState === 'processing' ? t('notifications.pleaseWait') : t('notifications.decline')} onPress={handleDecline} />
               </View>
               <View style={styles.actionHalf}>
                 <PrimaryButton
-                  label="Accept"
+                  label={t('notifications.accept')}
                   onPress={handleAccept}
                   loading={inviteState === 'processing'}
                   disabled={inviteState === 'processing'}
@@ -158,7 +164,7 @@ const NotificationDetailScreen: React.FC<Props> = ({ route, navigation }) => {
           {groupId && (!isInvite || inviteState === 'accepted') && (
             <View style={styles.viewLinkWrap}>
               <SecondaryButton
-                label="View Group"
+                label={t('notifications.viewGroup')}
                 icon="arrow-right"
                 onPress={() => navigation.navigate('GroupDetails', { groupId })}
               />
@@ -168,7 +174,7 @@ const NotificationDetailScreen: React.FC<Props> = ({ route, navigation }) => {
           {resourceId && (
             <View style={styles.viewLinkWrap}>
               <SecondaryButton
-                label="View Resource"
+                label={t('notifications.viewResource')}
                 icon="arrow-right"
                 onPress={() => navigation.navigate('ResourceDetails', { resourceId })}
               />
@@ -187,7 +193,8 @@ export default NotificationDetailScreen;
 // -----------------------------------------------------------------------
 const H_PADDING = 20;
 
-const styles = StyleSheet.create({
+function createStyles(COLORS: ThemeColors) {
+  return StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: COLORS.background,
@@ -296,4 +303,5 @@ const styles = StyleSheet.create({
   viewLinkWrap: {
     marginTop: 20,
   },
-});
+  });
+}
