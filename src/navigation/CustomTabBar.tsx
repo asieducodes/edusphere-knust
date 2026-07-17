@@ -7,11 +7,13 @@
  * -----------------------------------------------------------------------
  */
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { BottomTabBarProps } from '@react-navigation/bottom-tabs';
-import { COLORS } from '../theme/colors';
+import { ThemeColors } from '../theme/colors';
+import { useTheme } from '../context/ThemeContext';
+import { useLanguage } from '../context/LanguageContext';
 
 // Maps each route name to the Feather icon it should display.
 const TAB_ICONS: Record<string, keyof typeof Feather.glyphMap> = {
@@ -22,17 +24,27 @@ const TAB_ICONS: Record<string, keyof typeof Feather.glyphMap> = {
   Profile: 'user',
 };
 
-const CustomTabBar: React.FC<BottomTabBarProps> = ({ state, descriptors, navigation }) => {
+// route.name is the fixed English screen key (see MainTabNavigator) — the
+// translated label shown to the student is looked up from it, rather than
+// translating route.name itself, which navigation logic depends on.
+const TAB_LABEL_KEYS: Record<string, string> = {
+  Home: 'nav.home',
+  Groups: 'nav.groups',
+  Resources: 'nav.resources',
+  Map: 'nav.map',
+  Profile: 'nav.profile',
+};
+
+const CustomTabBar: React.FC<BottomTabBarProps> = ({ state, navigation }) => {
+  const { colors } = useTheme();
+  const { t } = useLanguage();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
   return (
     <View style={styles.bottomNav}>
       {state.routes.map((route, index) => {
-        const { options } = descriptors[route.key];
-        const label =
-          options.tabBarLabel !== undefined
-            ? String(options.tabBarLabel)
-            : options.title !== undefined
-            ? options.title
-            : route.name;
+        const labelKey = TAB_LABEL_KEYS[route.name];
+        const label = labelKey ? t(labelKey) : route.name;
 
         const isActive = state.index === index;
         const icon = TAB_ICONS[route.name] ?? 'circle';
@@ -56,8 +68,8 @@ const CustomTabBar: React.FC<BottomTabBarProps> = ({ state, descriptors, navigat
             activeOpacity={0.7}
             onPress={onPress}
           >
-            <Feather name={icon} size={22} color={isActive ? COLORS.primary : COLORS.textMuted} />
-            <Text style={[styles.navLabel, { color: isActive ? COLORS.primary : COLORS.textMuted }]}>
+            <Feather name={icon} size={22} color={isActive ? colors.primary : colors.textMuted} />
+            <Text style={[styles.navLabel, { color: isActive ? colors.primary : colors.textMuted }]}>
               {label}
             </Text>
             {isActive && <View style={styles.navActiveIndicator} />}
@@ -70,39 +82,41 @@ const CustomTabBar: React.FC<BottomTabBarProps> = ({ state, descriptors, navigat
 
 export default CustomTabBar;
 
-const styles = StyleSheet.create({
-  bottomNav: {
-    flexDirection: 'row',
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: COLORS.card,
-    paddingTop: 10,
-    paddingBottom: 22,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    shadowColor: '#1B1F3B',
-    shadowOffset: { width: 0, height: -3 },
-    shadowOpacity: 0.06,
-    shadowRadius: 10,
-    elevation: 10,
-  },
-  navItem: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  navLabel: {
-    fontSize: 10.5,
-    fontWeight: '600',
-    marginTop: 4,
-  },
-  navActiveIndicator: {
-    width: 4,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: COLORS.primary,
-    marginTop: 4,
-  },
-});
+function createStyles(COLORS: ThemeColors) {
+  return StyleSheet.create({
+    bottomNav: {
+      flexDirection: 'row',
+      position: 'absolute',
+      bottom: 0,
+      left: 0,
+      right: 0,
+      backgroundColor: COLORS.card,
+      paddingTop: 10,
+      paddingBottom: 22,
+      borderTopLeftRadius: 24,
+      borderTopRightRadius: 24,
+      shadowColor: '#1B1F3B',
+      shadowOffset: { width: 0, height: -3 },
+      shadowOpacity: 0.06,
+      shadowRadius: 10,
+      elevation: 10,
+    },
+    navItem: {
+      flex: 1,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    navLabel: {
+      fontSize: 10.5,
+      fontWeight: '600',
+      marginTop: 4,
+    },
+    navActiveIndicator: {
+      width: 4,
+      height: 4,
+      borderRadius: 2,
+      backgroundColor: COLORS.primary,
+      marginTop: 4,
+    },
+  });
+}
