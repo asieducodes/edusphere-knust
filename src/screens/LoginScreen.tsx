@@ -34,7 +34,9 @@ import {
   Ionicons,
 } from "@expo/vector-icons";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
-import { COLORS, SHADOW } from "../theme/colors";
+import { ThemeColors, SHADOW } from "../theme/colors";
+import { useTheme } from "../context/ThemeContext";
+import { useLanguage } from "../context/LanguageContext";
 import { AuthStackParamList } from "../navigation/types";
 import { validateLoginForm } from "../utils/authValidation";
 import { useAuth } from "../context/AuthContext";
@@ -44,62 +46,55 @@ type Props = NativeStackScreenProps<AuthStackParamList, "Login">;
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
 // -----------------------------------------------------------------------
-// SMALL DECORATIVE PIECES
-// -----------------------------------------------------------------------
-
-/** A single very-faint outline icon scattered in the background. */
-const GhostIcon: React.FC<{ children: React.ReactNode; style: object }> = ({
-  children,
-  style,
-}) => <View style={[styles.ghostIcon, style]}>{children}</View>;
-
-/** Small grid of faint dots, matching the texture used on SplashScreen. */
-const DotGrid: React.FC<{ rows: number; cols: number; style: object }> = ({
-  rows,
-  cols,
-  style,
-}) => {
-  const dots = [];
-  for (let r = 0; r < rows; r++) {
-    for (let c = 0; c < cols; c++) {
-      dots.push(<View key={`${r}-${c}`} style={styles.dotGridDot} />);
-    }
-  }
-  return (
-    <View style={[styles.dotGridWrap, style, { width: cols * 14 }]}>
-      {dots}
-    </View>
-  );
-};
-
-/** Same logo emblem concept as SplashScreen.tsx, recolored for a white
- *  background: blue ring + blue graduation cap instead of white-on-blue. */
-const LogoEmblem: React.FC = () => (
-  <View style={styles.logoWrap}>
-    <View style={styles.nodeArc} />
-    <View style={[styles.node, styles.nodeTop]} />
-    <View style={[styles.node, styles.nodeLeft]} />
-    <View style={[styles.node, styles.nodeRight]} />
-
-    <View style={styles.logoCircle}>
-      <FontAwesome5
-        name="graduation-cap"
-        size={40}
-        color={COLORS.primary}
-        style={styles.capIcon}
-      />
-      <View style={styles.bookWrap}>
-        <Feather name="book-open" size={26} color={COLORS.white} />
-      </View>
-    </View>
-  </View>
-);
-
-// -----------------------------------------------------------------------
 // MAIN COMPONENT
 // -----------------------------------------------------------------------
 const LoginScreen: React.FC<Props> = ({ navigation }) => {
   const { login } = useAuth();
+  const { colors: COLORS, isDark } = useTheme();
+  const { t } = useLanguage();
+  const styles = React.useMemo(() => createStyles(COLORS), [COLORS]);
+
+  // ---- Small decorative pieces, defined here so they close over this
+  // render's styles/COLORS instead of needing them threaded as props. ----
+
+  /** A single very-faint outline icon scattered in the background. */
+  const GhostIcon: React.FC<{ children: React.ReactNode; style: object }> = ({ children, style }) => (
+    <View style={[styles.ghostIcon, style]}>{children}</View>
+  );
+
+  /** Small grid of faint dots, matching the texture used on SplashScreen. */
+  const DotGrid: React.FC<{ rows: number; cols: number; style: object }> = ({ rows, cols, style }) => {
+    const dots = [];
+    for (let r = 0; r < rows; r++) {
+      for (let c = 0; c < cols; c++) {
+        dots.push(<View key={`${r}-${c}`} style={styles.dotGridDot} />);
+      }
+    }
+    return (
+      <View style={[styles.dotGridWrap, style, { width: cols * 14 }]}>
+        {dots}
+      </View>
+    );
+  };
+
+  /** Same logo emblem concept as SplashScreen.tsx, recolored for a white
+   *  background: blue ring + blue graduation cap instead of white-on-blue. */
+  const LogoEmblem: React.FC = () => (
+    <View style={styles.logoWrap}>
+      <View style={styles.nodeArc} />
+      <View style={[styles.node, styles.nodeTop]} />
+      <View style={[styles.node, styles.nodeLeft]} />
+      <View style={[styles.node, styles.nodeRight]} />
+
+      <View style={styles.logoCircle}>
+        <FontAwesome5 name="graduation-cap" size={40} color={COLORS.primary} style={styles.capIcon} />
+        <View style={styles.bookWrap}>
+          <Feather name="book-open" size={26} color={COLORS.white} />
+        </View>
+      </View>
+    </View>
+  );
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -130,7 +125,7 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
       // (see navigation/RootNavigator.tsx).
       await login({ email, password });
     } catch (err) {
-      const message = (err as { message?: string })?.message ?? "Something went wrong. Please try again.";
+      const message = (err as { message?: string })?.message ?? t('common.somethingWentWrong');
       setServerError(message);
     } finally {
       setIsSubmitting(false);
@@ -147,7 +142,7 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
 
   return (
     <SafeAreaView style={styles.safeArea} edges={["top", "bottom"]}>
-      <StatusBar barStyle="dark-content" backgroundColor={COLORS.background} />
+      <StatusBar barStyle={isDark ? "light-content" : "dark-content"} backgroundColor={COLORS.background} />
 
       {/* Decorative background layer — sits behind everything else */}
       <View style={styles.backgroundLayer} pointerEvents="none">
@@ -216,7 +211,7 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
             <LogoEmblem />
             <Text style={styles.appName}>EduSphere</Text>
             <Text style={styles.appSubtitle}>
-              Campus Study Group & Resource Finder
+              {t('splash.tagline')}
             </Text>
           </View>
 
@@ -224,9 +219,9 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
           {/* WELCOME TEXT                                                */}
           {/* ---------------------------------------------------------- */}
           <View style={styles.welcomeSection}>
-            <Text style={styles.welcomeTitle}>Welcome back</Text>
+            <Text style={styles.welcomeTitle}>{t('login.welcomeBack')}</Text>
             <Text style={styles.welcomeSubtitle}>
-              Sign in to continue your study journey
+              {t('login.subtitle')}
             </Text>
           </View>
 
@@ -235,7 +230,7 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
           {/* ---------------------------------------------------------- */}
           <View style={styles.formCard}>
             {/* KNUST Email */}
-            <Text style={styles.fieldLabel}>KNUST Email</Text>
+            <Text style={styles.fieldLabel}>{t('login.emailLabel')}</Text>
             <View
               style={[
                 styles.inputWrapper,
@@ -266,12 +261,12 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
                   size={14}
                   color={COLORS.primary}
                 />
-                <Text style={styles.helperText}>KNUST students only</Text>
+                <Text style={styles.helperText}>{t('login.knustOnly')}</Text>
               </View>
             )}
 
             {/* Password */}
-            <Text style={[styles.fieldLabel, { marginTop: 18 }]}>Password</Text>
+            <Text style={[styles.fieldLabel, { marginTop: 18 }]}>{t('login.passwordLabel')}</Text>
             <View
               style={[
                 styles.inputWrapper,
@@ -319,7 +314,7 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
               onPress={handleForgotPassword}
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             >
-              <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
+              <Text style={styles.forgotPasswordText}>{t('login.forgotPassword')}</Text>
             </TouchableOpacity>
 
             {/* Log In button */}
@@ -332,7 +327,7 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
               {isSubmitting ? (
                 <ActivityIndicator color={COLORS.white} size="small" />
               ) : (
-                <Text style={styles.loginButtonText}>Log In</Text>
+                <Text style={styles.loginButtonText}>{t('login.logIn')}</Text>
               )}
             </TouchableOpacity>
           </View>
@@ -341,12 +336,12 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
           {/* SIGN UP + TRUST BADGE                                       */}
           {/* ---------------------------------------------------------- */}
           <View style={styles.signUpRow}>
-            <Text style={styles.signUpText}>Don&apos;t have an account? </Text>
+            <Text style={styles.signUpText}>{t('login.noAccount')}</Text>
             <TouchableOpacity
               onPress={handleSignUp}
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             >
-              <Text style={styles.signUpLink}>Sign Up</Text>
+              <Text style={styles.signUpLink}>{t('login.signUp')}</Text>
             </TouchableOpacity>
           </View>
 
@@ -356,7 +351,7 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
               size={14}
               color={COLORS.primary}
             />
-            <Text style={styles.trustBadgeText}>Verified KNUST access</Text>
+            <Text style={styles.trustBadgeText}>{t('login.trustBadge')}</Text>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -372,10 +367,11 @@ export default LoginScreen;
 const LOGO_SIZE = 110;
 const H_PADDING = 24;
 
-const styles = StyleSheet.create({
+function createStyles(COLORS: ThemeColors) {
+  return StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: "#FBFCFE",
+    backgroundColor: COLORS.background,
   },
   scrollContent: {
     paddingBottom: 40,
@@ -671,4 +667,5 @@ const styles = StyleSheet.create({
     color: COLORS.textSecondary,
     marginLeft: 6,
   },
-});
+  });
+}

@@ -46,6 +46,7 @@ import {
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { AuthStackParamList } from "../navigation/types";
 import { useAuth } from "../context/AuthContext";
+import { useLanguage } from "../context/LanguageContext";
 
 type Props = NativeStackScreenProps<AuthStackParamList, "Splash">;
 
@@ -161,6 +162,7 @@ const LogoEmblem: React.FC = () => (
 // -----------------------------------------------------------------------
 const SplashScreen: React.FC<Props> = ({ navigation }) => {
   const { isAuthenticated, isEmailVerified, pendingEmail } = useAuth();
+  const { t } = useLanguage();
 
   // ---- Animated values ------------------------------------------------
   // Kept in refs so they're created once and persist across re-renders.
@@ -455,7 +457,7 @@ const SplashScreen: React.FC<Props> = ({ navigation }) => {
               },
             ]}
           >
-            Campus Study Group & Resource Finder
+            {t('splash.tagline')}
           </Animated.Text>
 
           <Animated.View
@@ -468,7 +470,7 @@ const SplashScreen: React.FC<Props> = ({ navigation }) => {
             ]}
           >
             <MaterialCommunityIcons name="bank" size={14} color="#FFFFFF" />
-            <Text style={styles.badgeText}>For KNUST Students</Text>
+            <Text style={styles.badgeText}>{t('splash.badge')}</Text>
           </Animated.View>
         </View>
 
@@ -477,7 +479,7 @@ const SplashScreen: React.FC<Props> = ({ navigation }) => {
         {/* ------------------------------------------------------------ */}
         <View style={styles.bottomArea}>
           <LoadingDots dot1={dot1} dot2={dot2} dot3={dot3} />
-          <Text style={styles.loadingText}>Loading your study space...</Text>
+          <Text style={styles.loadingText}>{t('splash.loading')}</Text>
         </View>
       </LinearGradient>
     </Animated.View>

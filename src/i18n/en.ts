@@ -36,6 +36,23 @@ const en = {
     map: 'Map',
     profile: 'Profile',
   },
+  splash: {
+    tagline: 'Campus Study Group & Resource Finder',
+    badge: 'For KNUST Students',
+    loading: 'Loading your study space...',
+  },
+  login: {
+    welcomeBack: 'Welcome back',
+    subtitle: 'Sign in to continue your study journey',
+    emailLabel: 'KNUST Email',
+    knustOnly: 'KNUST students only',
+    passwordLabel: 'Password',
+    forgotPassword: 'Forgot Password?',
+    logIn: 'Log In',
+    noAccount: "Don't have an account? ",
+    signUp: 'Sign Up',
+    trustBadge: 'Verified KNUST access',
+  },
   settings: {
     title: 'Settings',
     appearance: 'Appearance',

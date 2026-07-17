@@ -32,6 +32,23 @@ const fr: TranslationDictionary = {
     map: 'Carte',
     profile: 'Profil',
   },
+  splash: {
+    tagline: 'Groupes d’étude et ressources du campus',
+    badge: 'Pour les étudiants du KNUST',
+    loading: 'Chargement de votre espace d’étude...',
+  },
+  login: {
+    welcomeBack: 'Content de vous revoir',
+    subtitle: 'Connectez-vous pour continuer votre parcours d’étude',
+    emailLabel: 'Email KNUST',
+    knustOnly: 'Réservé aux étudiants du KNUST',
+    passwordLabel: 'Mot de passe',
+    forgotPassword: 'Mot de passe oublié ?',
+    logIn: 'Se connecter',
+    noAccount: "Vous n'avez pas de compte ? ",
+    signUp: 'Créer un compte',
+    trustBadge: 'Accès KNUST vérifié',
+  },
   settings: {
     title: 'Paramètres',
     appearance: 'Apparence',
