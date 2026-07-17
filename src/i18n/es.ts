@@ -83,8 +83,8 @@ const es: TranslationDictionary = {
     programmeLabel: 'Programa',
     programmePlaceholder: 'Selecciona tu programa',
     departmentLabel: 'Departamento',
-    departmentPlaceholder: 'Selecciona el departamento',
-    departmentMissing: 'Por favor selecciona tu departamento.',
+    departmentAutoPlaceholder: 'Seleccionado automáticamente según el programa',
+    departmentMissing: 'Por favor selecciona primero tu programa.',
     loading: 'Cargando...',
     levelLabel: 'Nivel',
     levelPlaceholder: 'Selecciona el nivel',
@@ -97,7 +97,6 @@ const es: TranslationDictionary = {
     logIn: 'Iniciar sesión',
     trustBadge: 'Acceso KNUST verificado',
     selectProgramme: 'Seleccionar programa',
-    selectDepartment: 'Seleccionar departamento',
     selectLevel: 'Seleccionar nivel',
   },
   forgotPassword: {

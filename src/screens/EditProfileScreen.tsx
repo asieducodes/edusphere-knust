@@ -92,7 +92,7 @@ const EditProfileScreen: React.FC<Props> = ({ navigation }) => {
   const [saved, setSaved] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
 
-  const [activeDropdown, setActiveDropdown] = useState<'programme' | 'department' | 'level' | null>(null);
+  const [activeDropdown, setActiveDropdown] = useState<'programme' | 'level' | null>(null);
 
   const departments = departmentsQuery.data?.items ?? [];
   const avatarUploading = uploadAvatarMutation.isPending;
@@ -168,14 +168,13 @@ const EditProfileScreen: React.FC<Props> = ({ navigation }) => {
   };
 
   const ACADEMIC_FIELDS: {
-    field: 'programme' | 'department' | 'level';
+    field: 'programme' | 'level';
     label: string;
     value: string;
     icon: keyof typeof Feather.glyphMap;
     options: string[];
   }[] = [
     { field: 'programme', label: t('editProfile.programme'), value: programme || t('editProfile.notSet'), icon: 'book-open', options: PROGRAMME_OPTIONS },
-    { field: 'department', label: t('editProfile.department'), value: selectedDepartment?.name || t('editProfile.notSet'), icon: 'layers', options: departments.map((d) => d.name) },
     { field: 'level', label: t('editProfile.level'), value: level || t('editProfile.notSet'), icon: 'bar-chart-2', options: LEVEL_OPTIONS },
   ];
 
@@ -184,17 +183,12 @@ const EditProfileScreen: React.FC<Props> = ({ navigation }) => {
   const handleSelectAcademicOption = (option: string) => {
     if (activeDropdown === 'programme') {
       setProgramme(option);
-      // Auto-select the matching department — still fully overridable via
-      // the department picker itself if the match is wrong or missing.
+      // Department is fully derived from the chosen programme — not a
+      // separately pickable field — so students can't set a department
+      // that doesn't match their programme.
       const matchedDeptName = PROGRAMME_TO_DEPARTMENT[option];
       const matchedDept = matchedDeptName ? departments.find((d) => d.name === matchedDeptName) : undefined;
-      if (matchedDept) {
-        setDepartmentId(matchedDept.id);
-      }
-    }
-    if (activeDropdown === 'department') {
-      const dept = departments.find((d) => d.name === option);
-      setDepartmentId(dept?.id ?? null);
+      setDepartmentId(matchedDept?.id ?? null);
     }
     if (activeDropdown === 'level') setLevel(option);
     setActiveDropdown(null);
@@ -380,23 +374,47 @@ const EditProfileScreen: React.FC<Props> = ({ navigation }) => {
         {/* ACADEMIC INFORMATION                                        */}
         {/* ---------------------------------------------------------- */}
         <SectionCard title={t('editProfile.academicInformation')}>
-          {ACADEMIC_FIELDS.map((field, index, arr) => (
-            <TouchableOpacity
-              key={field.field}
-              style={[styles.dropdownRow, index !== arr.length - 1 && styles.rowDivider]}
-              activeOpacity={0.7}
-              onPress={() => setActiveDropdown(field.field)}
-            >
-              <View style={styles.dropdownIconWrap}>
-                <Feather name={field.icon} size={15} color={COLORS.primary} />
-              </View>
-              <View style={styles.dropdownTextBlock}>
-                <Text style={styles.dropdownLabel}>{field.label}</Text>
-                <Text style={styles.dropdownValue}>{field.value}</Text>
-              </View>
-              <Feather name="chevron-down" size={18} color={COLORS.textMuted} />
-            </TouchableOpacity>
-          ))}
+          {/* Programme — the only academic field the student picks directly. */}
+          <TouchableOpacity
+            style={[styles.dropdownRow, styles.rowDivider]}
+            activeOpacity={0.7}
+            onPress={() => setActiveDropdown('programme')}
+          >
+            <View style={styles.dropdownIconWrap}>
+              <Feather name="book-open" size={15} color={COLORS.primary} />
+            </View>
+            <View style={styles.dropdownTextBlock}>
+              <Text style={styles.dropdownLabel}>{t('editProfile.programme')}</Text>
+              <Text style={styles.dropdownValue}>{programme || t('editProfile.notSet')}</Text>
+            </View>
+            <Feather name="chevron-down" size={18} color={COLORS.textMuted} />
+          </TouchableOpacity>
+
+          {/* Department is derived from Programme — never picked on its own. */}
+          <View style={[styles.dropdownRow, styles.rowDivider]}>
+            <View style={styles.dropdownIconWrap}>
+              <Feather name="layers" size={15} color={COLORS.primary} />
+            </View>
+            <View style={styles.dropdownTextBlock}>
+              <Text style={styles.dropdownLabel}>{t('editProfile.department')}</Text>
+              <Text style={styles.dropdownValue}>{selectedDepartment?.name || t('editProfile.notSet')}</Text>
+            </View>
+          </View>
+
+          <TouchableOpacity
+            style={styles.dropdownRow}
+            activeOpacity={0.7}
+            onPress={() => setActiveDropdown('level')}
+          >
+            <View style={styles.dropdownIconWrap}>
+              <Feather name="bar-chart-2" size={15} color={COLORS.primary} />
+            </View>
+            <View style={styles.dropdownTextBlock}>
+              <Text style={styles.dropdownLabel}>{t('editProfile.level')}</Text>
+              <Text style={styles.dropdownValue}>{level || t('editProfile.notSet')}</Text>
+            </View>
+            <Feather name="chevron-down" size={18} color={COLORS.textMuted} />
+          </TouchableOpacity>
 
           {/* College is derived server-side from the selected department —
               shown read-only rather than as an independently editable field. */}

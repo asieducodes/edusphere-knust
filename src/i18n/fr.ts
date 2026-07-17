@@ -83,8 +83,8 @@ const fr: TranslationDictionary = {
     programmeLabel: 'Filière',
     programmePlaceholder: 'Sélectionnez votre filière',
     departmentLabel: 'Département',
-    departmentPlaceholder: 'Sélectionnez le département',
-    departmentMissing: 'Veuillez sélectionner votre département.',
+    departmentAutoPlaceholder: 'Sélectionné automatiquement selon la filière',
+    departmentMissing: 'Veuillez d’abord sélectionner votre filière.',
     loading: 'Chargement...',
     levelLabel: 'Niveau',
     levelPlaceholder: 'Sélectionnez le niveau',
@@ -97,7 +97,6 @@ const fr: TranslationDictionary = {
     logIn: 'Se connecter',
     trustBadge: 'Accès KNUST vérifié',
     selectProgramme: 'Sélectionner la filière',
-    selectDepartment: 'Sélectionner le département',
     selectLevel: 'Sélectionner le niveau',
   },
   forgotPassword: {

@@ -87,8 +87,8 @@ const en = {
     programmeLabel: 'Programme',
     programmePlaceholder: 'Select your programme',
     departmentLabel: 'Department',
-    departmentPlaceholder: 'Select department',
-    departmentMissing: 'Please select your department.',
+    departmentAutoPlaceholder: 'Auto-selected from programme',
+    departmentMissing: 'Please select your programme first.',
     loading: 'Loading...',
     levelLabel: 'Level',
     levelPlaceholder: 'Select level',
@@ -101,7 +101,6 @@ const en = {
     logIn: 'Log In',
     trustBadge: 'Verified KNUST access',
     selectProgramme: 'Select Programme',
-    selectDepartment: 'Select Department',
     selectLevel: 'Select Level',
   },
   forgotPassword: {

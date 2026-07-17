@@ -44,7 +44,7 @@ type Props = NativeStackScreenProps<AuthStackParamList, 'Signup'>;
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
-type PickerField = 'programme' | 'department' | 'level';
+type PickerField = 'programme' | 'level';
 
 // -----------------------------------------------------------------------
 // MAIN COMPONENT
@@ -111,6 +111,22 @@ const SignupScreen: React.FC<Props> = ({ navigation }) => {
       </Text>
       <Feather name="chevron-down" size={17} color={COLORS.textMuted} />
     </TouchableOpacity>
+  );
+
+  /** Non-interactive display row, styled to match DropdownField, for
+   *  values the student can't set directly (department is derived from
+   *  the chosen programme, never picked on its own). */
+  const ReadOnlyField: React.FC<{
+    icon: keyof typeof Feather.glyphMap;
+    value: string;
+    placeholder: string;
+  }> = ({ icon, value, placeholder }) => (
+    <View style={[styles.inputWrapper, styles.inputWrapperReadOnly]}>
+      <Feather name={icon} size={17} color={COLORS.textMuted} />
+      <Text style={[styles.dropdownText, !value && styles.dropdownPlaceholder]} numberOfLines={1}>
+        {value || placeholder}
+      </Text>
+    </View>
   );
 
   /** Small shared error text row, used under every field in this form. */
@@ -187,8 +203,6 @@ const SignupScreen: React.FC<Props> = ({ navigation }) => {
   const pickerOptions =
     activePicker === 'programme'
       ? PROGRAMME_OPTIONS
-      : activePicker === 'department'
-      ? departments.map((d) => d.name)
       : activePicker === 'level'
       ? LEVEL_OPTIONS
       : [];
@@ -196,18 +210,13 @@ const SignupScreen: React.FC<Props> = ({ navigation }) => {
   const handleSelectOption = (option: string) => {
     if (activePicker === 'programme') {
       setProgramme(option);
-      // Auto-select the matching department — still fully overridable via
-      // the department picker itself if the match is wrong or missing.
+      // Department is fully derived from the chosen programme — not a
+      // separately pickable field — so students can't set a department
+      // that doesn't match their programme.
       const matchedDeptName = PROGRAMME_TO_DEPARTMENT[option];
       const matchedDept = matchedDeptName ? departments.find((d) => d.name === matchedDeptName) : undefined;
-      if (matchedDept) {
-        setDepartment(matchedDept.name);
-        setDepartmentId(matchedDept.id);
-      }
-    }
-    if (activePicker === 'department') {
-      setDepartment(option);
-      setDepartmentId(departments.find((d) => d.name === option)?.id ?? '');
+      setDepartment(matchedDept?.name ?? '');
+      setDepartmentId(matchedDept?.id ?? '');
     }
     if (activePicker === 'level') setLevel(option);
     closePicker();
@@ -339,12 +348,10 @@ const SignupScreen: React.FC<Props> = ({ navigation }) => {
             <View style={styles.rowFields}>
               <View style={styles.rowFieldHalf}>
                 <Text style={styles.fieldLabel}>{t('signup.departmentLabel')}</Text>
-                <DropdownField
+                <ReadOnlyField
                   icon="home"
                   value={department}
-                  placeholder={isLoadingDepartments ? t('signup.loading') : t('signup.departmentPlaceholder')}
-                  error={errors.department}
-                  onPress={() => !isLoadingDepartments && openPicker('department')}
+                  placeholder={isLoadingDepartments ? t('signup.loading') : t('signup.departmentAutoPlaceholder')}
                 />
                 {errors.department ? <ErrorText text={errors.department} /> : null}
               </View>
@@ -441,18 +448,14 @@ const SignupScreen: React.FC<Props> = ({ navigation }) => {
       </KeyboardAvoidingView>
 
       {/* ---------------------------------------------------------- */}
-      {/* PICKER MODAL — shared by Programme / Department / Level      */}
+      {/* PICKER MODAL — shared by Programme / Level                   */}
       {/* ---------------------------------------------------------- */}
       <Modal visible={activePicker !== null} transparent animationType="slide" onRequestClose={closePicker}>
         <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={closePicker}>
           <View style={styles.modalSheet} onStartShouldSetResponder={() => true}>
             <View style={styles.modalHandle} />
             <Text style={styles.modalTitle}>
-              {activePicker === 'programme'
-                ? t('signup.selectProgramme')
-                : activePicker === 'department'
-                ? t('signup.selectDepartment')
-                : t('signup.selectLevel')}
+              {activePicker === 'programme' ? t('signup.selectProgramme') : t('signup.selectLevel')}
             </Text>
             <FlatList
               data={pickerOptions}
@@ -694,6 +697,9 @@ function createStyles(COLORS: ThemeColors) {
   },
   inputWrapperError: {
     borderColor: COLORS.danger,
+  },
+  inputWrapperReadOnly: {
+    backgroundColor: COLORS.chipBg,
   },
   input: {
     flex: 1,
