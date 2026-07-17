@@ -58,12 +58,17 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
   // render's styles/COLORS instead of needing them threaded as props. ----
 
   /** A single very-faint outline icon scattered in the background. */
-  const GhostIcon: React.FC<{ children: React.ReactNode; style: object }> = ({ children, style }) => (
-    <View style={[styles.ghostIcon, style]}>{children}</View>
-  );
+  const GhostIcon: React.FC<{ children: React.ReactNode; style: object }> = ({
+    children,
+    style,
+  }) => <View style={[styles.ghostIcon, style]}>{children}</View>;
 
   /** Small grid of faint dots, matching the texture used on SplashScreen. */
-  const DotGrid: React.FC<{ rows: number; cols: number; style: object }> = ({ rows, cols, style }) => {
+  const DotGrid: React.FC<{ rows: number; cols: number; style: object }> = ({
+    rows,
+    cols,
+    style,
+  }) => {
     const dots = [];
     for (let r = 0; r < rows; r++) {
       for (let c = 0; c < cols; c++) {
@@ -87,7 +92,12 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
       <View style={[styles.node, styles.nodeRight]} />
 
       <View style={styles.logoCircle}>
-        <FontAwesome5 name="graduation-cap" size={40} color={COLORS.primary} style={styles.capIcon} />
+        <FontAwesome5
+          name="graduation-cap"
+          size={40}
+          color={COLORS.primary}
+          style={styles.capIcon}
+        />
         <View style={styles.bookWrap}>
           <Feather name="book-open" size={26} color={COLORS.white} />
         </View>
@@ -125,7 +135,9 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
       // (see navigation/RootNavigator.tsx).
       await login({ email, password });
     } catch (err) {
-      const message = (err as { message?: string })?.message ?? t('common.somethingWentWrong');
+      const message =
+        (err as { message?: string })?.message ??
+        t("common.somethingWentWrong");
       setServerError(message);
     } finally {
       setIsSubmitting(false);
@@ -142,7 +154,10 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
 
   return (
     <SafeAreaView style={styles.safeArea} edges={["top", "bottom"]}>
-      <StatusBar barStyle={isDark ? "light-content" : "dark-content"} backgroundColor={COLORS.background} />
+      <StatusBar
+        barStyle={isDark ? "light-content" : "dark-content"}
+        backgroundColor={COLORS.background}
+      />
 
       {/* Decorative background layer — sits behind everything else */}
       <View style={styles.backgroundLayer} pointerEvents="none">
@@ -210,19 +225,15 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
           <View style={styles.brandingSection}>
             <LogoEmblem />
             <Text style={styles.appName}>EduSphere</Text>
-            <Text style={styles.appSubtitle}>
-              {t('splash.tagline')}
-            </Text>
+            <Text style={styles.appSubtitle}>{t("splash.tagline")}</Text>
           </View>
 
           {/* ---------------------------------------------------------- */}
           {/* WELCOME TEXT                                                */}
           {/* ---------------------------------------------------------- */}
           <View style={styles.welcomeSection}>
-            <Text style={styles.welcomeTitle}>{t('login.welcomeBack')}</Text>
-            <Text style={styles.welcomeSubtitle}>
-              {t('login.subtitle')}
-            </Text>
+            <Text style={styles.welcomeTitle}>{t("login.welcomeBack")}</Text>
+            <Text style={styles.welcomeSubtitle}>{t("login.subtitle")}</Text>
           </View>
 
           {/* ---------------------------------------------------------- */}
@@ -230,7 +241,7 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
           {/* ---------------------------------------------------------- */}
           <View style={styles.formCard}>
             {/* KNUST Email */}
-            <Text style={styles.fieldLabel}>{t('login.emailLabel')}</Text>
+            <Text style={styles.fieldLabel}>{t("login.emailLabel")}</Text>
             <View
               style={[
                 styles.inputWrapper,
@@ -240,7 +251,7 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
               <Feather name="mail" size={17} color={COLORS.textMuted} />
               <TextInput
                 style={styles.input}
-                placeholder="student@knust.edu.gh"
+                placeholder="student@st.knust.edu.gh"
                 placeholderTextColor={COLORS.textMuted}
                 value={email}
                 onChangeText={setEmail}
@@ -261,12 +272,14 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
                   size={14}
                   color={COLORS.primary}
                 />
-                <Text style={styles.helperText}>{t('login.knustOnly')}</Text>
+                <Text style={styles.helperText}>{t("login.knustOnly")}</Text>
               </View>
             )}
 
             {/* Password */}
-            <Text style={[styles.fieldLabel, { marginTop: 18 }]}>{t('login.passwordLabel')}</Text>
+            <Text style={[styles.fieldLabel, { marginTop: 18 }]}>
+              {t("login.passwordLabel")}
+            </Text>
             <View
               style={[
                 styles.inputWrapper,
@@ -314,12 +327,17 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
               onPress={handleForgotPassword}
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             >
-              <Text style={styles.forgotPasswordText}>{t('login.forgotPassword')}</Text>
+              <Text style={styles.forgotPasswordText}>
+                {t("login.forgotPassword")}
+              </Text>
             </TouchableOpacity>
 
             {/* Log In button */}
             <TouchableOpacity
-              style={[styles.loginButton, isSubmitting && styles.loginButtonDisabled]}
+              style={[
+                styles.loginButton,
+                isSubmitting && styles.loginButtonDisabled,
+              ]}
               activeOpacity={0.85}
               onPress={handleLogin}
               disabled={isSubmitting}
@@ -327,7 +345,7 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
               {isSubmitting ? (
                 <ActivityIndicator color={COLORS.white} size="small" />
               ) : (
-                <Text style={styles.loginButtonText}>{t('login.logIn')}</Text>
+                <Text style={styles.loginButtonText}>{t("login.logIn")}</Text>
               )}
             </TouchableOpacity>
           </View>
@@ -336,12 +354,12 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
           {/* SIGN UP + TRUST BADGE                                       */}
           {/* ---------------------------------------------------------- */}
           <View style={styles.signUpRow}>
-            <Text style={styles.signUpText}>{t('login.noAccount')}</Text>
+            <Text style={styles.signUpText}>{t("login.noAccount")}</Text>
             <TouchableOpacity
               onPress={handleSignUp}
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             >
-              <Text style={styles.signUpLink}>{t('login.signUp')}</Text>
+              <Text style={styles.signUpLink}>{t("login.signUp")}</Text>
             </TouchableOpacity>
           </View>
 
@@ -351,7 +369,7 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
               size={14}
               color={COLORS.primary}
             />
-            <Text style={styles.trustBadgeText}>{t('login.trustBadge')}</Text>
+            <Text style={styles.trustBadgeText}>{t("login.trustBadge")}</Text>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -369,303 +387,303 @@ const H_PADDING = 24;
 
 function createStyles(COLORS: ThemeColors) {
   return StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: COLORS.background,
-  },
-  scrollContent: {
-    paddingBottom: 40,
-  },
+    safeArea: {
+      flex: 1,
+      backgroundColor: COLORS.background,
+    },
+    scrollContent: {
+      paddingBottom: 40,
+    },
 
-  // ---------------- Decorative background ----------------
-  backgroundLayer: {
-    ...StyleSheet.absoluteFillObject,
-  },
-  blobTopRight: {
-    position: "absolute",
-    top: -SCREEN_WIDTH * 0.25,
-    right: -SCREEN_WIDTH * 0.3,
-    width: SCREEN_WIDTH * 0.85,
-    height: SCREEN_WIDTH * 0.85,
-    borderRadius: SCREEN_WIDTH * 0.42,
-  },
-  blobBottomLeft: {
-    position: "absolute",
-    bottom: -SCREEN_WIDTH * 0.32,
-    left: -SCREEN_WIDTH * 0.35,
-    width: SCREEN_WIDTH * 0.95,
-    height: SCREEN_WIDTH * 0.95,
-    borderRadius: SCREEN_WIDTH * 0.48,
-  },
-  dotGridWrap: {
-    position: "absolute",
-    flexDirection: "row",
-    flexWrap: "wrap",
-  },
-  dotGridDot: {
-    width: 3,
-    height: 3,
-    borderRadius: 1.5,
-    backgroundColor: "rgba(45,63,224,0.18)",
-    margin: 5,
-  },
-  dotGridTopLeft: {
-    top: 90,
-    left: 20,
-  },
-  dotGridBottomRight: {
-    bottom: 170,
-    right: 24,
-  },
-  ghostIcon: {
-    position: "absolute",
-    opacity: 0.07,
-  },
-  ghostBook: {
-    top: "11%",
-    left: "7%",
-    transform: [{ rotate: "-10deg" }],
-  },
-  ghostUsers: {
-    top: "27%",
-    right: "9%",
-  },
-  ghostPin: {
-    top: "46%",
-    right: "7%",
-  },
-  ghostBuilding: {
-    top: "30%",
-    left: -14,
-    opacity: 0.06,
-  },
-  ghostStack: {
-    bottom: "18%",
-    right: "10%",
-  },
-  ghostCap: {
-    bottom: "10%",
-    right: "16%",
-    transform: [{ rotate: "8deg" }],
-  },
+    // ---------------- Decorative background ----------------
+    backgroundLayer: {
+      ...StyleSheet.absoluteFillObject,
+    },
+    blobTopRight: {
+      position: "absolute",
+      top: -SCREEN_WIDTH * 0.25,
+      right: -SCREEN_WIDTH * 0.3,
+      width: SCREEN_WIDTH * 0.85,
+      height: SCREEN_WIDTH * 0.85,
+      borderRadius: SCREEN_WIDTH * 0.42,
+    },
+    blobBottomLeft: {
+      position: "absolute",
+      bottom: -SCREEN_WIDTH * 0.32,
+      left: -SCREEN_WIDTH * 0.35,
+      width: SCREEN_WIDTH * 0.95,
+      height: SCREEN_WIDTH * 0.95,
+      borderRadius: SCREEN_WIDTH * 0.48,
+    },
+    dotGridWrap: {
+      position: "absolute",
+      flexDirection: "row",
+      flexWrap: "wrap",
+    },
+    dotGridDot: {
+      width: 3,
+      height: 3,
+      borderRadius: 1.5,
+      backgroundColor: "rgba(45,63,224,0.18)",
+      margin: 5,
+    },
+    dotGridTopLeft: {
+      top: 90,
+      left: 20,
+    },
+    dotGridBottomRight: {
+      bottom: 170,
+      right: 24,
+    },
+    ghostIcon: {
+      position: "absolute",
+      opacity: 0.07,
+    },
+    ghostBook: {
+      top: "11%",
+      left: "7%",
+      transform: [{ rotate: "-10deg" }],
+    },
+    ghostUsers: {
+      top: "27%",
+      right: "9%",
+    },
+    ghostPin: {
+      top: "46%",
+      right: "7%",
+    },
+    ghostBuilding: {
+      top: "30%",
+      left: -14,
+      opacity: 0.06,
+    },
+    ghostStack: {
+      bottom: "18%",
+      right: "10%",
+    },
+    ghostCap: {
+      bottom: "10%",
+      right: "16%",
+      transform: [{ rotate: "8deg" }],
+    },
 
-  // ---------------- Branding section ----------------
-  brandingSection: {
-    alignItems: "center",
-    paddingTop: 18,
-    paddingHorizontal: H_PADDING,
-  },
-  logoWrap: {
-    width: LOGO_SIZE + 32,
-    height: LOGO_SIZE + 32,
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 18,
-  },
-  logoCircle: {
-    width: LOGO_SIZE,
-    height: LOGO_SIZE,
-    borderRadius: LOGO_SIZE / 2,
-    borderWidth: 3,
-    borderColor: COLORS.primary,
-    backgroundColor: COLORS.white,
-    alignItems: "center",
-    justifyContent: "center",
-    ...SHADOW,
-  },
-  capIcon: {
-    marginTop: -4,
-  },
-  bookWrap: {
-    position: "absolute",
-    bottom: -12,
-    width: 46,
-    height: 34,
-    borderRadius: 10,
-    backgroundColor: COLORS.primary,
-    alignItems: "center",
-    justifyContent: "center",
-    shadowColor: COLORS.primary,
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.3,
-    shadowRadius: 5,
-    elevation: 5,
-  },
-  nodeArc: {
-    position: "absolute",
-    top: 4,
-    width: LOGO_SIZE - 16,
-    height: LOGO_SIZE - 16,
-    borderRadius: (LOGO_SIZE - 16) / 2,
-    borderWidth: 1.5,
-    borderColor: COLORS.primarySoft,
-    borderRightColor: "transparent",
-    borderBottomColor: "transparent",
-    borderLeftColor: "transparent",
-    transform: [{ rotate: "-35deg" }],
-  },
-  node: {
-    position: "absolute",
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: COLORS.primary,
-  },
-  nodeTop: {
-    top: 0,
-    alignSelf: "center",
-  },
-  nodeLeft: {
-    top: 16,
-    left: 18,
-  },
-  nodeRight: {
-    top: 16,
-    right: 18,
-  },
-  appName: {
-    fontSize: 32,
-    fontWeight: "800",
-    color: COLORS.primary,
-    letterSpacing: -0.5,
-    marginBottom: 6,
-  },
-  appSubtitle: {
-    fontSize: 13,
-    color: COLORS.textSecondary,
-    textAlign: "center",
-  },
+    // ---------------- Branding section ----------------
+    brandingSection: {
+      alignItems: "center",
+      paddingTop: 18,
+      paddingHorizontal: H_PADDING,
+    },
+    logoWrap: {
+      width: LOGO_SIZE + 32,
+      height: LOGO_SIZE + 32,
+      alignItems: "center",
+      justifyContent: "center",
+      marginBottom: 18,
+    },
+    logoCircle: {
+      width: LOGO_SIZE,
+      height: LOGO_SIZE,
+      borderRadius: LOGO_SIZE / 2,
+      borderWidth: 3,
+      borderColor: COLORS.primary,
+      backgroundColor: COLORS.white,
+      alignItems: "center",
+      justifyContent: "center",
+      ...SHADOW,
+    },
+    capIcon: {
+      marginTop: -4,
+    },
+    bookWrap: {
+      position: "absolute",
+      bottom: -12,
+      width: 46,
+      height: 34,
+      borderRadius: 10,
+      backgroundColor: COLORS.primary,
+      alignItems: "center",
+      justifyContent: "center",
+      shadowColor: COLORS.primary,
+      shadowOffset: { width: 0, height: 3 },
+      shadowOpacity: 0.3,
+      shadowRadius: 5,
+      elevation: 5,
+    },
+    nodeArc: {
+      position: "absolute",
+      top: 4,
+      width: LOGO_SIZE - 16,
+      height: LOGO_SIZE - 16,
+      borderRadius: (LOGO_SIZE - 16) / 2,
+      borderWidth: 1.5,
+      borderColor: COLORS.primarySoft,
+      borderRightColor: "transparent",
+      borderBottomColor: "transparent",
+      borderLeftColor: "transparent",
+      transform: [{ rotate: "-35deg" }],
+    },
+    node: {
+      position: "absolute",
+      width: 8,
+      height: 8,
+      borderRadius: 4,
+      backgroundColor: COLORS.primary,
+    },
+    nodeTop: {
+      top: 0,
+      alignSelf: "center",
+    },
+    nodeLeft: {
+      top: 16,
+      left: 18,
+    },
+    nodeRight: {
+      top: 16,
+      right: 18,
+    },
+    appName: {
+      fontSize: 32,
+      fontWeight: "800",
+      color: COLORS.primary,
+      letterSpacing: -0.5,
+      marginBottom: 6,
+    },
+    appSubtitle: {
+      fontSize: 13,
+      color: COLORS.textSecondary,
+      textAlign: "center",
+    },
 
-  // ---------------- Welcome section ----------------
-  welcomeSection: {
-    alignItems: "center",
-    marginTop: 26,
-    marginBottom: 22,
-    paddingHorizontal: H_PADDING,
-  },
-  welcomeTitle: {
-    fontSize: 24,
-    fontWeight: "800",
-    color: COLORS.textPrimary,
-    marginBottom: 6,
-  },
-  welcomeSubtitle: {
-    fontSize: 13.5,
-    color: COLORS.textSecondary,
-    textAlign: "center",
-  },
+    // ---------------- Welcome section ----------------
+    welcomeSection: {
+      alignItems: "center",
+      marginTop: 26,
+      marginBottom: 22,
+      paddingHorizontal: H_PADDING,
+    },
+    welcomeTitle: {
+      fontSize: 24,
+      fontWeight: "800",
+      color: COLORS.textPrimary,
+      marginBottom: 6,
+    },
+    welcomeSubtitle: {
+      fontSize: 13.5,
+      color: COLORS.textSecondary,
+      textAlign: "center",
+    },
 
-  // ---------------- Form card ----------------
-  formCard: {
-    backgroundColor: COLORS.white,
-    borderRadius: 26,
-    marginHorizontal: H_PADDING,
-    padding: 22,
-    ...SHADOW,
-    shadowOpacity: 0.1,
-    shadowRadius: 20,
-  },
-  fieldLabel: {
-    fontSize: 13,
-    fontWeight: "700",
-    color: COLORS.textPrimary,
-    marginBottom: 9,
-  },
-  inputWrapper: {
-    flexDirection: "row",
-    alignItems: "center",
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    borderRadius: 14,
-    paddingHorizontal: 14,
-    height: 52,
-    backgroundColor: COLORS.white,
-  },
-  inputWrapperError: {
-    borderColor: COLORS.danger,
-  },
-  input: {
-    flex: 1,
-    marginLeft: 10,
-    fontSize: 14,
-    color: COLORS.textPrimary,
-  },
-  helperRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginTop: 8,
-  },
-  helperText: {
-    fontSize: 12,
-    color: COLORS.textSecondary,
-    marginLeft: 6,
-  },
-  errorRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginTop: 8,
-  },
-  errorText: {
-    fontSize: 12,
-    color: COLORS.danger,
-    marginLeft: 5,
-  },
-  forgotPasswordWrap: {
-    alignSelf: "flex-end",
-    marginTop: 14,
-    marginBottom: 22,
-  },
-  forgotPasswordText: {
-    fontSize: 12.5,
-    fontWeight: "600",
-    color: COLORS.primary,
-  },
-  loginButton: {
-    backgroundColor: COLORS.primary,
-    borderRadius: 16,
-    paddingVertical: 16,
-    alignItems: "center",
-    shadowColor: COLORS.primary,
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.3,
-    shadowRadius: 14,
-    elevation: 6,
-  },
-  loginButtonDisabled: {
-    opacity: 0.7,
-  },
-  loginButtonText: {
-    fontSize: 15,
-    fontWeight: "700",
-    color: COLORS.white,
-  },
+    // ---------------- Form card ----------------
+    formCard: {
+      backgroundColor: COLORS.white,
+      borderRadius: 26,
+      marginHorizontal: H_PADDING,
+      padding: 22,
+      ...SHADOW,
+      shadowOpacity: 0.1,
+      shadowRadius: 20,
+    },
+    fieldLabel: {
+      fontSize: 13,
+      fontWeight: "700",
+      color: COLORS.textPrimary,
+      marginBottom: 9,
+    },
+    inputWrapper: {
+      flexDirection: "row",
+      alignItems: "center",
+      borderWidth: 1,
+      borderColor: COLORS.border,
+      borderRadius: 14,
+      paddingHorizontal: 14,
+      height: 52,
+      backgroundColor: COLORS.white,
+    },
+    inputWrapperError: {
+      borderColor: COLORS.danger,
+    },
+    input: {
+      flex: 1,
+      marginLeft: 10,
+      fontSize: 14,
+      color: COLORS.textPrimary,
+    },
+    helperRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      marginTop: 8,
+    },
+    helperText: {
+      fontSize: 12,
+      color: COLORS.textSecondary,
+      marginLeft: 6,
+    },
+    errorRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      marginTop: 8,
+    },
+    errorText: {
+      fontSize: 12,
+      color: COLORS.danger,
+      marginLeft: 5,
+    },
+    forgotPasswordWrap: {
+      alignSelf: "flex-end",
+      marginTop: 14,
+      marginBottom: 22,
+    },
+    forgotPasswordText: {
+      fontSize: 12.5,
+      fontWeight: "600",
+      color: COLORS.primary,
+    },
+    loginButton: {
+      backgroundColor: COLORS.primary,
+      borderRadius: 16,
+      paddingVertical: 16,
+      alignItems: "center",
+      shadowColor: COLORS.primary,
+      shadowOffset: { width: 0, height: 8 },
+      shadowOpacity: 0.3,
+      shadowRadius: 14,
+      elevation: 6,
+    },
+    loginButtonDisabled: {
+      opacity: 0.7,
+    },
+    loginButtonText: {
+      fontSize: 15,
+      fontWeight: "700",
+      color: COLORS.white,
+    },
 
-  // ---------------- Sign up + trust badge ----------------
-  signUpRow: {
-    flexDirection: "row",
-    justifyContent: "center",
-    alignItems: "center",
-    marginTop: 24,
-  },
-  signUpText: {
-    fontSize: 13.5,
-    color: COLORS.textSecondary,
-  },
-  signUpLink: {
-    fontSize: 13.5,
-    fontWeight: "700",
-    color: COLORS.primary,
-  },
-  trustBadgeRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    marginTop: 12,
-  },
-  trustBadgeText: {
-    fontSize: 12,
-    color: COLORS.textSecondary,
-    marginLeft: 6,
-  },
+    // ---------------- Sign up + trust badge ----------------
+    signUpRow: {
+      flexDirection: "row",
+      justifyContent: "center",
+      alignItems: "center",
+      marginTop: 24,
+    },
+    signUpText: {
+      fontSize: 13.5,
+      color: COLORS.textSecondary,
+    },
+    signUpLink: {
+      fontSize: 13.5,
+      fontWeight: "700",
+      color: COLORS.primary,
+    },
+    trustBadgeRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
+      marginTop: 12,
+    },
+    trustBadgeText: {
+      fontSize: 12,
+      color: COLORS.textSecondary,
+      marginLeft: 6,
+    },
   });
 }

@@ -25,7 +25,9 @@ import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import type { CompositeNavigationProp } from '@react-navigation/native';
 import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { COLORS, SHADOW } from '../theme/colors';
+import { ThemeColors, SHADOW } from '../theme/colors';
+import { useTheme } from '../context/ThemeContext';
+import { useLanguage } from '../context/LanguageContext';
 import { MainTabParamList, RootStackParamList } from '../navigation/types';
 import { LoadingView, ErrorView } from '../components/common';
 import { useMyGroups, useDiscoverGroups, useJoinGroup } from '../hooks/useGroups';
@@ -42,7 +44,9 @@ type GroupsScreenNavigationProp = CompositeNavigationProp<
 // -----------------------------------------------------------------------
 // FILTERS — 'My Groups' shows only groups you've joined; the rest match
 // against a group's tags (same options CreateGroupScreen lets you pick
-// from when creating a group).
+// from when creating a group). Values stay fixed English strings — they're
+// query params matched against tags stored in the database, not display
+// text — see FILTER_LABEL_KEYS below for what's actually shown/translated.
 // -----------------------------------------------------------------------
 type FilterKey = 'All' | 'My Groups' | 'Exam Prep' | 'Assignment Help' | 'Discussion' | 'Resource Sharing' | 'Tutorial' | 'Revision' | 'Project Work';
 
@@ -58,47 +62,62 @@ const FILTERS: FilterKey[] = [
   'Project Work',
 ];
 
-// -----------------------------------------------------------------------
-// SMALL REUSABLE COMPONENTS
-// -----------------------------------------------------------------------
-
-/** Section header with title + optional "View all" action */
-const SectionHeader: React.FC<{ title: string; onPressViewAll?: () => void }> = ({
-  title,
-  onPressViewAll,
-}) => (
-  <View style={styles.sectionHeader}>
-    <Text style={styles.sectionTitle}>{title}</Text>
-    {onPressViewAll && (
-      <TouchableOpacity onPress={onPressViewAll} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-        <Text style={styles.viewAllText}>View all</Text>
-      </TouchableOpacity>
-    )}
-  </View>
-);
-
-/** Empty state shown when no groups match the current search / filter */
-const EmptyState: React.FC<{ onCreateGroup: () => void }> = ({ onCreateGroup }) => (
-  <View style={styles.emptyState}>
-    <View style={styles.emptyIconWrap}>
-      <Feather name="search" size={28} color={COLORS.primary} />
-    </View>
-    <Text style={styles.emptyTitle}>No groups found</Text>
-    <Text style={styles.emptySubtitle}>
-      Try searching for another course or create a new group.
-    </Text>
-    <TouchableOpacity style={styles.emptyCreateButton} onPress={onCreateGroup} activeOpacity={0.85}>
-      <Feather name="plus" size={16} color={COLORS.white} />
-      <Text style={styles.emptyCreateButtonText}>Create Group</Text>
-    </TouchableOpacity>
-  </View>
-);
+const FILTER_LABEL_KEYS: Record<FilterKey, string> = {
+  All: 'groups.filterAll',
+  'My Groups': 'groups.filterMyGroups',
+  'Exam Prep': 'groups.filterExamPrep',
+  'Assignment Help': 'groups.filterAssignmentHelp',
+  Discussion: 'groups.filterDiscussion',
+  'Resource Sharing': 'groups.filterResourceSharing',
+  Tutorial: 'groups.filterTutorial',
+  Revision: 'groups.filterRevision',
+  'Project Work': 'groups.filterProjectWork',
+};
 
 // -----------------------------------------------------------------------
 // MAIN COMPONENT
 // -----------------------------------------------------------------------
 const GroupsScreen: React.FC = () => {
   const navigation = useNavigation<GroupsScreenNavigationProp>();
+  const { colors: COLORS, isDark } = useTheme();
+  const { t } = useLanguage();
+  const styles = React.useMemo(() => createStyles(COLORS), [COLORS]);
+
+  // ---- Small reusable pieces, defined here so they close over this
+  // render's styles/COLORS instead of needing them threaded as props. ----
+
+  /** Section header with title + optional "View all" action */
+  const SectionHeader: React.FC<{ title: string; onPressViewAll?: () => void }> = ({
+    title,
+    onPressViewAll,
+  }) => (
+    <View style={styles.sectionHeader}>
+      <Text style={styles.sectionTitle}>{title}</Text>
+      {onPressViewAll && (
+        <TouchableOpacity onPress={onPressViewAll} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+          <Text style={styles.viewAllText}>{t('common.seeAll')}</Text>
+        </TouchableOpacity>
+      )}
+    </View>
+  );
+
+  /** Empty state shown when no groups match the current search / filter */
+  const EmptyState: React.FC<{ onCreateGroup: () => void }> = ({ onCreateGroup }) => (
+    <View style={styles.emptyState}>
+      <View style={styles.emptyIconWrap}>
+        <Feather name="search" size={28} color={COLORS.primary} />
+      </View>
+      <Text style={styles.emptyTitle}>{t('groups.noGroupsFound')}</Text>
+      <Text style={styles.emptySubtitle}>
+        {t('groups.noGroupsSubtitle')}
+      </Text>
+      <TouchableOpacity style={styles.emptyCreateButton} onPress={onCreateGroup} activeOpacity={0.85}>
+        <Feather name="plus" size={16} color={COLORS.white} />
+        <Text style={styles.emptyCreateButtonText}>{t('groups.createGroup')}</Text>
+      </TouchableOpacity>
+    </View>
+  );
+
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [activeFilter, setActiveFilter] = useState<FilterKey>('All');
@@ -154,8 +173,8 @@ const GroupsScreen: React.FC = () => {
     joinGroupMutation.mutate(group.id, {
       onSuccess: () => navigation.navigate('GroupDetails', { groupId: group.id }),
       onError: (err) => {
-        const message = (err as { message?: string })?.message ?? 'Something went wrong. Please try again.';
-        Alert.alert('Error', message);
+        const message = (err as { message?: string })?.message ?? t('common.somethingWentWrong');
+        Alert.alert(t('common.error'), message);
       },
     });
   };
@@ -164,7 +183,7 @@ const GroupsScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
-      <StatusBar barStyle="dark-content" backgroundColor={COLORS.background} />
+      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={COLORS.background} />
 
       <ScrollView
         style={styles.container}
@@ -177,14 +196,14 @@ const GroupsScreen: React.FC = () => {
         <View style={styles.header}>
           <View style={styles.headerTopRow}>
             <View>
-              <Text style={styles.headerTitle}>Study Groups</Text>
-              <Text style={styles.headerSubtitle}>Find groups that match your courses</Text>
+              <Text style={styles.headerTitle}>{t('groups.title')}</Text>
+              <Text style={styles.headerSubtitle}>{t('groups.subtitle')}</Text>
             </View>
 
             <TouchableOpacity
               style={styles.filterIconButton}
               activeOpacity={0.7}
-              onPress={() => Alert.alert('Filters', "Advanced filters aren't available yet — use the category chips below.")}
+              onPress={() => Alert.alert(t('groups.filtersTitle'), t('groups.filtersBody'))}
             >
               <Feather name="sliders" size={19} color={COLORS.textPrimary} />
             </TouchableOpacity>
@@ -198,7 +217,7 @@ const GroupsScreen: React.FC = () => {
           <Feather name="search" size={18} color={COLORS.textMuted} />
           <TextInput
             style={styles.searchInput}
-            placeholder="Search groups, courses, or topics..."
+            placeholder={t('groups.searchPlaceholder')}
             placeholderTextColor={COLORS.textMuted}
             value={searchQuery}
             onChangeText={setSearchQuery}
@@ -231,15 +250,15 @@ const GroupsScreen: React.FC = () => {
                 <Text
                   style={[styles.filterChipText, isActive && styles.filterChipTextActive]}
                 >
-                  {filter}
+                  {t(FILTER_LABEL_KEYS[filter])}
                 </Text>
               </TouchableOpacity>
             );
           })}
         </ScrollView>
 
-        {isLoading && <LoadingView message="Loading groups..." />}
-        {hasError && <ErrorView message="Couldn't load groups." onRetry={refetchAll} />}
+        {isLoading && <LoadingView message={t('groups.loading')} />}
+        {hasError && <ErrorView message={t('groups.loadError')} onRetry={refetchAll} />}
 
         {/* ---------------------------------------------------------- */}
         {/* EMPTY STATE (shown only when nothing matches)               */}
@@ -253,7 +272,7 @@ const GroupsScreen: React.FC = () => {
         {/* ---------------------------------------------------------- */}
         {!isLoading && !hasError && myGroups.length > 0 && (
           <>
-            <SectionHeader title="My Groups" onPressViewAll={() => setActiveFilter('My Groups')} />
+            <SectionHeader title={t('groups.myGroups')} onPressViewAll={() => setActiveFilter('My Groups')} />
             <View style={styles.stackedCards}>
               {myGroups.map((group) => (
                 <View key={group.id} style={styles.myGroupCard}>
@@ -272,7 +291,7 @@ const GroupsScreen: React.FC = () => {
                   <View style={styles.myGroupMetaRow}>
                     <View style={styles.memberCountRow}>
                       <Feather name="users" size={13} color={COLORS.textSecondary} />
-                      <Text style={styles.memberCountText}>{group.membersCount} members</Text>
+                      <Text style={styles.memberCountText}>{t('common.members', { count: group.membersCount })}</Text>
                     </View>
                     {group.rating !== undefined ? (
                       <View style={styles.memberCountRow}>
@@ -288,7 +307,7 @@ const GroupsScreen: React.FC = () => {
                       <Text style={styles.meetingText} numberOfLines={1}>
                         {group.meetingDay && group.meetingTime
                           ? `${group.meetingDay}, ${group.meetingTime}`
-                          : 'No meeting scheduled'}
+                          : t('groups.noMeetingScheduled')}
                       </Text>
                     </View>
 
@@ -297,7 +316,7 @@ const GroupsScreen: React.FC = () => {
                       activeOpacity={0.85}
                       onPress={() => openGroup(group)}
                     >
-                      <Text style={styles.openButtonText}>Open</Text>
+                      <Text style={styles.openButtonText}>{t('groups.open')}</Text>
                     </TouchableOpacity>
                   </View>
                 </View>
@@ -311,7 +330,7 @@ const GroupsScreen: React.FC = () => {
         {/* ---------------------------------------------------------- */}
         {!isLoading && !hasError && discoverGroups.length > 0 && (
           <>
-            <SectionHeader title="Discover Groups" />
+            <SectionHeader title={t('groups.discoverGroups')} />
             <View style={styles.stackedCards}>
               {discoverGroups.map((group) => (
                 <TouchableOpacity
@@ -329,7 +348,7 @@ const GroupsScreen: React.FC = () => {
                       {group.isJoined ? (
                         <View style={styles.joinedBadge}>
                           <Feather name="check" size={11} color={COLORS.success} />
-                          <Text style={styles.joinedBadgeText}>Joined</Text>
+                          <Text style={styles.joinedBadgeText}>{t('groups.joined')}</Text>
                         </View>
                       ) : null}
                       {group.rating !== undefined ? (
@@ -350,7 +369,7 @@ const GroupsScreen: React.FC = () => {
                     <View style={styles.discoverFooterLeft}>
                       <View style={styles.memberCountRow}>
                         <Feather name="users" size={13} color={COLORS.textSecondary} />
-                        <Text style={styles.memberCountText}>{group.membersCount} members</Text>
+                        <Text style={styles.memberCountText}>{t('common.members', { count: group.membersCount })}</Text>
                       </View>
                       {group.tags[0] ? (
                         <View style={styles.tagChip}>
@@ -365,7 +384,7 @@ const GroupsScreen: React.FC = () => {
                       onPress={() => (group.isJoined ? openGroup(group) : handleQuickJoin(group))}
                     >
                       <Text style={styles.joinButtonText}>
-                        {group.isJoined ? 'Open' : group.groupType === 'Private' ? 'View' : 'Join'}
+                        {group.isJoined ? t('groups.open') : group.groupType === 'Private' ? t('common.view') : t('common.join')}
                       </Text>
                     </TouchableOpacity>
                   </View>
@@ -387,9 +406,9 @@ const GroupsScreen: React.FC = () => {
             <Feather name="plus" size={20} color={COLORS.white} />
           </View>
           <View style={{ flex: 1 }}>
-            <Text style={styles.createGroupTitle}>Create New Group</Text>
+            <Text style={styles.createGroupTitle}>{t('groups.createNewGroup')}</Text>
             <Text style={styles.createGroupSubtitle}>
-              Start a study group for your course
+              {t('groups.createNewGroupSubtitle')}
             </Text>
           </View>
           <Feather name="chevron-right" size={20} color={COLORS.white} />
@@ -421,7 +440,8 @@ export default GroupsScreen;
 const CARD_GAP = 14;
 const H_PADDING = 20;
 
-const styles = StyleSheet.create({
+function createStyles(COLORS: ThemeColors) {
+  return StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: COLORS.background,
@@ -827,4 +847,5 @@ const styles = StyleSheet.create({
     color: COLORS.white,
     marginLeft: 8,
   },
-});
+  });
+}
