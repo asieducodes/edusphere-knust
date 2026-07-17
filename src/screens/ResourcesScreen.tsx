@@ -27,7 +27,9 @@ import { useNavigation, useRoute, useFocusEffect } from '@react-navigation/nativ
 import type { CompositeNavigationProp, RouteProp } from '@react-navigation/native';
 import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { COLORS, SHADOW } from '../theme/colors';
+import { ThemeColors, SHADOW } from '../theme/colors';
+import { useTheme } from '../context/ThemeContext';
+import { useLanguage } from '../context/LanguageContext';
 import { MainTabParamList, RootStackParamList } from '../navigation/types';
 import { LoadingView, ErrorView } from '../components/common';
 import { useResources, useSaveResource, useUnsaveResource } from '../hooks/useResources';
@@ -78,72 +80,27 @@ const FILE_TYPE_STYLES: Record<FileType, { bg: string; color: string; icon: keyo
   ZIP: { bg: '#F1F2F8', color: '#5B6172', icon: 'archive' },
 };
 
-// -----------------------------------------------------------------------
-// SMALL REUSABLE COMPONENTS
-// -----------------------------------------------------------------------
-
-/** File-type badge with color coding by extension */
-const FileBadge: React.FC<{ type: FileType }> = ({ type }) => {
-  const style = FILE_TYPE_STYLES[type];
-  return (
-    <View style={[styles.fileBadge, { backgroundColor: style.bg }]}>
-      <Text style={[styles.fileBadgeText, { color: style.color }]}>{type}</Text>
-    </View>
-  );
+const FILTER_LABEL_KEYS: Record<FilterKey, string> = {
+  All: 'resources.filterAll',
+  'Past Questions': 'resources.filterPastQuestions',
+  'Lecture Notes': 'resources.filterLectureNotes',
+  Slides: 'resources.filterSlides',
+  Assignments: 'resources.filterAssignments',
+  'Study Guides': 'resources.filterStudyGuides',
+  'My Uploads': 'resources.filterMyUploads',
+  Saved: 'resources.filterSaved',
 };
 
-/** Circular file-type icon used in the recent uploads list */
-const FileIcon: React.FC<{ type: FileType }> = ({ type }) => {
-  const style = FILE_TYPE_STYLES[type];
-  return (
-    <View style={[styles.fileIconWrap, { backgroundColor: style.bg }]}>
-      <Feather name={style.icon} size={16} color={style.color} />
-    </View>
-  );
-};
-
-/** Section header with title + optional "View all" action */
-const SectionHeader: React.FC<{ title: string; onPressViewAll?: () => void }> = ({
-  title,
-  onPressViewAll,
-}) => (
-  <View style={styles.sectionHeader}>
-    <Text style={styles.sectionTitle}>{title}</Text>
-    {onPressViewAll && (
-      <TouchableOpacity onPress={onPressViewAll} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-        <Text style={styles.viewAllText}>View all</Text>
-      </TouchableOpacity>
-    )}
-  </View>
-);
-
-/** Empty state shown when no resources match the current search / filter */
-const EmptyState: React.FC<{ onUpload: () => void }> = ({ onUpload }) => (
-  <View style={styles.emptyState}>
-    <View style={styles.emptyIconWrap}>
-      <Feather name="inbox" size={28} color={COLORS.primary} />
-    </View>
-    <Text style={styles.emptyTitle}>No resources found</Text>
-    <Text style={styles.emptySubtitle}>
-      Try another search or upload a new resource.
-    </Text>
-    <TouchableOpacity style={styles.emptyUploadButton} onPress={onUpload} activeOpacity={0.85}>
-      <Feather name="upload" size={16} color={COLORS.white} />
-      <Text style={styles.emptyUploadButtonText}>Upload Resource</Text>
-    </TouchableOpacity>
-  </View>
-);
-
-function relativeTime(iso: string): string {
+function relativeTime(iso: string, t: (path: string, options?: Record<string, string | number>) => string): string {
   const then = new Date(iso).getTime();
   const diffMs = Date.now() - then;
   const minutes = Math.floor(diffMs / 60000);
-  if (minutes < 1) return 'Uploaded just now';
-  if (minutes < 60) return `Uploaded ${minutes}m ago`;
+  if (minutes < 1) return t('common.uploadedJustNow');
+  if (minutes < 60) return t('common.uploadedMinutesAgo', { count: minutes });
   const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `Uploaded ${hours}h ago`;
+  if (hours < 24) return t('common.uploadedHoursAgo', { count: hours });
   const days = Math.floor(hours / 24);
-  return `Uploaded ${days}d ago`;
+  return t('common.uploadedDaysAgo', { count: days });
 }
 
 // Maps a screen filter chip to the backend's `category` query param —
@@ -163,6 +120,65 @@ const CATEGORY_FILTER_MAP: Partial<Record<FilterKey, string>> = {
 const ResourcesScreen: React.FC = () => {
   const navigation = useNavigation<ResourcesScreenNavigationProp>();
   const route = useRoute<ResourcesScreenRouteProp>();
+  const { colors: COLORS, isDark } = useTheme();
+  const { t } = useLanguage();
+  const styles = React.useMemo(() => createStyles(COLORS), [COLORS]);
+
+  // ---- Small reusable pieces, defined here so they close over this
+  // render's styles/COLORS instead of needing them threaded as props. ----
+
+  /** File-type badge with color coding by extension */
+  const FileBadge: React.FC<{ type: FileType }> = ({ type }) => {
+    const style = FILE_TYPE_STYLES[type];
+    return (
+      <View style={[styles.fileBadge, { backgroundColor: style.bg }]}>
+        <Text style={[styles.fileBadgeText, { color: style.color }]}>{type}</Text>
+      </View>
+    );
+  };
+
+  /** Circular file-type icon used in the recent uploads list */
+  const FileIcon: React.FC<{ type: FileType }> = ({ type }) => {
+    const style = FILE_TYPE_STYLES[type];
+    return (
+      <View style={[styles.fileIconWrap, { backgroundColor: style.bg }]}>
+        <Feather name={style.icon} size={16} color={style.color} />
+      </View>
+    );
+  };
+
+  /** Section header with title + optional "View all" action */
+  const SectionHeader: React.FC<{ title: string; onPressViewAll?: () => void }> = ({
+    title,
+    onPressViewAll,
+  }) => (
+    <View style={styles.sectionHeader}>
+      <Text style={styles.sectionTitle}>{title}</Text>
+      {onPressViewAll && (
+        <TouchableOpacity onPress={onPressViewAll} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+          <Text style={styles.viewAllText}>{t('common.seeAll')}</Text>
+        </TouchableOpacity>
+      )}
+    </View>
+  );
+
+  /** Empty state shown when no resources match the current search / filter */
+  const EmptyState: React.FC<{ onUpload: () => void }> = ({ onUpload }) => (
+    <View style={styles.emptyState}>
+      <View style={styles.emptyIconWrap}>
+        <Feather name="inbox" size={28} color={COLORS.primary} />
+      </View>
+      <Text style={styles.emptyTitle}>{t('resources.noResourcesFound')}</Text>
+      <Text style={styles.emptySubtitle}>
+        {t('resources.noResourcesSubtitle')}
+      </Text>
+      <TouchableOpacity style={styles.emptyUploadButton} onPress={onUpload} activeOpacity={0.85}>
+        <Feather name="upload" size={16} color={COLORS.white} />
+        <Text style={styles.emptyUploadButtonText}>{t('resources.uploadResource')}</Text>
+      </TouchableOpacity>
+    </View>
+  );
+
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [activeFilter, setActiveFilter] = useState<FilterKey>('All');
@@ -214,8 +230,8 @@ const ResourcesScreen: React.FC = () => {
     const mutation = resource.isSaved ? unsaveMutation : saveMutation;
     mutation.mutate(resource.id, {
       onError: (err) => {
-        const message = (err as { message?: string })?.message ?? 'Something went wrong. Please try again.';
-        Alert.alert('Save Resource', message);
+        const message = (err as { message?: string })?.message ?? t('common.somethingWentWrong');
+        Alert.alert(t('resources.saveResource'), message);
       },
     });
   };
@@ -234,7 +250,7 @@ const ResourcesScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
-      <StatusBar barStyle="dark-content" backgroundColor={COLORS.background} />
+      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={COLORS.background} />
 
       <ScrollView
         style={styles.container}
@@ -247,8 +263,8 @@ const ResourcesScreen: React.FC = () => {
         <View style={styles.header}>
           <View style={styles.headerTopRow}>
             <View>
-              <Text style={styles.headerTitle}>Resources</Text>
-              <Text style={styles.headerSubtitle}>Find notes, slides, and past questions</Text>
+              <Text style={styles.headerTitle}>{t('resources.title')}</Text>
+              <Text style={styles.headerSubtitle}>{t('resources.subtitle')}</Text>
             </View>
 
             <TouchableOpacity
@@ -268,7 +284,7 @@ const ResourcesScreen: React.FC = () => {
           <Feather name="search" size={18} color={COLORS.textMuted} />
           <TextInput
             style={styles.searchInput}
-            placeholder="Search notes, past questions, courses..."
+            placeholder={t('resources.searchPlaceholder')}
             placeholderTextColor={COLORS.textMuted}
             value={searchQuery}
             onChangeText={setSearchQuery}
@@ -299,7 +315,7 @@ const ResourcesScreen: React.FC = () => {
                 onPress={() => setActiveFilter(filter)}
               >
                 <Text style={[styles.filterChipText, isActive && styles.filterChipTextActive]}>
-                  {filter}
+                  {t(FILTER_LABEL_KEYS[filter])}
                 </Text>
               </TouchableOpacity>
             );
@@ -309,7 +325,7 @@ const ResourcesScreen: React.FC = () => {
         {/* ---------------------------------------------------------- */}
         {/* LOADING / ERROR / EMPTY                                     */}
         {/* ---------------------------------------------------------- */}
-        {isLoading && <LoadingView message="Loading resources..." />}
+        {isLoading && <LoadingView message={t('resources.loading')} />}
         {hasError && <ErrorView onRetry={() => resourcesQuery.refetch()} />}
         {hasNoResults && <EmptyState onUpload={() => navigation.navigate('UploadResource')} />}
 
@@ -318,7 +334,7 @@ const ResourcesScreen: React.FC = () => {
         {/* ---------------------------------------------------------- */}
         {!isLoading && !hasError && featured.length > 0 && (
           <>
-            <SectionHeader title="Featured Resources" />
+            <SectionHeader title={t('resources.featuredResources')} />
             <View style={styles.stackedCards}>
               {featured.map((item) => {
                 const isSaved = !!item.isSaved;
@@ -353,14 +369,14 @@ const ResourcesScreen: React.FC = () => {
 
                     <View style={styles.featuredMetaRow}>
                       <Text style={styles.featuredMetaText}>
-                        {item.fileType} • {item.size} • {relativeTime(item.createdAt)}
+                        {item.fileType} • {item.size} • {relativeTime(item.createdAt, t)}
                       </Text>
                     </View>
 
                     <View style={styles.featuredFooterRow}>
                       <View style={styles.downloadCountRow}>
                         <Feather name="download" size={13} color={COLORS.textSecondary} />
-                        <Text style={styles.downloadCountText}>{item.downloadsCount} downloads</Text>
+                        <Text style={styles.downloadCountText}>{t('resources.downloads', { count: item.downloadsCount })}</Text>
                       </View>
 
                       <TouchableOpacity
@@ -369,7 +385,7 @@ const ResourcesScreen: React.FC = () => {
                         onPress={() => handleDownload(item)}
                       >
                         <Feather name="download" size={14} color={COLORS.white} />
-                        <Text style={styles.downloadButtonText}>Download</Text>
+                        <Text style={styles.downloadButtonText}>{t('resources.download')}</Text>
                       </TouchableOpacity>
                     </View>
                   </TouchableOpacity>
@@ -384,7 +400,7 @@ const ResourcesScreen: React.FC = () => {
         {/* ---------------------------------------------------------- */}
         {!isLoading && !hasError && rest.length > 0 && (
           <>
-            <SectionHeader title="More Resources" />
+            <SectionHeader title={t('resources.moreResources')} />
             <View style={styles.recentCard}>
               {rest.map((item, index) => (
                 <TouchableOpacity
@@ -404,7 +420,7 @@ const ResourcesScreen: React.FC = () => {
                     </Text>
                     <View style={styles.recentMetaRow}>
                       <Text style={styles.recentMetaText} numberOfLines={1}>
-                        {item.fileType} • {item.size} • {relativeTime(item.createdAt)}
+                        {item.fileType} • {item.size} • {relativeTime(item.createdAt, t)}
                       </Text>
                     </View>
                     <View style={styles.recentCourseChip}>
@@ -443,7 +459,7 @@ const ResourcesScreen: React.FC = () => {
         {/* ---------------------------------------------------------- */}
         {courses.length > 0 && (
           <>
-            <SectionHeader title="Popular Courses" />
+            <SectionHeader title={t('resources.popularCourses')} />
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
@@ -479,9 +495,9 @@ const ResourcesScreen: React.FC = () => {
             <Feather name="upload" size={20} color={COLORS.white} />
           </View>
           <View style={{ flex: 1 }}>
-            <Text style={styles.uploadCardTitle}>Upload Resource</Text>
+            <Text style={styles.uploadCardTitle}>{t('resources.uploadResource')}</Text>
             <Text style={styles.uploadCardSubtitle}>
-              Share notes, slides, or past questions
+              {t('resources.shareResources')}
             </Text>
           </View>
           <Feather name="chevron-right" size={20} color={COLORS.white} />
@@ -513,7 +529,8 @@ export default ResourcesScreen;
 const CARD_GAP = 14;
 const H_PADDING = 20;
 
-const styles = StyleSheet.create({
+function createStyles(COLORS: ThemeColors) {
+  return StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: COLORS.background,
@@ -905,4 +922,5 @@ const styles = StyleSheet.create({
     color: COLORS.white,
     marginLeft: 8,
   },
-});
+  });
+}
