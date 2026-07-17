@@ -218,7 +218,8 @@ const EmailVerificationScreen: React.FC<Props> = ({ navigation, route }) => {
           <Text style={styles.headingTitle}>Verify your email</Text>
           <Text style={styles.headingSubtitle}>
             We&apos;ve sent a verification link to your KNUST email address.{'\n'}Please check your
-            inbox and verify to continue.
+            inbox and verify to continue.{'\n'}Can&apos;t find it? Be sure to check your{' '}
+            <Text style={styles.headingSubtitleStrong}>Spam or Junk folder</Text> too.
           </Text>
         </View>
 
@@ -321,10 +322,11 @@ const EmailVerificationScreen: React.FC<Props> = ({ navigation, route }) => {
         {/* ---------------------------------------------------------- */}
         {/* CONTINUE TO LOGIN + TRUST BADGE                             */}
         {/* ---------------------------------------------------------- */}
-        <View style={styles.loginRow}>
-          <Text style={styles.loginRowText}>Already verified? </Text>
-          <TouchableOpacity onPress={handleContinueToLogin} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-            <Text style={styles.loginRowLink}>Continue to Login</Text>
+        <View style={styles.loginSection}>
+          <Text style={styles.loginSectionLabel}>Already verified?</Text>
+          <TouchableOpacity style={styles.loginButton} activeOpacity={0.85} onPress={handleContinueToLogin}>
+            <Text style={styles.loginButtonText}>Continue to Login</Text>
+            <Feather name="arrow-right" size={16} color={COLORS.primary} />
           </TouchableOpacity>
         </View>
 
@@ -550,9 +552,13 @@ const styles = StyleSheet.create({
   },
   headingSubtitle: {
     fontSize: 13.5,
-    color: COLORS.textSecondary,
+    color: COLORS.textPrimary,
     textAlign: 'center',
     lineHeight: 20,
+  },
+  headingSubtitleStrong: {
+    fontWeight: '700',
+    color: COLORS.textPrimary,
   },
 
   // ---------------- Email sent card ----------------
@@ -742,20 +748,33 @@ const styles = StyleSheet.create({
   },
 
   // ---------------- Continue to login + trust badge ----------------
-  loginRow: {
-    flexDirection: 'row',
-    justifyContent: 'center',
+  loginSection: {
     alignItems: 'center',
+    paddingHorizontal: H_PADDING,
     marginBottom: 4,
   },
-  loginRowText: {
+  loginSectionLabel: {
     fontSize: 13,
-    color: COLORS.textSecondary,
+    fontWeight: '600',
+    color: COLORS.textPrimary,
+    marginBottom: 10,
   },
-  loginRowLink: {
-    fontSize: 13,
+  loginButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    alignSelf: 'stretch',
+    backgroundColor: COLORS.primaryLight,
+    borderWidth: 1.5,
+    borderColor: COLORS.primary,
+    borderRadius: 14,
+    paddingVertical: 14,
+  },
+  loginButtonText: {
+    fontSize: 14,
     fontWeight: '700',
     color: COLORS.primary,
+    marginRight: 8,
   },
   trustBadgeRow: {
     flexDirection: 'row',
