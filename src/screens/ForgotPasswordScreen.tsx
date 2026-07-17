@@ -29,7 +29,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Feather, FontAwesome5, MaterialCommunityIcons } from '@expo/vector-icons';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { COLORS, SHADOW } from '../theme/colors';
+import { ThemeColors, SHADOW } from '../theme/colors';
+import { useTheme } from '../context/ThemeContext';
+import { useLanguage } from '../context/LanguageContext';
 import { AuthStackParamList } from '../navigation/types';
 import { validateForgotPasswordForm } from '../utils/authValidation';
 import * as authService from '../services/authService';
@@ -39,44 +41,47 @@ type Props = NativeStackScreenProps<AuthStackParamList, 'ForgotPassword'>;
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 // -----------------------------------------------------------------------
-// SMALL DECORATIVE PIECES (same approach as Login/Signup)
-// -----------------------------------------------------------------------
-const GhostIcon: React.FC<{ children: React.ReactNode; style: object }> = ({ children, style }) => (
-  <View style={[styles.ghostIcon, style]}>{children}</View>
-);
-
-const DotGrid: React.FC<{ rows: number; cols: number; style: object }> = ({ rows, cols, style }) => {
-  const dots = [];
-  for (let r = 0; r < rows; r++) {
-    for (let c = 0; c < cols; c++) {
-      dots.push(<View key={`${r}-${c}`} style={styles.dotGridDot} />);
-    }
-  }
-  return <View style={[styles.dotGridWrap, style, { width: cols * 14 }]}>{dots}</View>;
-};
-
-/** Same logo emblem used across Splash/Login/Signup — kept identical so
- *  the brand mark reads as one consistent asset across the app. */
-const LogoEmblem: React.FC = () => (
-  <View style={styles.logoWrap}>
-    <View style={styles.nodeArc} />
-    <View style={[styles.node, styles.nodeTop]} />
-    <View style={[styles.node, styles.nodeLeft]} />
-    <View style={[styles.node, styles.nodeRight]} />
-
-    <View style={styles.logoCircle}>
-      <FontAwesome5 name="graduation-cap" size={38} color={COLORS.primary} style={styles.capIcon} />
-      <View style={styles.bookWrap}>
-        <Feather name="book-open" size={24} color={COLORS.white} />
-      </View>
-    </View>
-  </View>
-);
-
-// -----------------------------------------------------------------------
 // MAIN COMPONENT
 // -----------------------------------------------------------------------
 const ForgotPasswordScreen: React.FC<Props> = ({ navigation }) => {
+  const { colors: COLORS, isDark } = useTheme();
+  const { t } = useLanguage();
+  const styles = React.useMemo(() => createStyles(COLORS), [COLORS]);
+
+  // ---- Small decorative pieces, defined here so they close over this
+  // render's styles/COLORS instead of needing them threaded as props. ----
+  const GhostIcon: React.FC<{ children: React.ReactNode; style: object }> = ({ children, style }) => (
+    <View style={[styles.ghostIcon, style]}>{children}</View>
+  );
+
+  const DotGrid: React.FC<{ rows: number; cols: number; style: object }> = ({ rows, cols, style }) => {
+    const dots = [];
+    for (let r = 0; r < rows; r++) {
+      for (let c = 0; c < cols; c++) {
+        dots.push(<View key={`${r}-${c}`} style={styles.dotGridDot} />);
+      }
+    }
+    return <View style={[styles.dotGridWrap, style, { width: cols * 14 }]}>{dots}</View>;
+  };
+
+  /** Same logo emblem used across Splash/Login/Signup — kept identical so
+   *  the brand mark reads as one consistent asset across the app. */
+  const LogoEmblem: React.FC = () => (
+    <View style={styles.logoWrap}>
+      <View style={styles.nodeArc} />
+      <View style={[styles.node, styles.nodeTop]} />
+      <View style={[styles.node, styles.nodeLeft]} />
+      <View style={[styles.node, styles.nodeRight]} />
+
+      <View style={styles.logoCircle}>
+        <FontAwesome5 name="graduation-cap" size={38} color={COLORS.primary} style={styles.capIcon} />
+        <View style={styles.bookWrap}>
+          <Feather name="book-open" size={24} color={COLORS.white} />
+        </View>
+      </View>
+    </View>
+  );
+
   const [email, setEmail] = useState('');
   const [submitted, setSubmitted] = useState(false);
   const [linkSent, setLinkSent] = useState(false);
@@ -100,7 +105,7 @@ const ForgotPasswordScreen: React.FC<Props> = ({ navigation }) => {
       await authService.forgotPassword({ email });
       setLinkSent(true);
     } catch (err) {
-      const message = (err as { message?: string })?.message ?? 'Something went wrong. Please try again.';
+      const message = (err as { message?: string })?.message ?? t('common.somethingWentWrong');
       setServerError(message);
     } finally {
       setIsSubmitting(false);
@@ -117,7 +122,7 @@ const ForgotPasswordScreen: React.FC<Props> = ({ navigation }) => {
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
-      <StatusBar barStyle="dark-content" backgroundColor={COLORS.background} />
+      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={COLORS.background} />
 
       {/* Decorative background layer */}
       <View style={styles.backgroundLayer} pointerEvents="none">
@@ -183,15 +188,15 @@ const ForgotPasswordScreen: React.FC<Props> = ({ navigation }) => {
           <View style={styles.brandingSection}>
             <LogoEmblem />
             <Text style={styles.appName}>EduSphere</Text>
-            <Text style={styles.appSubtitle}>Campus Study Group & Resource Finder</Text>
+            <Text style={styles.appSubtitle}>{t('splash.tagline')}</Text>
           </View>
 
           {/* ---------------------------------------------------------- */}
           {/* FORGOT PASSWORD HEADING                                     */}
           {/* ---------------------------------------------------------- */}
           <View style={styles.headingSection}>
-            <Text style={styles.headingTitle}>Forgot Password?</Text>
-            <Text style={styles.headingSubtitle}>No worries! We&apos;ll help you reset it.</Text>
+            <Text style={styles.headingTitle}>{t('forgotPassword.title')}</Text>
+            <Text style={styles.headingSubtitle}>{t('forgotPassword.subtitle')}</Text>
           </View>
 
           {/* ---------------------------------------------------------- */}
@@ -206,13 +211,13 @@ const ForgotPasswordScreen: React.FC<Props> = ({ navigation }) => {
               </View>
             </View>
 
-            <Text style={styles.cardTitle}>Reset your password</Text>
+            <Text style={styles.cardTitle}>{t('forgotPassword.cardTitle')}</Text>
             <Text style={styles.cardInstruction}>
-              Enter your KNUST email address and we&apos;ll send you a link to reset your password.
+              {t('forgotPassword.cardInstruction')}
             </Text>
 
             {/* KNUST Email */}
-            <Text style={styles.fieldLabel}>KNUST Email</Text>
+            <Text style={styles.fieldLabel}>{t('forgotPassword.emailLabel')}</Text>
             <View style={[styles.inputWrapper, emailError && styles.inputWrapperError]}>
               <Feather name="mail" size={17} color={COLORS.textMuted} />
               <TextInput
@@ -237,7 +242,7 @@ const ForgotPasswordScreen: React.FC<Props> = ({ navigation }) => {
             ) : (
               <View style={styles.helperRow}>
                 <MaterialCommunityIcons name="shield-check" size={14} color={COLORS.primary} />
-                <Text style={styles.helperText}>KNUST students only</Text>
+                <Text style={styles.helperText}>{t('forgotPassword.knustOnly')}</Text>
               </View>
             )}
 
@@ -245,7 +250,7 @@ const ForgotPasswordScreen: React.FC<Props> = ({ navigation }) => {
             {linkSent && (
               <View style={styles.successRow}>
                 <Feather name="check-circle" size={15} color={COLORS.success} />
-                <Text style={styles.successText}>Password reset link sent. Please check your email.</Text>
+                <Text style={styles.successText}>{t('forgotPassword.linkSent')}</Text>
               </View>
             )}
 
@@ -266,7 +271,7 @@ const ForgotPasswordScreen: React.FC<Props> = ({ navigation }) => {
               {isSubmitting ? (
                 <ActivityIndicator color={COLORS.white} size="small" />
               ) : (
-                <Text style={styles.sendButtonText}>Send Reset Link</Text>
+                <Text style={styles.sendButtonText}>{t('forgotPassword.sendButton')}</Text>
               )}
             </TouchableOpacity>
           </View>
@@ -275,15 +280,15 @@ const ForgotPasswordScreen: React.FC<Props> = ({ navigation }) => {
           {/* LOG IN + TRUST BADGE                                        */}
           {/* ---------------------------------------------------------- */}
           <View style={styles.loginRow}>
-            <Text style={styles.loginRowText}>Remember your password? </Text>
+            <Text style={styles.loginRowText}>{t('forgotPassword.rememberPassword')}</Text>
             <TouchableOpacity onPress={handleLogInPress} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-              <Text style={styles.loginRowLink}>Log In</Text>
+              <Text style={styles.loginRowLink}>{t('forgotPassword.logIn')}</Text>
             </TouchableOpacity>
           </View>
 
           <View style={styles.trustBadgeRow}>
             <MaterialCommunityIcons name="shield-check" size={14} color={COLORS.primary} />
-            <Text style={styles.trustBadgeText}>Verified KNUST access</Text>
+            <Text style={styles.trustBadgeText}>{t('forgotPassword.trustBadge')}</Text>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -299,10 +304,11 @@ export default ForgotPasswordScreen;
 const LOGO_SIZE = 96;
 const H_PADDING = 24;
 
-const styles = StyleSheet.create({
+function createStyles(COLORS: ThemeColors) {
+  return StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#FBFCFE',
+    backgroundColor: COLORS.background,
   },
   scrollContent: {
     paddingBottom: 40,
@@ -664,4 +670,5 @@ const styles = StyleSheet.create({
     color: COLORS.textSecondary,
     marginLeft: 6,
   },
-});
+  });
+}
