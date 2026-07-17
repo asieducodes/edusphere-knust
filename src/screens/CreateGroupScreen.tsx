@@ -13,7 +13,9 @@ import { View, Text, StyleSheet, ScrollView, StatusBar } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { COLORS, SHADOW } from '../theme/colors';
+import { ThemeColors } from '../theme/colors';
+import { useTheme } from '../context/ThemeContext';
+import { useLanguage } from '../context/LanguageContext';
 import { RootStackParamList } from '../navigation/types';
 import {
   ScreenHeader,
@@ -40,9 +42,23 @@ const TAG_OPTIONS = [
   'Project Work',
 ];
 
+const TAG_LABEL_KEYS: Record<string, string> = {
+  'Exam Prep': 'groups.filterExamPrep',
+  'Assignment Help': 'groups.filterAssignmentHelp',
+  Discussion: 'groups.filterDiscussion',
+  'Resource Sharing': 'groups.filterResourceSharing',
+  Tutorial: 'groups.filterTutorial',
+  Revision: 'groups.filterRevision',
+  'Project Work': 'groups.filterProjectWork',
+};
+
 type GroupType = 'Public' | 'Private';
 
 const CreateGroupScreen: React.FC<Props> = ({ navigation }) => {
+  const { colors: COLORS, isDark } = useTheme();
+  const { t } = useLanguage();
+  const styles = React.useMemo(() => createStyles(COLORS), [COLORS]);
+
   // ---- Form state -------------------------------------------------
   const [groupName, setGroupName] = useState('');
   const [courseCode, setCourseCode] = useState('');
@@ -78,11 +94,11 @@ const CreateGroupScreen: React.FC<Props> = ({ navigation }) => {
   const errors = useMemo(() => {
     if (!submitted) return {};
     return {
-      groupName: groupName.trim().length === 0 ? 'Group name is required' : undefined,
-      courseCode: courseCode.trim().length === 0 ? 'Course code is required' : undefined,
-      courseTitle: courseTitle.trim().length === 0 ? 'Course title is required' : undefined,
+      groupName: groupName.trim().length === 0 ? t('createGroup.groupNameRequired') : undefined,
+      courseCode: courseCode.trim().length === 0 ? t('createGroup.courseCodeRequired') : undefined,
+      courseTitle: courseTitle.trim().length === 0 ? t('createGroup.courseTitleRequired') : undefined,
     };
-  }, [submitted, groupName, courseCode, courseTitle]);
+  }, [submitted, groupName, courseCode, courseTitle, t]);
 
   const isFormValid =
     groupName.trim().length > 0 && courseCode.trim().length > 0 && courseTitle.trim().length > 0;
@@ -110,7 +126,7 @@ const CreateGroupScreen: React.FC<Props> = ({ navigation }) => {
       {
         onSuccess: (group) => navigation.replace('GroupDetails', { groupId: group.id }),
         onError: (err) => {
-          const message = (err as { message?: string })?.message ?? 'Something went wrong. Please try again.';
+          const message = (err as { message?: string })?.message ?? t('common.somethingWentWrong');
           setServerError(message);
         },
       }
@@ -119,11 +135,11 @@ const CreateGroupScreen: React.FC<Props> = ({ navigation }) => {
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
-      <StatusBar barStyle="dark-content" backgroundColor={COLORS.background} />
+      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={COLORS.background} />
 
       <ScreenHeader
-        title="Create Group"
-        subtitle="Start a study group for your course"
+        title={t('createGroup.title')}
+        subtitle={t('createGroup.subtitle')}
         onBack={() => navigation.goBack()}
       />
 
@@ -141,39 +157,39 @@ const CreateGroupScreen: React.FC<Props> = ({ navigation }) => {
             <Feather name="users" size={20} color={COLORS.white} />
           </View>
           <Text style={styles.introText}>
-            Create a group, invite classmates, share resources, and schedule study sessions.
+            {t('createGroup.introText')}
           </Text>
         </View>
 
         {/* ---------------------------------------------------------- */}
         {/* GROUP INFORMATION                                           */}
         {/* ---------------------------------------------------------- */}
-        <SectionCard title="Group Information">
+        <SectionCard title={t('createGroup.groupInformation')}>
           <AppTextInput
-            label="Group Name"
-            placeholder="e.g. CSM 351 Data Structures"
+            label={t('createGroup.groupNameLabel')}
+            placeholder={t('createGroup.groupNamePlaceholder')}
             value={groupName}
             onChangeText={setGroupName}
             error={errors.groupName}
           />
           <AppTextInput
-            label="Course Code"
-            placeholder="e.g. CSM 351"
+            label={t('createGroup.courseCodeLabel')}
+            placeholder={t('createGroup.courseCodePlaceholder')}
             value={courseCode}
             onChangeText={setCourseCode}
             autoCapitalize="characters"
             error={errors.courseCode}
           />
           <AppTextInput
-            label="Course Title"
-            placeholder="e.g. Data Structures and Algorithms"
+            label={t('createGroup.courseTitleLabel')}
+            placeholder={t('createGroup.courseTitlePlaceholder')}
             value={courseTitle}
             onChangeText={setCourseTitle}
             error={errors.courseTitle}
           />
           <AppTextInput
-            label="Description"
-            placeholder="Tell students what this group is about..."
+            label={t('createGroup.descriptionLabel')}
+            placeholder={t('createGroup.descriptionPlaceholder')}
             value={description}
             onChangeText={setDescription}
             multiline
@@ -184,12 +200,12 @@ const CreateGroupScreen: React.FC<Props> = ({ navigation }) => {
         {/* ---------------------------------------------------------- */}
         {/* CATEGORY / TAGS                                             */}
         {/* ---------------------------------------------------------- */}
-        <SectionCard title="Group Category">
+        <SectionCard title={t('createGroup.groupCategory')}>
           <View style={styles.chipsWrap}>
             {TAG_OPTIONS.map((tag) => (
               <SelectableChip
                 key={tag}
-                label={tag}
+                label={t(TAG_LABEL_KEYS[tag])}
                 selected={selectedTags.includes(tag)}
                 onPress={() => toggleTag(tag)}
               />
@@ -200,15 +216,15 @@ const CreateGroupScreen: React.FC<Props> = ({ navigation }) => {
         {/* ---------------------------------------------------------- */}
         {/* GROUP SETTINGS                                              */}
         {/* ---------------------------------------------------------- */}
-        <SectionCard title="Group Settings">
-          <Text style={styles.inlineLabel}>Group Type</Text>
+        <SectionCard title={t('createGroup.groupSettings')}>
+          <Text style={styles.inlineLabel}>{t('createGroup.groupType')}</Text>
           <View style={styles.groupTypeRow}>
             {(['Public', 'Private'] as GroupType[]).map((type) => {
               const isActive = groupType === type;
               return (
                 <View key={type} style={styles.groupTypeOptionWrap}>
                   <SelectableChip
-                    label={type}
+                    label={type === 'Public' ? t('createGroup.typePublic') : t('createGroup.typePrivate')}
                     selected={isActive}
                     onPress={() => setGroupType(type)}
                   />
@@ -218,8 +234,8 @@ const CreateGroupScreen: React.FC<Props> = ({ navigation }) => {
           </View>
 
           <AppTextInput
-            label="Maximum Members"
-            placeholder="e.g. 30"
+            label={t('createGroup.maxMembersLabel')}
+            placeholder={t('createGroup.maxMembersPlaceholder')}
             value={maxMembers}
             onChangeText={setMaxMembers}
             keyboardType="number-pad"
@@ -227,12 +243,12 @@ const CreateGroupScreen: React.FC<Props> = ({ navigation }) => {
           />
 
           <ToggleRow
-            label="Allow members to upload resources"
+            label={t('createGroup.allowUploads')}
             value={allowUploads}
             onValueChange={setAllowUploads}
           />
           <ToggleRow
-            label="Allow members to invite others"
+            label={t('createGroup.allowInvites')}
             value={allowInvites}
             onValueChange={setAllowInvites}
             isLast
@@ -242,18 +258,18 @@ const CreateGroupScreen: React.FC<Props> = ({ navigation }) => {
         {/* ---------------------------------------------------------- */}
         {/* MEETING DETAILS (optional)                                  */}
         {/* ---------------------------------------------------------- */}
-        <SectionCard title="Meeting Details (optional)">
+        <SectionCard title={t('createGroup.meetingDetails')}>
           <AppTextInput
-            label="Preferred Meeting Location"
-            placeholder="e.g. KNUST Main Library"
+            label={t('createGroup.meetingLocationLabel')}
+            placeholder={t('createGroup.meetingLocationPlaceholder')}
             value={meetingLocation}
             onChangeText={setMeetingLocation}
           />
           <View style={styles.meetingRow}>
             <View style={styles.meetingHalf}>
               <AppTextInput
-                label="Meeting Day"
-                placeholder="e.g. Fridays"
+                label={t('createGroup.meetingDayLabel')}
+                placeholder={t('createGroup.meetingDayPlaceholder')}
                 value={meetingDay}
                 onChangeText={setMeetingDay}
                 style={{ marginBottom: 0 }}
@@ -261,8 +277,8 @@ const CreateGroupScreen: React.FC<Props> = ({ navigation }) => {
             </View>
             <View style={styles.meetingHalf}>
               <AppTextInput
-                label="Meeting Time"
-                placeholder="e.g. 4:00 PM"
+                label={t('createGroup.meetingTimeLabel')}
+                placeholder={t('createGroup.meetingTimePlaceholder')}
                 value={meetingTime}
                 onChangeText={setMeetingTime}
                 style={{ marginBottom: 0 }}
@@ -276,14 +292,14 @@ const CreateGroupScreen: React.FC<Props> = ({ navigation }) => {
         {/* ---------------------------------------------------------- */}
         <View style={styles.createButtonWrap}>
           <PrimaryButton
-            label="Create Study Group"
+            label={t('createGroup.createButton')}
             onPress={handleCreate}
             disabled={submitted && !isFormValid}
             loading={isSubmitting}
           />
           {submitted && !isFormValid && (
             <Text style={styles.formErrorText}>
-              Please fill in all required fields above before creating your group.
+              {t('createGroup.fillRequiredFields')}
             </Text>
           )}
           {serverError ? <Text style={styles.formErrorText}>{serverError}</Text> : null}
@@ -302,7 +318,8 @@ export default CreateGroupScreen;
 // -----------------------------------------------------------------------
 const H_PADDING = 20;
 
-const styles = StyleSheet.create({
+function createStyles(COLORS: ThemeColors) {
+  return StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: COLORS.background,
@@ -383,4 +400,5 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 10,
   },
-});
+  });
+}
