@@ -22,7 +22,9 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather, Ionicons } from '@expo/vector-icons';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { COLORS, SHADOW } from '../theme/colors';
+import { ThemeColors, SHADOW } from '../theme/colors';
+import { useTheme } from '../context/ThemeContext';
+import { useLanguage } from '../context/LanguageContext';
 import { RootStackParamList } from '../navigation/types';
 import { LoadingView, EmptyState } from '../components/common';
 import { useDiscoverGroups } from '../hooks/useGroups';
@@ -39,6 +41,10 @@ const FILE_TYPE_STYLES: Record<Resource['fileType'], { bg: string; color: string
 };
 
 const SearchScreen: React.FC<Props> = ({ navigation, route }) => {
+  const { colors: COLORS, isDark } = useTheme();
+  const { t } = useLanguage();
+  const styles = React.useMemo(() => createStyles(COLORS), [COLORS]);
+
   const [query, setQuery] = useState(route.params?.initialQuery ?? '');
   const [debouncedQuery, setDebouncedQuery] = useState(route.params?.initialQuery ?? '');
 
@@ -59,7 +65,7 @@ const SearchScreen: React.FC<Props> = ({ navigation, route }) => {
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
-      <StatusBar barStyle="dark-content" backgroundColor={COLORS.background} />
+      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={COLORS.background} />
 
       {/* ---------------------------------------------------------- */}
       {/* HEADER — the search bar itself                              */}
@@ -73,7 +79,7 @@ const SearchScreen: React.FC<Props> = ({ navigation, route }) => {
           <Feather name="search" size={17} color={COLORS.textMuted} />
           <TextInput
             style={styles.searchInput}
-            placeholder="Search groups, resources, courses..."
+            placeholder={t('search.placeholder')}
             placeholderTextColor={COLORS.textMuted}
             value={query}
             onChangeText={setQuery}
@@ -97,16 +103,16 @@ const SearchScreen: React.FC<Props> = ({ navigation, route }) => {
         {!hasQuery ? (
           <EmptyState
             icon="search"
-            title="Search EduSphere"
-            subtitle="Find study groups and shared resources across the whole app — not just one tab."
+            title={t('search.title')}
+            subtitle={t('search.subtitle')}
           />
         ) : isLoading ? (
-          <LoadingView message="Searching..." />
+          <LoadingView message={t('search.searching')} />
         ) : !hasResults ? (
           <EmptyState
             icon="inbox"
-            title="No results"
-            subtitle={`Nothing matched "${debouncedQuery}". Try a different course code or keyword.`}
+            title={t('search.noResultsTitle')}
+            subtitle={t('search.noResultsSubtitle', { query: debouncedQuery })}
           />
         ) : (
           <>
@@ -115,7 +121,7 @@ const SearchScreen: React.FC<Props> = ({ navigation, route }) => {
             {/* ---------------------------------------------------- */}
             {groups.length > 0 && (
               <>
-                <Text style={styles.sectionTitle}>Groups ({groups.length})</Text>
+                <Text style={styles.sectionTitle}>{t('search.groupsCount', { count: groups.length })}</Text>
                 <View style={styles.listCard}>
                   {groups.map((group, index) => (
                     <TouchableOpacity
@@ -134,8 +140,8 @@ const SearchScreen: React.FC<Props> = ({ navigation, route }) => {
                           {group.name}
                         </Text>
                         <Text style={styles.resultMeta} numberOfLines={1}>
-                          {group.courseCode} • {group.membersCount} members
-                          {group.isJoined ? ' • Joined' : ''}
+                          {group.courseCode} • {group.membersCount} {t('search.membersLabel')}
+                          {group.isJoined ? ` • ${t('search.joined')}` : ''}
                         </Text>
                       </View>
                       <Feather name="chevron-right" size={16} color={COLORS.textMuted} />
@@ -150,7 +156,7 @@ const SearchScreen: React.FC<Props> = ({ navigation, route }) => {
             {/* ---------------------------------------------------- */}
             {resources.length > 0 && (
               <>
-                <Text style={styles.sectionTitle}>Resources ({resources.length})</Text>
+                <Text style={styles.sectionTitle}>{t('search.resourcesCount', { count: resources.length })}</Text>
                 <View style={styles.listCard}>
                   {resources.map((item, index) => {
                     const fileStyle = FILE_TYPE_STYLES[item.fileType];
@@ -200,7 +206,8 @@ export default SearchScreen;
 // -----------------------------------------------------------------------
 const H_PADDING = 20;
 
-const styles = StyleSheet.create({
+function createStyles(COLORS: ThemeColors) {
+  return StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: COLORS.background,
@@ -329,4 +336,5 @@ const styles = StyleSheet.create({
     color: COLORS.warning,
     marginLeft: 3,
   },
-});
+  });
+}

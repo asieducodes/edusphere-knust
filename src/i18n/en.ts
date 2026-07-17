@@ -516,6 +516,18 @@ const en = {
     viewResource: 'View Resource',
     somethingWentWrong: 'Something went wrong. Please try again.',
   },
+  search: {
+    placeholder: 'Search groups, resources, courses...',
+    title: 'Search EduSphere',
+    subtitle: 'Find study groups and shared resources across the whole app — not just one tab.',
+    searching: 'Searching...',
+    noResultsTitle: 'No results',
+    noResultsSubtitle: 'Nothing matched "{query}". Try a different course code or keyword.',
+    groupsCount: 'Groups ({count})',
+    resourcesCount: 'Resources ({count})',
+    membersLabel: 'members',
+    joined: 'Joined',
+  },
 };
 
 export default en;

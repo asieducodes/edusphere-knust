@@ -512,6 +512,18 @@ const es: TranslationDictionary = {
     viewResource: 'Ver recurso',
     somethingWentWrong: 'Algo salió mal. Inténtalo de nuevo.',
   },
+  search: {
+    placeholder: 'Buscar grupos, recursos, cursos...',
+    title: 'Buscar en EduSphere',
+    subtitle: 'Encuentra grupos de estudio y recursos compartidos en toda la aplicación, no solo en una pestaña.',
+    searching: 'Buscando...',
+    noResultsTitle: 'Sin resultados',
+    noResultsSubtitle: 'Nada coincidió con "{query}". Prueba con otro código de curso o palabra clave.',
+    groupsCount: 'Grupos ({count})',
+    resourcesCount: 'Recursos ({count})',
+    membersLabel: 'miembros',
+    joined: 'Unido',
+  },
 };
 
 export default es;
