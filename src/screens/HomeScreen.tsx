@@ -26,7 +26,9 @@ import { useNavigation, useFocusEffect } from "@react-navigation/native";
 import type { CompositeNavigationProp } from "@react-navigation/native";
 import type { BottomTabNavigationProp } from "@react-navigation/bottom-tabs";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import { COLORS, SHADOW } from "../theme/colors";
+import { ThemeColors, SHADOW } from "../theme/colors";
+import { useTheme } from "../context/ThemeContext";
+import { useLanguage } from "../context/LanguageContext";
 import {
   MainTabParamList,
   RootStackParamList,
@@ -47,11 +49,11 @@ type HomeScreenNavigationProp = CompositeNavigationProp<
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
-const QUICK_ACTIONS: { id: string; label: string; icon: keyof typeof Feather.glyphMap }[] = [
-  { id: "1", label: "Find Group", icon: "users" },
-  { id: "2", label: "Create Group", icon: "plus-circle" },
-  { id: "3", label: "Resources", icon: "file-text" },
-  { id: "4", label: "Campus Map", icon: "map-pin" },
+const QUICK_ACTIONS: { id: string; labelKey: string; icon: keyof typeof Feather.glyphMap }[] = [
+  { id: "1", labelKey: "home.findGroup", icon: "users" },
+  { id: "2", labelKey: "home.createGroup", icon: "plus-circle" },
+  { id: "3", labelKey: "home.resources", icon: "file-text" },
+  { id: "4", labelKey: "home.campusMap", icon: "map-pin" },
 ];
 
 // File-type visual mapping shared by the Recent Resources list.
@@ -62,16 +64,16 @@ const FILE_TYPE_STYLES: Record<Resource["fileType"], { bg: string; color: string
   ZIP: { bg: "#F1F2F8", color: "#5B6172" },
 };
 
-function relativeTime(iso: string): string {
+function relativeTime(iso: string, t: (path: string, options?: Record<string, string | number>) => string): string {
   const then = new Date(iso).getTime();
   const diffMs = Date.now() - then;
   const minutes = Math.floor(diffMs / 60000);
-  if (minutes < 1) return 'Uploaded just now';
-  if (minutes < 60) return `Uploaded ${minutes}m ago`;
+  if (minutes < 1) return t('common.uploadedJustNow');
+  if (minutes < 60) return t('common.uploadedMinutesAgo', { count: minutes });
   const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `Uploaded ${hours}h ago`;
+  if (hours < 24) return t('common.uploadedHoursAgo', { count: hours });
   const days = Math.floor(hours / 24);
-  return `Uploaded ${days}d ago`;
+  return t('common.uploadedDaysAgo', { count: days });
 }
 
 function formatSessionDate(iso: string): { day: string; date: string } {
@@ -82,74 +84,74 @@ function formatSessionDate(iso: string): { day: string; date: string } {
 }
 
 // -----------------------------------------------------------------------
-// SMALL REUSABLE COMPONENTS
-// -----------------------------------------------------------------------
-
-/** File-type badge with color coding by extension */
-const FileBadge: React.FC<{ type: Resource["fileType"] }> = ({ type }) => {
-  const style = FILE_TYPE_STYLES[type];
-  return (
-    <View style={[styles.fileBadge, { backgroundColor: style.bg }]}>
-      <Text style={[styles.fileBadgeText, { color: style.color }]}>{type}</Text>
-    </View>
-  );
-};
-
-/** Status chip used on "My Study Groups" cards */
-const StatusChip: React.FC<{ label: string; type: "new" | "meeting" }> = ({
-  label,
-  type,
-}) => {
-  const isNew = type === "new";
-  return (
-    <View
-      style={[
-        styles.statusChip,
-        { backgroundColor: isNew ? COLORS.successLight : COLORS.warningLight },
-      ]}
-    >
-      <View
-        style={[
-          styles.statusDot,
-          { backgroundColor: isNew ? COLORS.success : COLORS.warning },
-        ]}
-      />
-      <Text
-        style={[
-          styles.statusChipText,
-          { color: isNew ? COLORS.success : COLORS.warning },
-        ]}
-        numberOfLines={1}
-      >
-        {label}
-      </Text>
-    </View>
-  );
-};
-
-/** Section header with title + optional "View all" action */
-const SectionHeader: React.FC<{
-  title: string;
-  onPressViewAll?: () => void;
-}> = ({ title, onPressViewAll }) => (
-  <View style={styles.sectionHeader}>
-    <Text style={styles.sectionTitle}>{title}</Text>
-    {onPressViewAll && (
-      <TouchableOpacity
-        onPress={onPressViewAll}
-        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-      >
-        <Text style={styles.viewAllText}>View all</Text>
-      </TouchableOpacity>
-    )}
-  </View>
-);
-
-// -----------------------------------------------------------------------
 // MAIN COMPONENT
 // -----------------------------------------------------------------------
 const HomeScreen: React.FC = () => {
   const navigation = useNavigation<HomeScreenNavigationProp>();
+  const { colors: COLORS, isDark } = useTheme();
+  const { t } = useLanguage();
+  const styles = React.useMemo(() => createStyles(COLORS), [COLORS]);
+
+  // ---- Small reusable pieces, defined here so they close over this
+  // render's styles/COLORS instead of needing them threaded as props. ----
+
+  /** File-type badge with color coding by extension */
+  const FileBadge: React.FC<{ type: Resource["fileType"] }> = ({ type }) => {
+    const style = FILE_TYPE_STYLES[type];
+    return (
+      <View style={[styles.fileBadge, { backgroundColor: style.bg }]}>
+        <Text style={[styles.fileBadgeText, { color: style.color }]}>{type}</Text>
+      </View>
+    );
+  };
+
+  /** Status chip used on "My Study Groups" cards */
+  const StatusChip: React.FC<{ label: string; type: "new" | "meeting" }> = ({ label, type }) => {
+    const isNew = type === "new";
+    return (
+      <View
+        style={[
+          styles.statusChip,
+          { backgroundColor: isNew ? COLORS.successLight : COLORS.warningLight },
+        ]}
+      >
+        <View
+          style={[
+            styles.statusDot,
+            { backgroundColor: isNew ? COLORS.success : COLORS.warning },
+          ]}
+        />
+        <Text
+          style={[
+            styles.statusChipText,
+            { color: isNew ? COLORS.success : COLORS.warning },
+          ]}
+          numberOfLines={1}
+        >
+          {label}
+        </Text>
+      </View>
+    );
+  };
+
+  /** Section header with title + optional "View all" action */
+  const SectionHeader: React.FC<{
+    title: string;
+    onPressViewAll?: () => void;
+  }> = ({ title, onPressViewAll }) => (
+    <View style={styles.sectionHeader}>
+      <Text style={styles.sectionTitle}>{title}</Text>
+      {onPressViewAll && (
+        <TouchableOpacity
+          onPress={onPressViewAll}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        >
+          <Text style={styles.viewAllText}>{t('common.seeAll')}</Text>
+        </TouchableOpacity>
+      )}
+    </View>
+  );
+
   const { user } = useAuth();
 
   const groupsQuery = useMyGroups();
@@ -217,7 +219,7 @@ const HomeScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={styles.safeArea} edges={["top"]}>
-      <StatusBar barStyle="dark-content" backgroundColor={COLORS.background} />
+      <StatusBar barStyle={isDark ? "light-content" : "dark-content"} backgroundColor={COLORS.background} />
 
       <ScrollView
         style={styles.container}
@@ -262,9 +264,9 @@ const HomeScreen: React.FC = () => {
             </TouchableOpacity>
 
             <View style={styles.greetingBlock}>
-              <Text style={styles.greetingText}>Hi, {firstName} 👋</Text>
+              <Text style={styles.greetingText}>{t('home.greeting', { name: firstName })}</Text>
               <Text style={styles.greetingSubtitle}>
-                Find your next study session
+                {t('home.subtitle')}
               </Text>
             </View>
           </View>
@@ -279,7 +281,7 @@ const HomeScreen: React.FC = () => {
           onPress={() => navigation.navigate("Search")}
         >
           <Feather name="search" size={18} color={COLORS.textMuted} />
-          <Text style={styles.searchPlaceholderText}>Search groups, resources, courses...</Text>
+          <Text style={styles.searchPlaceholderText}>{t('common.searchPlaceholder')}</Text>
         </TouchableOpacity>
 
         {/* ---------------------------------------------------------- */}
@@ -296,12 +298,12 @@ const HomeScreen: React.FC = () => {
               <View style={styles.quickActionIconWrap}>
                 <Feather name={action.icon} size={20} color={COLORS.primary} />
               </View>
-              <Text style={styles.quickActionLabel}>{action.label}</Text>
+              <Text style={styles.quickActionLabel}>{t(action.labelKey)}</Text>
             </TouchableOpacity>
           ))}
         </View>
 
-        {isLoading && <LoadingView message="Loading your dashboard..." />}
+        {isLoading && <LoadingView message={t('home.loadingDashboard')} />}
         {hasError && <ErrorView onRetry={refetchAll} />}
 
         {!isLoading && !hasError && (
@@ -311,14 +313,14 @@ const HomeScreen: React.FC = () => {
             {/* ---------------------------------------------------------- */}
             {myGroups.length > 0 && (
               <>
-                <SectionHeader title="My Study Groups" onPressViewAll={() => navigation.navigate("Groups")} />
+                <SectionHeader title={t('home.myStudyGroups')} onPressViewAll={() => navigation.navigate("Groups")} />
 
                 <View style={styles.stackedCards}>
                   {myGroups.map((group) => {
                     const hasMeeting = !!(group.meetingDay && group.meetingTime);
                     const statusLabel = hasMeeting
                       ? `${group.meetingDay} • ${group.meetingTime}`
-                      : `${group.membersCount} members`;
+                      : t('common.members', { count: group.membersCount });
                     return (
                       <TouchableOpacity
                         key={group.id}
@@ -338,7 +340,7 @@ const HomeScreen: React.FC = () => {
                         <View style={styles.groupMetaRow}>
                           <Feather name="users" size={14} color={COLORS.textSecondary} />
                           <Text style={styles.groupMetaText}>
-                            {group.membersCount} members
+                            {t('common.members', { count: group.membersCount })}
                           </Text>
                         </View>
                       </TouchableOpacity>
@@ -353,7 +355,7 @@ const HomeScreen: React.FC = () => {
             {/* ---------------------------------------------------------- */}
             {sessions.length > 0 && (
               <>
-                <SectionHeader title="Upcoming Sessions" />
+                <SectionHeader title={t('home.upcomingSessions')} />
 
                 <View style={styles.stackedCards}>
                   {sessions.map((session) => {
@@ -396,7 +398,7 @@ const HomeScreen: React.FC = () => {
             {/* ---------------------------------------------------------- */}
             {recommended.length > 0 && (
               <>
-                <SectionHeader title="Recommended Groups" />
+                <SectionHeader title={t('home.recommendedGroups')} />
 
                 <ScrollView
                   horizontal
@@ -416,7 +418,7 @@ const HomeScreen: React.FC = () => {
                       <View style={styles.groupMetaRow}>
                         <Feather name="users" size={13} color={COLORS.textSecondary} />
                         <Text style={styles.groupMetaText}>
-                          {group.membersCount} members
+                          {t('common.members', { count: group.membersCount })}
                         </Text>
                       </View>
 
@@ -424,7 +426,7 @@ const HomeScreen: React.FC = () => {
                         <View style={styles.groupMetaRow}>
                           <Ionicons name="star" size={13} color={COLORS.star} />
                           <Text style={styles.groupMetaText}>
-                            {group.rating.toFixed(1)} rating
+                            {t('home.rating', { value: group.rating.toFixed(1) })}
                           </Text>
                         </View>
                       ) : null}
@@ -440,7 +442,7 @@ const HomeScreen: React.FC = () => {
                         activeOpacity={0.85}
                         onPress={() => openGroup(group)}
                       >
-                        <Text style={styles.joinButtonText}>View</Text>
+                        <Text style={styles.joinButtonText}>{t('common.view')}</Text>
                       </TouchableOpacity>
                     </View>
                   ))}
@@ -453,7 +455,7 @@ const HomeScreen: React.FC = () => {
             {/* ---------------------------------------------------------- */}
             {resources.length > 0 && (
               <>
-                <SectionHeader title="Recent Resources" onPressViewAll={() => navigation.navigate("Resources")} />
+                <SectionHeader title={t('home.recentResources')} onPressViewAll={() => navigation.navigate("Resources")} />
 
                 <View style={styles.resourcesCard}>
                   {resources.map((resource, index) => (
@@ -473,7 +475,7 @@ const HomeScreen: React.FC = () => {
                           {resource.title}
                         </Text>
                         <Text style={styles.resourceMeta}>
-                          {resource.fileType} • {resource.size} • {relativeTime(resource.createdAt)}
+                          {resource.fileType} • {resource.size} • {relativeTime(resource.createdAt, t)}
                         </Text>
                       </View>
 
@@ -501,7 +503,8 @@ export default HomeScreen;
 const CARD_GAP = 14;
 const H_PADDING = 20;
 
-const styles = StyleSheet.create({
+function createStyles(COLORS: ThemeColors) {
+  return StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: COLORS.background,
@@ -895,4 +898,5 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-});
+  });
+}
