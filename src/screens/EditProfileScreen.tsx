@@ -13,7 +13,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { COLORS } from '../theme/colors';
+import { ThemeColors } from '../theme/colors';
+import { useTheme } from '../context/ThemeContext';
+import { useLanguage } from '../context/LanguageContext';
 import { RootStackParamList } from '../navigation/types';
 import { ScreenHeader, AppTextInput, SelectableChip, SectionCard, ToggleRow, PrimaryButton, LoadingView, ErrorView } from '../components/common';
 import { useMyProfile, useUpdateProfile, useUploadAvatar } from '../hooks/useProfile';
@@ -57,6 +59,10 @@ const AVAILABILITY_OPTIONS = [
 ];
 
 const EditProfileScreen: React.FC<Props> = ({ navigation }) => {
+  const { colors: COLORS, isDark } = useTheme();
+  const { t } = useLanguage();
+  const styles = React.useMemo(() => createStyles(COLORS), [COLORS]);
+
   const profileQuery = useMyProfile();
   const departmentsQuery = useDepartments();
   const updateProfileMutation = useUpdateProfile();
@@ -168,9 +174,9 @@ const EditProfileScreen: React.FC<Props> = ({ navigation }) => {
     icon: keyof typeof Feather.glyphMap;
     options: string[];
   }[] = [
-    { field: 'programme', label: 'Programme', value: programme || 'Not set', icon: 'book-open', options: PROGRAMME_OPTIONS },
-    { field: 'department', label: 'Department', value: selectedDepartment?.name || 'Not set', icon: 'layers', options: departments.map((d) => d.name) },
-    { field: 'level', label: 'Level', value: level || 'Not set', icon: 'bar-chart-2', options: LEVEL_OPTIONS },
+    { field: 'programme', label: t('editProfile.programme'), value: programme || t('editProfile.notSet'), icon: 'book-open', options: PROGRAMME_OPTIONS },
+    { field: 'department', label: t('editProfile.department'), value: selectedDepartment?.name || t('editProfile.notSet'), icon: 'layers', options: departments.map((d) => d.name) },
+    { field: 'level', label: t('editProfile.level'), value: level || t('editProfile.notSet'), icon: 'bar-chart-2', options: LEVEL_OPTIONS },
   ];
 
   const activeField = ACADEMIC_FIELDS.find((f) => f.field === activeDropdown);
@@ -197,7 +203,7 @@ const EditProfileScreen: React.FC<Props> = ({ navigation }) => {
   const handleChangePhoto = async () => {
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!permission.granted) {
-      Alert.alert('Permission Needed', 'Please allow photo library access to change your profile picture.');
+      Alert.alert(t('editProfile.permissionNeededTitle'), t('editProfile.permissionNeededBody'));
       return;
     }
 
@@ -222,14 +228,14 @@ const EditProfileScreen: React.FC<Props> = ({ navigation }) => {
           setAvatarUrl(data.avatarUrl);
         },
         onError: (err) => {
-          const message = (err as { message?: string })?.message ?? 'Could not upload photo. Please try again.';
-          Alert.alert('Upload Failed', message);
+          const message = (err as { message?: string })?.message ?? t('editProfile.uploadFailedBody');
+          Alert.alert(t('editProfile.uploadFailedTitle'), message);
         },
       }
     );
   };
 
-  const nameError = submitted && fullName.trim().length === 0 ? 'Full name is required' : undefined;
+  const nameError = submitted && fullName.trim().length === 0 ? t('editProfile.fullNameRequired') : undefined;
 
   const isFormValid = fullName.trim().length > 0;
 
@@ -263,7 +269,7 @@ const EditProfileScreen: React.FC<Props> = ({ navigation }) => {
           }, 900);
         },
         onError: (err) => {
-          const message = (err as { message?: string })?.message ?? 'Something went wrong. Please try again.';
+          const message = (err as { message?: string })?.message ?? t('common.somethingWentWrong');
           setServerError(message);
         },
       }
@@ -273,9 +279,9 @@ const EditProfileScreen: React.FC<Props> = ({ navigation }) => {
   if (profileQuery.isLoading || departmentsQuery.isLoading) {
     return (
       <SafeAreaView style={styles.safeArea} edges={['top']}>
-        <StatusBar barStyle="dark-content" backgroundColor={COLORS.background} />
-        <ScreenHeader title="Edit Profile" onBack={() => navigation.goBack()} />
-        <LoadingView message="Loading profile..." />
+        <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={COLORS.background} />
+        <ScreenHeader title={t('editProfile.title')} onBack={() => navigation.goBack()} />
+        <LoadingView message={t('editProfile.loading')} />
       </SafeAreaView>
     );
   }
@@ -283,8 +289,8 @@ const EditProfileScreen: React.FC<Props> = ({ navigation }) => {
   if (profileQuery.isError || !profileQuery.data) {
     return (
       <SafeAreaView style={styles.safeArea} edges={['top']}>
-        <StatusBar barStyle="dark-content" backgroundColor={COLORS.background} />
-        <ScreenHeader title="Edit Profile" onBack={() => navigation.goBack()} />
+        <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={COLORS.background} />
+        <ScreenHeader title={t('editProfile.title')} onBack={() => navigation.goBack()} />
         <ErrorView onRetry={() => profileQuery.refetch()} />
       </SafeAreaView>
     );
@@ -292,26 +298,26 @@ const EditProfileScreen: React.FC<Props> = ({ navigation }) => {
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
-      <StatusBar barStyle="dark-content" backgroundColor={COLORS.background} />
+      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={COLORS.background} />
 
       <ScreenHeader
-        title="Edit Profile"
+        title={t('editProfile.title')}
         onBack={() => navigation.goBack()}
-        rightText="Save"
+        rightText={t('editProfile.save')}
         onPressRight={handleSave}
       />
 
       {hasUnsavedChanges && !saved && (
         <View style={styles.unsavedBanner}>
           <Feather name="edit-3" size={13} color={COLORS.warning} />
-          <Text style={styles.unsavedBannerText}>You have unsaved changes</Text>
+          <Text style={styles.unsavedBannerText}>{t('editProfile.unsavedChanges')}</Text>
         </View>
       )}
 
       {saved && (
         <View style={styles.savedBanner}>
           <Feather name="check-circle" size={13} color={COLORS.success} />
-          <Text style={styles.savedBannerText}>Profile updated successfully</Text>
+          <Text style={styles.savedBannerText}>{t('editProfile.profileUpdated')}</Text>
         </View>
       )}
 
@@ -350,19 +356,19 @@ const EditProfileScreen: React.FC<Props> = ({ navigation }) => {
             </TouchableOpacity>
           </View>
           <TouchableOpacity activeOpacity={0.7} onPress={handleChangePhoto} disabled={avatarUploading}>
-            <Text style={styles.changePhotoText}>{avatarUploading ? 'Uploading...' : 'Change Photo'}</Text>
+            <Text style={styles.changePhotoText}>{avatarUploading ? t('editProfile.uploading') : t('editProfile.changePhoto')}</Text>
           </TouchableOpacity>
         </View>
 
         {/* ---------------------------------------------------------- */}
         {/* BASIC INFORMATION                                           */}
         {/* ---------------------------------------------------------- */}
-        <SectionCard title="Basic Information">
-          <AppTextInput label="Full Name" value={fullName} onChangeText={setFullName} error={nameError} />
-          <AppTextInput label="Student Email" value={studentEmail} editable={false} disabled />
+        <SectionCard title={t('editProfile.basicInformation')}>
+          <AppTextInput label={t('editProfile.fullNameLabel')} value={fullName} onChangeText={setFullName} error={nameError} />
+          <AppTextInput label={t('editProfile.studentEmailLabel')} value={studentEmail} editable={false} disabled />
           <AppTextInput
-            label="Bio"
-            placeholder="Write a short bio about yourself..."
+            label={t('editProfile.bioLabel')}
+            placeholder={t('editProfile.bioPlaceholder')}
             value={bio}
             onChangeText={setBio}
             multiline
@@ -373,7 +379,7 @@ const EditProfileScreen: React.FC<Props> = ({ navigation }) => {
         {/* ---------------------------------------------------------- */}
         {/* ACADEMIC INFORMATION                                        */}
         {/* ---------------------------------------------------------- */}
-        <SectionCard title="Academic Information">
+        <SectionCard title={t('editProfile.academicInformation')}>
           {ACADEMIC_FIELDS.map((field, index, arr) => (
             <TouchableOpacity
               key={field.field}
@@ -399,8 +405,8 @@ const EditProfileScreen: React.FC<Props> = ({ navigation }) => {
               <Feather name="home" size={15} color={COLORS.primary} />
             </View>
             <View style={styles.dropdownTextBlock}>
-              <Text style={styles.dropdownLabel}>College</Text>
-              <Text style={styles.dropdownValue}>{selectedDepartment?.college || 'Select a department'}</Text>
+              <Text style={styles.dropdownLabel}>{t('editProfile.college')}</Text>
+              <Text style={styles.dropdownValue}>{selectedDepartment?.college || t('editProfile.selectDepartment')}</Text>
             </View>
           </View>
         </SectionCard>
@@ -408,7 +414,7 @@ const EditProfileScreen: React.FC<Props> = ({ navigation }) => {
         {/* ---------------------------------------------------------- */}
         {/* STUDY INTERESTS                                             */}
         {/* ---------------------------------------------------------- */}
-        <SectionCard title="Study Interests">
+        <SectionCard title={t('editProfile.studyInterests')}>
           <View style={styles.chipsWrap}>
             {INTEREST_OPTIONS.map((item) => (
               <SelectableChip
@@ -424,7 +430,7 @@ const EditProfileScreen: React.FC<Props> = ({ navigation }) => {
         {/* ---------------------------------------------------------- */}
         {/* SKILLS / CAN HELP WITH                                      */}
         {/* ---------------------------------------------------------- */}
-        <SectionCard title="Skills / Can Help With">
+        <SectionCard title={t('editProfile.skillsCanHelpWith')}>
           <View style={styles.chipsWrap}>
             {SKILL_OPTIONS.map((item) => (
               <SelectableChip
@@ -440,7 +446,7 @@ const EditProfileScreen: React.FC<Props> = ({ navigation }) => {
         {/* ---------------------------------------------------------- */}
         {/* AVAILABILITY                                                */}
         {/* ---------------------------------------------------------- */}
-        <SectionCard title="Availability">
+        <SectionCard title={t('editProfile.availability')}>
           <View style={styles.chipsWrap}>
             {AVAILABILITY_OPTIONS.map((item) => (
               <SelectableChip
@@ -456,23 +462,23 @@ const EditProfileScreen: React.FC<Props> = ({ navigation }) => {
         {/* ---------------------------------------------------------- */}
         {/* PRIVACY SETTINGS                                            */}
         {/* ---------------------------------------------------------- */}
-        <SectionCard title="Privacy Settings">
+        <SectionCard title={t('editProfile.privacySettings')}>
           <ToggleRow
             icon="eye"
-            label="Show my profile to other students"
+            label={t('editProfile.showProfile')}
             value={showProfile}
             onValueChange={setShowProfile}
           />
           <ToggleRow
             icon="user-plus"
-            label="Allow group invitations"
+            label={t('editProfile.allowInvitations')}
             value={allowInvitations}
             onValueChange={setAllowInvitations}
           />
-          <ToggleRow icon="star" label="Show my ratings" value={showRatings} onValueChange={setShowRatings} />
+          <ToggleRow icon="star" label={t('editProfile.showRatings')} value={showRatings} onValueChange={setShowRatings} />
           <ToggleRow
             icon="message-circle"
-            label="Allow direct study requests"
+            label={t('editProfile.allowStudyRequests')}
             value={allowStudyRequests}
             onValueChange={setAllowStudyRequests}
             isLast
@@ -484,13 +490,13 @@ const EditProfileScreen: React.FC<Props> = ({ navigation }) => {
         {/* ---------------------------------------------------------- */}
         <View style={styles.saveButtonWrap}>
           <PrimaryButton
-            label="Save Changes"
+            label={t('editProfile.saveChanges')}
             onPress={handleSave}
             disabled={submitted && !isFormValid}
             loading={isSaving}
           />
           {submitted && !isFormValid && (
-            <Text style={styles.formErrorText}>Please enter your full name before saving.</Text>
+            <Text style={styles.formErrorText}>{t('editProfile.enterFullNameBeforeSaving')}</Text>
           )}
         </View>
 
@@ -513,7 +519,7 @@ const EditProfileScreen: React.FC<Props> = ({ navigation }) => {
         >
           <View style={styles.modalSheet} onStartShouldSetResponder={() => true}>
             <View style={styles.modalHandle} />
-            <Text style={styles.modalTitle}>Select {activeField?.label}</Text>
+            <Text style={styles.modalTitle}>{t('editProfile.selectOption', { label: activeField?.label ?? '' })}</Text>
             <FlatList
               data={activeField?.options ?? []}
               keyExtractor={(item) => item}
@@ -539,7 +545,8 @@ export default EditProfileScreen;
 // -----------------------------------------------------------------------
 const H_PADDING = 20;
 
-const styles = StyleSheet.create({
+function createStyles(COLORS: ThemeColors) {
+  return StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: COLORS.background,
@@ -718,4 +725,5 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: COLORS.textPrimary,
   },
-});
+  });
+}
