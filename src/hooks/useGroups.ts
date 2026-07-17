@@ -14,6 +14,7 @@ import * as sessionService from '../services/sessionService';
 import { queryKeys } from '../lib/queryClient';
 import {
   CreateGroupPayload,
+  CreateCommentPayload,
   CreatePostPayload,
   InviteMemberPayload,
 } from '../types/group';
@@ -63,6 +64,14 @@ export function useGroupPosts(groupId: string, enabled = true) {
     queryKey: queryKeys.groupPosts(groupId),
     queryFn: () => groupService.getGroupPosts(groupId).then((r) => r.data),
     enabled: enabled && !!groupId,
+  });
+}
+
+export function usePostComments(postId: string, enabled = true) {
+  return useQuery({
+    queryKey: queryKeys.postComments(postId),
+    queryFn: () => groupService.getPostComments(postId).then((r) => r.data),
+    enabled: enabled && !!postId,
   });
 }
 
@@ -144,6 +153,42 @@ export function useCreateGroupSession(groupId: string) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.groupSessions(groupId) });
       queryClient.invalidateQueries({ queryKey: queryKeys.upcomingSessions });
+    },
+  });
+}
+
+/** groupId is only used to keep the group's discussion list (and its
+ *  per-post repliesCount) in sync — the comment itself is created/removed
+ *  against postId. */
+export function useCreatePostComment(postId: string, groupId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: CreateCommentPayload) =>
+      groupService.createPostComment(postId, payload).then((r) => r.data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.postComments(postId) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.groupPosts(groupId) });
+    },
+  });
+}
+
+export function useDeletePost(groupId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (postId: string) => groupService.deletePost(postId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.groupPosts(groupId) });
+    },
+  });
+}
+
+export function useDeleteComment(postId: string, groupId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (commentId: string) => groupService.deleteComment(commentId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.postComments(postId) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.groupPosts(groupId) });
     },
   });
 }

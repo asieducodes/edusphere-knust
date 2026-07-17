@@ -44,6 +44,7 @@ export const queryKeys = {
   groupMembers: (groupId: string) => ['groups', groupId, 'members'] as const,
   groupPosts: (groupId: string) => ['groups', groupId, 'posts'] as const,
   groupSessions: (groupId: string) => ['groups', groupId, 'sessions'] as const,
+  postComments: (postId: string) => ['posts', postId, 'comments'] as const,
 
   resources: (params: ResourceQueryParams) => ['resources', params] as const,
   resource: (resourceId: string) => ['resources', resourceId] as const,

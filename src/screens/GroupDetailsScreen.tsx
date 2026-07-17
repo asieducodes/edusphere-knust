@@ -24,6 +24,7 @@ import {
   Modal,
   KeyboardAvoidingView,
   Platform,
+  Share,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather, Ionicons } from '@expo/vector-icons';
@@ -44,6 +45,7 @@ import {
   useInviteMember,
 } from '../hooks/useGroups';
 import { useResources } from '../hooks/useResources';
+import { useCreateReport } from '../hooks/useReports';
 import { GroupMember } from '../types/group';
 import { Resource } from '../types/resource';
 
@@ -165,6 +167,7 @@ const GroupDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
   const createPostMutation = useCreateGroupPost(groupId);
   const createSessionMutation = useCreateGroupSession(groupId);
   const inviteMutation = useInviteMember(groupId);
+  const reportMutation = useCreateReport();
 
   useFocusEffect(
     useCallback(() => {
@@ -203,6 +206,46 @@ const GroupDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
   const closeModal = () => {
     setActiveModal(null);
     setModalError(null);
+  };
+
+  const handleShareGroup = () => {
+    if (!group) return;
+    Share.share({
+      title: group.name,
+      message: `Check out "${group.name}" (${group.courseCode}) on EduSphere.`,
+    }).catch(() => {
+      // Share sheet dismissed/cancelled — nothing to do.
+    });
+  };
+
+  const handleReportGroup = () => {
+    Alert.alert('Report this group?', 'Our team will review it.', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Report',
+        style: 'destructive',
+        onPress: () =>
+          reportMutation.mutate(
+            { targetType: 'group', targetId: groupId, reason: 'Inappropriate or misleading group' },
+            {
+              onSuccess: () => Alert.alert('Reported', 'Thanks — our team will review this group.'),
+              onError: (err) => {
+                const message = (err as { message?: string })?.message ?? 'Something went wrong. Please try again.';
+                Alert.alert('Error', message);
+              },
+            }
+          ),
+      },
+    ]);
+  };
+
+  const handlePressOptions = () => {
+    if (!group) return;
+    Alert.alert(group.name, 'Group options', [
+      { text: 'Share Group', onPress: handleShareGroup },
+      { text: 'Report Group', style: 'destructive', onPress: handleReportGroup },
+      { text: 'Cancel', style: 'cancel' },
+    ]);
   };
 
   const isModalSubmitting =
@@ -322,11 +365,7 @@ const GroupDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
 
         <Text style={styles.headerTitle}>Group Details</Text>
 
-        <TouchableOpacity
-          style={styles.headerIconButton}
-          activeOpacity={0.7}
-          onPress={() => Alert.alert(group.name, 'Group options aside from Join/Leave aren\'t available yet.')}
-        >
+        <TouchableOpacity style={styles.headerIconButton} activeOpacity={0.7} onPress={handlePressOptions}>
           <Feather name="more-vertical" size={20} color={COLORS.textPrimary} />
         </TouchableOpacity>
       </View>
@@ -482,12 +521,7 @@ const GroupDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
                     key={item.id}
                     style={[styles.discussionRow, index !== posts.length - 1 && styles.rowDivider]}
                     activeOpacity={0.7}
-                    onPress={() =>
-                      Alert.alert(
-                        item.title,
-                        `${item.body ?? ''}\n\nBy ${item.authorName} • ${item.repliesCount} replies\n\nFull discussion threads aren't available yet.`
-                      )
-                    }
+                    onPress={() => navigation.navigate('PostDetails', { postId: item.id, groupId })}
                   >
                     <View style={styles.avatarCircle}>
                       <Text style={styles.avatarInitials}>
