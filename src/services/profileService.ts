@@ -36,3 +36,11 @@ export async function uploadAvatar(file: FormDataFile): Promise<ApiResponse<Uplo
   });
   return response.data;
 }
+
+/** DELETE /profile/me — matches SettingsScreen's "Delete Account". Scrubs
+ *  the student's profile and permanently revokes their login server-side;
+ *  the caller must still log out locally afterward. */
+export async function deleteAccount(): Promise<ApiResponse<null>> {
+  const response = await api.delete<ApiResponse<null>>('/profile/me');
+  return response.data;
+}

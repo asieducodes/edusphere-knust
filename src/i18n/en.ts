@@ -488,6 +488,13 @@ const en = {
       dark: 'Dark',
       system: 'System',
     },
+    dangerZone: 'Danger Zone',
+    deleteAccount: 'Delete Account',
+    deleteAccountConfirmTitle: 'Delete your account?',
+    deleteAccountConfirmBody: 'This permanently deletes your profile and signs you out everywhere. This cannot be undone.',
+    deleteAccountConfirmButton: 'Delete',
+    deletingAccount: 'Deleting...',
+    deleteAccountFailedTitle: 'Could Not Delete Account',
   },
   notifications: {
     title: 'Notifications',

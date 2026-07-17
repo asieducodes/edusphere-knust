@@ -484,6 +484,13 @@ const es: TranslationDictionary = {
       dark: 'Oscuro',
       system: 'Sistema',
     },
+    dangerZone: 'Zona de peligro',
+    deleteAccount: 'Eliminar cuenta',
+    deleteAccountConfirmTitle: '¿Eliminar tu cuenta?',
+    deleteAccountConfirmBody: 'Esto elimina permanentemente tu perfil y cierra tu sesión en todas partes. Esta acción no se puede deshacer.',
+    deleteAccountConfirmButton: 'Eliminar',
+    deletingAccount: 'Eliminando...',
+    deleteAccountFailedTitle: 'No se pudo eliminar la cuenta',
   },
   notifications: {
     title: 'Notificaciones',

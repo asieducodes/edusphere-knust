@@ -74,3 +74,11 @@ export function useUploadAvatar() {
     },
   });
 }
+
+export function useDeleteAccount() {
+  const { logout } = useAuth();
+  return useMutation({
+    mutationFn: () => profileService.deleteAccount(),
+    onSuccess: () => logout(),
+  });
+}

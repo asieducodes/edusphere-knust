@@ -14,7 +14,7 @@
  */
 
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, StatusBar } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, StatusBar, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -22,6 +22,7 @@ import { SHADOW, ThemeColors } from '../theme/colors';
 import { RootStackParamList } from '../navigation/types';
 import { useTheme, ThemeMode } from '../context/ThemeContext';
 import { useLanguage, Language, LANGUAGE_LABELS } from '../context/LanguageContext';
+import { useDeleteAccount } from '../hooks/useProfile';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Settings'>;
 
@@ -39,6 +40,25 @@ const SettingsScreen: React.FC<Props> = ({ navigation }) => {
   const { mode, setMode, colors: COLORS, isDark } = useTheme();
   const { language, setLanguage, t } = useLanguage();
   const styles = React.useMemo(() => createStyles(COLORS), [COLORS]);
+  const deleteAccountMutation = useDeleteAccount();
+
+  const handleDeleteAccount = () => {
+    Alert.alert(t('settings.deleteAccountConfirmTitle'), t('settings.deleteAccountConfirmBody'), [
+      { text: t('common.cancel'), style: 'cancel' },
+      {
+        text: t('settings.deleteAccountConfirmButton'),
+        style: 'destructive',
+        onPress: () => {
+          deleteAccountMutation.mutate(undefined, {
+            onError: (err) => {
+              const message = (err as { message?: string })?.message ?? t('common.somethingWentWrong');
+              Alert.alert(t('settings.deleteAccountFailedTitle'), message);
+            },
+          });
+        },
+      },
+    ]);
+  };
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
@@ -113,6 +133,26 @@ const SettingsScreen: React.FC<Props> = ({ navigation }) => {
             <Text style={styles.rowLabel}>EduSphere</Text>
             <Text style={styles.versionText}>v{APP_VERSION}</Text>
           </View>
+        </View>
+
+        {/* ---------------------------------------------------------- */}
+        {/* DANGER ZONE                                                 */}
+        {/* ---------------------------------------------------------- */}
+        <Text style={styles.sectionTitle}>{t('settings.dangerZone')}</Text>
+        <View style={styles.card}>
+          <TouchableOpacity
+            style={styles.row}
+            activeOpacity={0.7}
+            onPress={handleDeleteAccount}
+            disabled={deleteAccountMutation.isPending}
+          >
+            <View style={styles.dangerIconWrap}>
+              <Feather name="trash-2" size={16} color={COLORS.danger} />
+            </View>
+            <Text style={styles.dangerRowLabel}>
+              {deleteAccountMutation.isPending ? t('settings.deletingAccount') : t('settings.deleteAccount')}
+            </Text>
+          </TouchableOpacity>
         </View>
 
         <View style={{ height: 40 }} />
@@ -204,6 +244,21 @@ function createStyles(COLORS: ThemeColors) {
     versionText: {
       fontSize: 13,
       color: COLORS.textMuted,
+    },
+    dangerIconWrap: {
+      width: 32,
+      height: 32,
+      borderRadius: 10,
+      backgroundColor: COLORS.danger + '1A',
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginRight: 12,
+    },
+    dangerRowLabel: {
+      flex: 1,
+      fontSize: 14,
+      fontWeight: '600',
+      color: COLORS.danger,
     },
   });
 }

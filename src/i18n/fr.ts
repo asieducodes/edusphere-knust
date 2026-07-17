@@ -484,6 +484,13 @@ const fr: TranslationDictionary = {
       dark: 'Sombre',
       system: 'Système',
     },
+    dangerZone: 'Zone de danger',
+    deleteAccount: 'Supprimer le compte',
+    deleteAccountConfirmTitle: 'Supprimer votre compte ?',
+    deleteAccountConfirmBody: 'Cela supprime définitivement votre profil et vous déconnecte partout. Cette action est irréversible.',
+    deleteAccountConfirmButton: 'Supprimer',
+    deletingAccount: 'Suppression...',
+    deleteAccountFailedTitle: 'Impossible de supprimer le compte',
   },
   notifications: {
     title: 'Notifications',
