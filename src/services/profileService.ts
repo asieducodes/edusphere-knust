@@ -44,3 +44,14 @@ export async function deleteAccount(): Promise<ApiResponse<null>> {
   const response = await api.delete<ApiResponse<null>>('/profile/me');
   return response.data;
 }
+
+/** POST /profile/change-password — matches PrivacySecurityScreen. Server
+ *  verifies currentPassword by signing in with it before accepting the
+ *  change. */
+export async function changePassword(payload: {
+  currentPassword: string;
+  newPassword: string;
+}): Promise<ApiResponse<null>> {
+  const response = await api.post<ApiResponse<null>>('/profile/change-password', payload);
+  return response.data;
+}

@@ -82,3 +82,10 @@ export function useDeleteAccount() {
     onSuccess: () => logout(),
   });
 }
+
+export function useChangePassword() {
+  return useMutation({
+    mutationFn: (payload: { currentPassword: string; newPassword: string }) =>
+      profileService.changePassword(payload),
+  });
+}

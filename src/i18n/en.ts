@@ -246,7 +246,6 @@ const en = {
     passwordData: 'Password, data',
     helpSupport: 'Help & Support',
     faqsContactUs: 'FAQs, contact us',
-    sectionUnavailable: "This section isn't available yet.",
     logOut: 'Log Out',
     logOutConfirmTitle: 'Log Out',
     logOutConfirmBody: 'Are you sure you want to log out?',
@@ -470,11 +469,6 @@ const en = {
     studyInterests: 'Study Interests',
     skillsCanHelpWith: 'Skills / Can Help With',
     availability: 'Availability',
-    privacySettings: 'Privacy Settings',
-    showProfile: 'Show my profile to other students',
-    allowInvitations: 'Allow group invitations',
-    showRatings: 'Show my ratings',
-    allowStudyRequests: 'Allow direct study requests',
     saveChanges: 'Save Changes',
     enterFullNameBeforeSaving: 'Please enter your full name before saving.',
     selectOption: 'Select {label}',
@@ -556,6 +550,66 @@ const en = {
     leaveCall: 'Leave',
     waitingForOthers: "You're the only one here",
     participantsCount: '{count} in call',
+  },
+  privacySecurity: {
+    title: 'Privacy & Security',
+    loading: 'Loading...',
+    privacy: 'Privacy',
+    showProfile: 'Show my profile to other students',
+    allowInvitations: 'Allow group invitations',
+    showRatings: 'Show my ratings',
+    allowStudyRequests: 'Allow direct study requests',
+    updateFailedTitle: "Couldn't Update",
+    changePassword: 'Change Password',
+    currentPasswordLabel: 'Current Password',
+    newPasswordLabel: 'New Password',
+    confirmPasswordLabel: 'Confirm New Password',
+    passwordTooShort: 'Password must be at least 8 characters.',
+    passwordsDontMatch: "Passwords don't match.",
+    changePasswordButton: 'Change Password',
+    passwordChangedTitle: 'Password Changed',
+    passwordChangedBody: 'Your password has been updated.',
+  },
+  helpSupport: {
+    title: 'Help & Support',
+    faqTitle: 'Frequently Asked Questions',
+    contactTitle: 'Contact',
+    contactUs: 'Contact Us',
+    emailSubject: 'EduSphere Support Request',
+    noMailAppTitle: 'No Mail App Found',
+    noMailAppBody: 'Please email us directly at {email}.',
+    faq: {
+      joinGroup: {
+        question: 'How do I join a study group?',
+        answer:
+          'Go to the Groups tab, browse or search for a group by course code, and tap Join. Some groups are invite-only — ask a member to invite you if you can\'t join directly.',
+      },
+      uploadResource: {
+        question: 'How do I upload a resource?',
+        answer:
+          'From the Resources tab, tap the upload button, pick a file, and fill in the course and category. Uploaded resources are visible to everyone unless you attach them to a specific group.',
+      },
+      knustEmail: {
+        question: 'Why do I need a KNUST email to sign up?',
+        answer:
+          'EduSphere is built exclusively for KNUST students, so registration is restricted to @knust.edu.gh and @st.knust.edu.gh addresses. You\'ll get a verification email after signing up — click the link to activate your account.',
+      },
+      liveCall: {
+        question: 'How do live group calls work?',
+        answer:
+          "Open a group you're a member of and tap Join Call in the Group Actions section. You can toggle your mic and camera, flip between front and back camera, and leave at any time — everyone in the group can join the same call.",
+      },
+      languageTheme: {
+        question: 'Can I change the app language or switch to dark mode?',
+        answer:
+          'Yes — go to Settings from your Profile tab. You can choose Light, Dark, or System appearance, and switch the app language between English, Français, and Español.',
+      },
+      deleteAccount: {
+        question: 'How do I delete my account?',
+        answer:
+          'Go to Settings and scroll to the bottom. Deleting your account is permanent and signs you out everywhere — it cannot be undone.',
+      },
+    },
   },
 };
 

@@ -242,7 +242,6 @@ const es: TranslationDictionary = {
     passwordData: 'Contraseña, datos',
     helpSupport: 'Ayuda y soporte',
     faqsContactUs: 'Preguntas frecuentes, contáctanos',
-    sectionUnavailable: 'Esta sección aún no está disponible.',
     logOut: 'Cerrar sesión',
     logOutConfirmTitle: 'Cerrar sesión',
     logOutConfirmBody: '¿Seguro que quieres cerrar sesión?',
@@ -466,11 +465,6 @@ const es: TranslationDictionary = {
     studyInterests: 'Intereses de estudio',
     skillsCanHelpWith: 'Habilidades / Puede ayudar con',
     availability: 'Disponibilidad',
-    privacySettings: 'Configuración de privacidad',
-    showProfile: 'Mostrar mi perfil a otros estudiantes',
-    allowInvitations: 'Permitir invitaciones a grupos',
-    showRatings: 'Mostrar mis calificaciones',
-    allowStudyRequests: 'Permitir solicitudes de estudio directas',
     saveChanges: 'Guardar cambios',
     enterFullNameBeforeSaving: 'Ingresa tu nombre completo antes de guardar.',
     selectOption: 'Seleccionar {label}',
@@ -552,6 +546,66 @@ const es: TranslationDictionary = {
     leaveCall: 'Salir',
     waitingForOthers: 'Eres el único aquí',
     participantsCount: '{count} en la llamada',
+  },
+  privacySecurity: {
+    title: 'Privacidad y seguridad',
+    loading: 'Cargando...',
+    privacy: 'Privacidad',
+    showProfile: 'Mostrar mi perfil a otros estudiantes',
+    allowInvitations: 'Permitir invitaciones a grupos',
+    showRatings: 'Mostrar mis calificaciones',
+    allowStudyRequests: 'Permitir solicitudes de estudio directas',
+    updateFailedTitle: 'No se pudo actualizar',
+    changePassword: 'Cambiar contraseña',
+    currentPasswordLabel: 'Contraseña actual',
+    newPasswordLabel: 'Nueva contraseña',
+    confirmPasswordLabel: 'Confirmar nueva contraseña',
+    passwordTooShort: 'La contraseña debe tener al menos 8 caracteres.',
+    passwordsDontMatch: 'Las contraseñas no coinciden.',
+    changePasswordButton: 'Cambiar contraseña',
+    passwordChangedTitle: 'Contraseña actualizada',
+    passwordChangedBody: 'Tu contraseña ha sido actualizada.',
+  },
+  helpSupport: {
+    title: 'Ayuda y soporte',
+    faqTitle: 'Preguntas frecuentes',
+    contactTitle: 'Contacto',
+    contactUs: 'Contáctanos',
+    emailSubject: 'Solicitud de soporte de EduSphere',
+    noMailAppTitle: 'No se encontró aplicación de correo',
+    noMailAppBody: 'Por favor contáctanos directamente en {email}.',
+    faq: {
+      joinGroup: {
+        question: '¿Cómo me uno a un grupo de estudio?',
+        answer:
+          'Ve a la pestaña Grupos, busca un grupo por código de curso y toca Unirse. Algunos grupos son solo por invitación — pide a un miembro que te invite si no puedes unirte directamente.',
+      },
+      uploadResource: {
+        question: '¿Cómo subo un recurso?',
+        answer:
+          'Desde la pestaña Recursos, toca el botón de subir, elige un archivo y completa el curso y la categoría. Los recursos subidos son visibles para todos a menos que los asocies a un grupo específico.',
+      },
+      knustEmail: {
+        question: '¿Por qué necesito un correo de KNUST para registrarme?',
+        answer:
+          'EduSphere está diseñado exclusivamente para estudiantes de KNUST, por lo que el registro está restringido a direcciones @knust.edu.gh y @st.knust.edu.gh. Recibirás un correo de verificación después de registrarte — haz clic en el enlace para activar tu cuenta.',
+      },
+      liveCall: {
+        question: '¿Cómo funcionan las llamadas grupales en vivo?',
+        answer:
+          'Abre un grupo del que seas miembro y toca Unirse a la llamada en la sección Acciones del grupo. Puedes activar o desactivar tu micrófono y cámara, cambiar entre cámara frontal y trasera, y salir en cualquier momento — todos los miembros del grupo pueden unirse a la misma llamada.',
+      },
+      languageTheme: {
+        question: '¿Puedo cambiar el idioma de la app o activar el modo oscuro?',
+        answer:
+          'Sí — ve a Configuración desde tu pestaña de Perfil. Puedes elegir apariencia Clara, Oscura o del Sistema, y cambiar el idioma de la app entre English, Français y Español.',
+      },
+      deleteAccount: {
+        question: '¿Cómo elimino mi cuenta?',
+        answer:
+          'Ve a Configuración y desplázate hasta abajo. Eliminar tu cuenta es permanente y cierra tu sesión en todas partes — esta acción no se puede deshacer.',
+      },
+    },
   },
 };
 

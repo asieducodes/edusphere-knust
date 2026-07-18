@@ -242,7 +242,6 @@ const fr: TranslationDictionary = {
     passwordData: 'Mot de passe, données',
     helpSupport: 'Aide et support',
     faqsContactUs: 'FAQ, nous contacter',
-    sectionUnavailable: "Cette section n'est pas encore disponible.",
     logOut: 'Se déconnecter',
     logOutConfirmTitle: 'Se déconnecter',
     logOutConfirmBody: 'Voulez-vous vraiment vous déconnecter ?',
@@ -466,11 +465,6 @@ const fr: TranslationDictionary = {
     studyInterests: 'Centres d’intérêt',
     skillsCanHelpWith: 'Compétences / Peut aider avec',
     availability: 'Disponibilité',
-    privacySettings: 'Paramètres de confidentialité',
-    showProfile: 'Afficher mon profil aux autres étudiants',
-    allowInvitations: 'Autoriser les invitations de groupe',
-    showRatings: 'Afficher mes évaluations',
-    allowStudyRequests: 'Autoriser les demandes d’étude directes',
     saveChanges: 'Enregistrer les modifications',
     enterFullNameBeforeSaving: 'Veuillez entrer votre nom complet avant d’enregistrer.',
     selectOption: 'Sélectionner {label}',
@@ -552,6 +546,66 @@ const fr: TranslationDictionary = {
     leaveCall: 'Quitter',
     waitingForOthers: 'Vous êtes seul ici',
     participantsCount: '{count} en appel',
+  },
+  privacySecurity: {
+    title: 'Confidentialité et sécurité',
+    loading: 'Chargement...',
+    privacy: 'Confidentialité',
+    showProfile: 'Afficher mon profil aux autres étudiants',
+    allowInvitations: 'Autoriser les invitations de groupe',
+    showRatings: 'Afficher mes évaluations',
+    allowStudyRequests: 'Autoriser les demandes d’étude directes',
+    updateFailedTitle: 'Échec de la mise à jour',
+    changePassword: 'Changer le mot de passe',
+    currentPasswordLabel: 'Mot de passe actuel',
+    newPasswordLabel: 'Nouveau mot de passe',
+    confirmPasswordLabel: 'Confirmer le nouveau mot de passe',
+    passwordTooShort: 'Le mot de passe doit contenir au moins 8 caractères.',
+    passwordsDontMatch: 'Les mots de passe ne correspondent pas.',
+    changePasswordButton: 'Changer le mot de passe',
+    passwordChangedTitle: 'Mot de passe modifié',
+    passwordChangedBody: 'Votre mot de passe a été mis à jour.',
+  },
+  helpSupport: {
+    title: 'Aide et support',
+    faqTitle: 'Questions fréquentes',
+    contactTitle: 'Contact',
+    contactUs: 'Nous contacter',
+    emailSubject: 'Demande de support EduSphere',
+    noMailAppTitle: 'Aucune application de messagerie trouvée',
+    noMailAppBody: 'Veuillez nous contacter directement à {email}.',
+    faq: {
+      joinGroup: {
+        question: 'Comment puis-je rejoindre un groupe d’étude ?',
+        answer:
+          'Allez dans l’onglet Groupes, parcourez ou recherchez un groupe par code de cours, puis appuyez sur Rejoindre. Certains groupes sont sur invitation uniquement — demandez à un membre de vous inviter si vous ne pouvez pas rejoindre directement.',
+      },
+      uploadResource: {
+        question: 'Comment puis-je téléverser une ressource ?',
+        answer:
+          'Depuis l’onglet Ressources, appuyez sur le bouton de téléversement, choisissez un fichier, puis renseignez le cours et la catégorie. Les ressources téléversées sont visibles par tous, sauf si vous les associez à un groupe spécifique.',
+      },
+      knustEmail: {
+        question: 'Pourquoi ai-je besoin d’un e-mail KNUST pour m’inscrire ?',
+        answer:
+          'EduSphere est conçu exclusivement pour les étudiants du KNUST, l’inscription est donc réservée aux adresses @knust.edu.gh et @st.knust.edu.gh. Vous recevrez un e-mail de vérification après votre inscription — cliquez sur le lien pour activer votre compte.',
+      },
+      liveCall: {
+        question: 'Comment fonctionnent les appels de groupe en direct ?',
+        answer:
+          'Ouvrez un groupe dont vous êtes membre et appuyez sur Rejoindre l’appel dans la section Actions du groupe. Vous pouvez activer/désactiver votre micro et votre caméra, basculer entre la caméra avant et arrière, et quitter à tout moment — tous les membres du groupe peuvent rejoindre le même appel.',
+      },
+      languageTheme: {
+        question: 'Puis-je changer la langue de l’application ou passer en mode sombre ?',
+        answer:
+          'Oui — allez dans Paramètres depuis votre onglet Profil. Vous pouvez choisir l’apparence Claire, Sombre ou Système, et changer la langue de l’application entre English, Français et Español.',
+      },
+      deleteAccount: {
+        question: 'Comment puis-je supprimer mon compte ?',
+        answer:
+          'Allez dans Paramètres et faites défiler jusqu’en bas. La suppression de votre compte est définitive et vous déconnecte partout — elle ne peut pas être annulée.',
+      },
+    },
   },
 };
 

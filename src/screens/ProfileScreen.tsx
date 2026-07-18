@@ -116,7 +116,14 @@ const ProfileScreen: React.FC = () => {
       navigation.navigate("Notifications");
       return;
     }
-    Alert.alert(item.label, t('profile.sectionUnavailable'));
+    if (item.id === "mn5") {
+      navigation.navigate("PrivacySecurity");
+      return;
+    }
+    if (item.id === "mn6") {
+      navigation.navigate("HelpSupport");
+      return;
+    }
   };
 
   const handleLogOut = () => {

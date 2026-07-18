@@ -22,6 +22,8 @@ import GroupDetailsScreen from "../screens/GroupDetailsScreen";
 import PostDetailsScreen from "../screens/PostDetailsScreen";
 import SearchScreen from "../screens/SearchScreen";
 import SettingsScreen from "../screens/SettingsScreen";
+import PrivacySecurityScreen from "../screens/PrivacySecurityScreen";
+import HelpSupportScreen from "../screens/HelpSupportScreen";
 import CreateGroupScreen from "../screens/CreateGroupScreen";
 import ResourceDetailsScreen from "../screens/ResourceDetailsScreen";
 import UploadResourceScreen from "../screens/UploadResourceScreen";
@@ -42,6 +44,8 @@ const MainStackNavigator: React.FC = () => {
       <Stack.Screen name="PostDetails" component={PostDetailsScreen} />
       <Stack.Screen name="Search" component={SearchScreen} />
       <Stack.Screen name="Settings" component={SettingsScreen} />
+      <Stack.Screen name="PrivacySecurity" component={PrivacySecurityScreen} />
+      <Stack.Screen name="HelpSupport" component={HelpSupportScreen} />
       <Stack.Screen name="CreateGroup" component={CreateGroupScreen} />
       <Stack.Screen name="ResourceDetails" component={ResourceDetailsScreen} />
       <Stack.Screen name="UploadResource" component={UploadResourceScreen} />

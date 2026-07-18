@@ -17,7 +17,7 @@ import { ThemeColors } from '../theme/colors';
 import { useTheme } from '../context/ThemeContext';
 import { useLanguage } from '../context/LanguageContext';
 import { RootStackParamList } from '../navigation/types';
-import { ScreenHeader, AppTextInput, SelectableChip, SectionCard, ToggleRow, PrimaryButton, LoadingView, ErrorView } from '../components/common';
+import { ScreenHeader, AppTextInput, SelectableChip, SectionCard, PrimaryButton, LoadingView, ErrorView } from '../components/common';
 import { useMyProfile, useUpdateProfile, useUploadAvatar } from '../hooks/useProfile';
 import { useDepartments } from '../hooks/useCourses';
 import { PROGRAMME_OPTIONS, LEVEL_OPTIONS, PROGRAMME_TO_DEPARTMENT } from '../constants/academic';
@@ -83,11 +83,6 @@ const EditProfileScreen: React.FC<Props> = ({ navigation }) => {
   const [skills, setSkills] = useState<string[]>([]);
   const [availability, setAvailability] = useState<string[]>([]);
 
-  const [showProfile, setShowProfile] = useState(true);
-  const [allowInvitations, setAllowInvitations] = useState(true);
-  const [showRatings, setShowRatings] = useState(true);
-  const [allowStudyRequests, setAllowStudyRequests] = useState(false);
-
   const [submitted, setSubmitted] = useState(false);
   const [saved, setSaved] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
@@ -104,10 +99,6 @@ const EditProfileScreen: React.FC<Props> = ({ navigation }) => {
     interests: string[];
     skills: string[];
     availability: string[];
-    showProfile: boolean;
-    allowInvitations: boolean;
-    showRatings: boolean;
-    allowStudyRequests: boolean;
   } | null>(null);
 
   // Seeds the form from the fetched profile exactly once — a background
@@ -127,10 +118,6 @@ const EditProfileScreen: React.FC<Props> = ({ navigation }) => {
     setInterests(user.interests || []);
     setSkills(user.skills || []);
     setAvailability(user.availability || []);
-    setShowProfile(user.privacy?.showProfile ?? true);
-    setAllowInvitations(user.privacy?.allowGroupInvitations ?? true);
-    setShowRatings(user.privacy?.showRatings ?? true);
-    setAllowStudyRequests(user.privacy?.allowDirectStudyRequests ?? false);
 
     initial.current = {
       fullName: user.fullName,
@@ -138,10 +125,6 @@ const EditProfileScreen: React.FC<Props> = ({ navigation }) => {
       interests: user.interests || [],
       skills: user.skills || [],
       availability: user.availability || [],
-      showProfile: user.privacy?.showProfile ?? true,
-      allowInvitations: user.privacy?.allowGroupInvitations ?? true,
-      showRatings: user.privacy?.showRatings ?? true,
-      allowStudyRequests: user.privacy?.allowDirectStudyRequests ?? false,
     };
   }, [profileQuery.data]);
 
@@ -155,13 +138,9 @@ const EditProfileScreen: React.FC<Props> = ({ navigation }) => {
       bio !== base.bio ||
       JSON.stringify(interests) !== JSON.stringify(base.interests) ||
       JSON.stringify(skills) !== JSON.stringify(base.skills) ||
-      JSON.stringify(availability) !== JSON.stringify(base.availability) ||
-      showProfile !== base.showProfile ||
-      allowInvitations !== base.allowInvitations ||
-      showRatings !== base.showRatings ||
-      allowStudyRequests !== base.allowStudyRequests
+      JSON.stringify(availability) !== JSON.stringify(base.availability)
     );
-  }, [fullName, bio, interests, skills, availability, showProfile, allowInvitations, showRatings, allowStudyRequests]);
+  }, [fullName, bio, interests, skills, availability]);
 
   const toggleFromList = (list: string[], setList: (v: string[]) => void, value: string) => {
     setList(list.includes(value) ? list.filter((v) => v !== value) : [...list, value]);
@@ -248,12 +227,6 @@ const EditProfileScreen: React.FC<Props> = ({ navigation }) => {
         interests,
         skills,
         availability,
-        privacy: {
-          showProfile,
-          allowGroupInvitations: allowInvitations,
-          showRatings,
-          allowDirectStudyRequests: allowStudyRequests,
-        },
       },
       {
         onSuccess: () => {
@@ -475,32 +448,6 @@ const EditProfileScreen: React.FC<Props> = ({ navigation }) => {
               />
             ))}
           </View>
-        </SectionCard>
-
-        {/* ---------------------------------------------------------- */}
-        {/* PRIVACY SETTINGS                                            */}
-        {/* ---------------------------------------------------------- */}
-        <SectionCard title={t('editProfile.privacySettings')}>
-          <ToggleRow
-            icon="eye"
-            label={t('editProfile.showProfile')}
-            value={showProfile}
-            onValueChange={setShowProfile}
-          />
-          <ToggleRow
-            icon="user-plus"
-            label={t('editProfile.allowInvitations')}
-            value={allowInvitations}
-            onValueChange={setAllowInvitations}
-          />
-          <ToggleRow icon="star" label={t('editProfile.showRatings')} value={showRatings} onValueChange={setShowRatings} />
-          <ToggleRow
-            icon="message-circle"
-            label={t('editProfile.allowStudyRequests')}
-            value={allowStudyRequests}
-            onValueChange={setAllowStudyRequests}
-            isLast
-          />
         </SectionCard>
 
         {/* ---------------------------------------------------------- */}
