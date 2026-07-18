@@ -37,6 +37,7 @@ import {
   useRoomContext,
   useIsMuted,
   AudioSession,
+  AndroidAudioTypePresets,
 } from '@livekit/react-native';
 import { Track, ConnectionState, RoomEvent, DisconnectReason, Participant, LocalVideoTrack } from 'livekit-client';
 import type { TrackReferenceOrPlaceholder } from '@livekit/react-native';
@@ -104,7 +105,19 @@ const CallScreen: React.FC<Props> = ({ navigation, route }) => {
   }, []);
 
   useEffect(() => {
-    AudioSession.startAudioSession().catch(() => undefined);
+    // Relying on the native module's undocumented defaults left remote
+    // audio playback unreliable on some Android devices in testing (mic
+    // publish worked, but incoming audio didn't) — configuring explicitly,
+    // with forceHandleAudioRouting for the devices LiveKit's own docs call
+    // out as needing it regardless of audio mode.
+    AudioSession.configureAudio({
+      android: {
+        audioTypeOptions: { ...AndroidAudioTypePresets.communication, forceHandleAudioRouting: true },
+      },
+      ios: { defaultOutput: 'speaker' },
+    })
+      .then(() => AudioSession.startAudioSession())
+      .catch(() => undefined);
     return () => {
       AudioSession.stopAudioSession().catch(() => undefined);
     };
