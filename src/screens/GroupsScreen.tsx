@@ -201,14 +201,6 @@ const GroupsScreen: React.FC = () => {
               <Text style={styles.headerTitle}>{t('groups.title')}</Text>
               <Text style={styles.headerSubtitle}>{t('groups.subtitle')}</Text>
             </View>
-
-            <TouchableOpacity
-              style={styles.filterIconButton}
-              activeOpacity={0.7}
-              onPress={() => Alert.alert(t('groups.filtersTitle'), t('groups.filtersBody'))}
-            >
-              <Feather name="sliders" size={19} color={COLORS.textPrimary} />
-            </TouchableOpacity>
           </View>
         </View>
 
@@ -477,15 +469,6 @@ function createStyles(COLORS: ThemeColors) {
     fontSize: 14,
     color: COLORS.textSecondary,
     marginTop: 4,
-  },
-  filterIconButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: COLORS.card,
-    alignItems: 'center',
-    justifyContent: 'center',
-    ...SHADOW,
   },
 
   // ---------------- SEARCH BAR ----------------

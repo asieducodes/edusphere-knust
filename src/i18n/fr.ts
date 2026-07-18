@@ -140,8 +140,6 @@ const fr: TranslationDictionary = {
   groups: {
     title: 'Groupes d’étude',
     subtitle: 'Trouvez des groupes qui correspondent à vos cours',
-    filtersTitle: 'Filtres',
-    filtersBody: 'Les filtres avancés ne sont pas encore disponibles — utilisez les catégories ci-dessous.',
     searchPlaceholder: 'Rechercher des groupes, cours ou sujets...',
     loading: 'Chargement des groupes...',
     loadError: 'Impossible de charger les groupes.',

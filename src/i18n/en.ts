@@ -144,8 +144,6 @@ const en = {
   groups: {
     title: 'Study Groups',
     subtitle: 'Find groups that match your courses',
-    filtersTitle: 'Filters',
-    filtersBody: "Advanced filters aren't available yet — use the category chips below.",
     searchPlaceholder: 'Search groups, courses, or topics...',
     loading: 'Loading groups...',
     loadError: "Couldn't load groups.",
