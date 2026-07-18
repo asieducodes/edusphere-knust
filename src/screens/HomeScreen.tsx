@@ -34,6 +34,7 @@ import {
   RootStackParamList,
 } from "../navigation/types";
 import { useAuth } from "../context/AuthContext";
+import { useTabBarHeight } from "../navigation/useTabBarHeight";
 import { LoadingView, ErrorView } from "../components/common";
 import { useMyGroups, useRecommendedGroups } from "../hooks/useGroups";
 import { useResources } from "../hooks/useResources";
@@ -91,6 +92,7 @@ const HomeScreen: React.FC = () => {
   const { colors: COLORS, isDark } = useTheme();
   const { t } = useLanguage();
   const styles = React.useMemo(() => createStyles(COLORS), [COLORS]);
+  const tabBarHeight = useTabBarHeight();
 
   // ---- Small reusable pieces, defined here so they close over this
   // render's styles/COLORS instead of needing them threaded as props. ----
@@ -223,7 +225,7 @@ const HomeScreen: React.FC = () => {
 
       <ScrollView
         style={styles.container}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: tabBarHeight }]}
         showsVerticalScrollIndicator={false}
       >
         {/* ---------------------------------------------------------- */}

@@ -29,6 +29,7 @@ import { ThemeColors, SHADOW } from '../theme/colors';
 import { useTheme } from '../context/ThemeContext';
 import { useLanguage } from '../context/LanguageContext';
 import { MainTabParamList, RootStackParamList } from '../navigation/types';
+import { useTabBarHeight } from '../navigation/useTabBarHeight';
 import { LoadingView, ErrorView } from '../components/common';
 import { useMyGroups, useDiscoverGroups, useJoinGroup } from '../hooks/useGroups';
 import { Group } from '../types/group';
@@ -82,6 +83,7 @@ const GroupsScreen: React.FC = () => {
   const { colors: COLORS, isDark } = useTheme();
   const { t } = useLanguage();
   const styles = React.useMemo(() => createStyles(COLORS), [COLORS]);
+  const tabBarHeight = useTabBarHeight();
 
   // ---- Small reusable pieces, defined here so they close over this
   // render's styles/COLORS instead of needing them threaded as props. ----
@@ -187,7 +189,7 @@ const GroupsScreen: React.FC = () => {
 
       <ScrollView
         style={styles.container}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: tabBarHeight }]}
         showsVerticalScrollIndicator={false}
       >
         {/* ---------------------------------------------------------- */}

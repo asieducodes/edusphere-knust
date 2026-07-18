@@ -43,6 +43,7 @@ import type { DimensionValue } from "react-native";
 import { ThemeColors, SHADOW } from "../theme/colors";
 import { useTheme } from "../context/ThemeContext";
 import { useLanguage } from "../context/LanguageContext";
+import { useTabBarHeight } from "../navigation/useTabBarHeight";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
@@ -201,6 +202,7 @@ const MapScreen: React.FC = () => {
   const { colors: COLORS, isDark } = useTheme();
   const { t } = useLanguage();
   const styles = React.useMemo(() => createStyles(COLORS), [COLORS]);
+  const tabBarHeight = useTabBarHeight();
 
   // Status chip visual mapping
   const STATUS_STYLES: Record<StatusType, { bg: string; color: string }> = {
@@ -394,7 +396,7 @@ const MapScreen: React.FC = () => {
 
       <ScrollView
         style={styles.container}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: tabBarHeight }]}
         showsVerticalScrollIndicator={false}
       >
         {/* ---------------------------------------------------------- */}
