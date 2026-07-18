@@ -355,7 +355,6 @@ const en = {
     visibility: 'Visibility',
     downloadResource: 'Download Resource',
     preview: 'Preview',
-    previewUnavailable: "Previewing this resource isn't available yet.",
     relatedResources: 'Related Resources',
     studentFeedback: 'Student Feedback',
     ratingBy: '{rating}/5 • By {name}',
@@ -608,6 +607,11 @@ const en = {
           'Go to Settings and scroll to the bottom. Deleting your account is permanent and signs you out everywhere — it cannot be undone.',
       },
     },
+  },
+  resourcePreview: {
+    title: 'Preview',
+    loading: 'Loading preview...',
+    previewFailed: "Couldn't load this preview.",
   },
 };
 

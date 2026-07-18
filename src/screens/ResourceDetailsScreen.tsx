@@ -261,13 +261,15 @@ const ResourceDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
           <PrimaryButton label={t('resourceDetails.downloadResource')} onPress={handleDownload} icon="download" />
           <View style={{ height: 10 }} />
           <View style={styles.actionsRow}>
-            <View style={{ flex: 1 }}>
-              <SecondaryButton
-                label={t('resourceDetails.preview')}
-                onPress={() => Alert.alert(t('resourceDetails.preview'), t('resourceDetails.previewUnavailable'))}
-                icon="eye"
-              />
-            </View>
+            {resource.fileType === 'PDF' && (
+              <View style={{ flex: 1 }}>
+                <SecondaryButton
+                  label={t('resourceDetails.preview')}
+                  onPress={() => navigation.navigate('ResourcePreview', { resourceId: resource.id })}
+                  icon="eye"
+                />
+              </View>
+            )}
             <TouchableOpacity
               style={styles.iconActionButton}
               activeOpacity={0.85}

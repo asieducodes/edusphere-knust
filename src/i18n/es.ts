@@ -351,7 +351,6 @@ const es: TranslationDictionary = {
     visibility: 'Visibilidad',
     downloadResource: 'Descargar recurso',
     preview: 'Vista previa',
-    previewUnavailable: 'La vista previa de este recurso aún no está disponible.',
     relatedResources: 'Recursos relacionados',
     studentFeedback: 'Comentarios de estudiantes',
     ratingBy: '{rating}/5 • por {name}',
@@ -604,6 +603,11 @@ const es: TranslationDictionary = {
           'Ve a Configuración y desplázate hasta abajo. Eliminar tu cuenta es permanente y cierra tu sesión en todas partes — esta acción no se puede deshacer.',
       },
     },
+  },
+  resourcePreview: {
+    title: 'Vista previa',
+    loading: 'Cargando vista previa...',
+    previewFailed: 'No se pudo cargar la vista previa.',
   },
 };
 

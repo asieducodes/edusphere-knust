@@ -351,7 +351,6 @@ const fr: TranslationDictionary = {
     visibility: 'Visibilité',
     downloadResource: 'Télécharger la ressource',
     preview: 'Aperçu',
-    previewUnavailable: "L'aperçu de cette ressource n'est pas encore disponible.",
     relatedResources: 'Ressources liées',
     studentFeedback: 'Avis des étudiants',
     ratingBy: '{rating}/5 • par {name}',
@@ -604,6 +603,11 @@ const fr: TranslationDictionary = {
           'Allez dans Paramètres et faites défiler jusqu’en bas. La suppression de votre compte est définitive et vous déconnecte partout — elle ne peut pas être annulée.',
       },
     },
+  },
+  resourcePreview: {
+    title: 'Aperçu',
+    loading: 'Chargement de l’aperçu...',
+    previewFailed: "Impossible de charger cet aperçu.",
   },
 };
 

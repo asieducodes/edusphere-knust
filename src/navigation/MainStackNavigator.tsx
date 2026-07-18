@@ -26,6 +26,7 @@ import PrivacySecurityScreen from "../screens/PrivacySecurityScreen";
 import HelpSupportScreen from "../screens/HelpSupportScreen";
 import CreateGroupScreen from "../screens/CreateGroupScreen";
 import ResourceDetailsScreen from "../screens/ResourceDetailsScreen";
+import ResourcePreviewScreen from "../screens/ResourcePreviewScreen";
 import UploadResourceScreen from "../screens/UploadResourceScreen";
 import EditProfileScreen from "../screens/EditProfileScreen";
 import NotificationsScreen from "../screens/NotificationsScreen";
@@ -48,6 +49,7 @@ const MainStackNavigator: React.FC = () => {
       <Stack.Screen name="HelpSupport" component={HelpSupportScreen} />
       <Stack.Screen name="CreateGroup" component={CreateGroupScreen} />
       <Stack.Screen name="ResourceDetails" component={ResourceDetailsScreen} />
+      <Stack.Screen name="ResourcePreview" component={ResourcePreviewScreen} />
       <Stack.Screen name="UploadResource" component={UploadResourceScreen} />
       <Stack.Screen name="EditProfile" component={EditProfileScreen} />
       <Stack.Screen name="Notifications" component={NotificationsScreen} />

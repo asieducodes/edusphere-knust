@@ -52,6 +52,7 @@ export type MainStackParamList = {
   HelpSupport: undefined;
   CreateGroup: undefined;
   ResourceDetails: { resourceId: string };
+  ResourcePreview: { resourceId: string };
   UploadResource: undefined;
   EditProfile: undefined;
   Notifications: undefined;
