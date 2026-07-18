@@ -27,7 +27,7 @@
  * -----------------------------------------------------------------------
  */
 
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   View,
   Text,
@@ -161,8 +161,17 @@ const LogoEmblem: React.FC = () => (
 // MAIN COMPONENT
 // -----------------------------------------------------------------------
 const SplashScreen: React.FC<Props> = ({ navigation }) => {
-  const { isAuthenticated, isEmailVerified, pendingEmail } = useAuth();
+  const { isAuthenticated, isEmailVerified, isLoading, pendingEmail } = useAuth();
   const { t } = useLanguage();
+
+  // The branded entrance (logo/name/tagline/badge/dots) always plays out
+  // in full — this just tracks when it's had its minimum ~2s on screen.
+  // The actual exit is gated on this AND on the real auth check finishing
+  // (isLoading), not on a fixed timer alone: if the cold-start session
+  // check is still in flight past 2s, the dots keep looping instead of
+  // the screen navigating away prematurely.
+  const [minTimeElapsed, setMinTimeElapsed] = useState(false);
+  const hasExitedRef = useRef(false);
 
   // ---- Animated values ------------------------------------------------
   // Kept in refs so they're created once and persist across re-renders.
@@ -317,40 +326,16 @@ const SplashScreen: React.FC<Props> = ({ navigation }) => {
     dot2Loop.start();
     dot3Loop.start();
 
-    // ---- Exit + navigate. Fires at 2.0s, fades the whole page out over
-    // 300ms, then navigates once fully faded — landing at ~2.3s total,
-    // inside the requested 2–2.5s window.
-    const exitTimer = setTimeout(() => {
-      Animated.timing(pageOpacity, {
-        toValue: 0,
-        duration: 300,
-        easing: Easing.in(Easing.ease),
-        useNativeDriver: true,
-      }).start(() => {
-        // Only two branches are actually reachable here: RootNavigator
-        // only mounts AuthStack (and therefore this screen) when
-        // `isAuthenticated && isEmailVerified` is false — so the "logged
-        // in and verified → MainTabs" case is handled structurally by
-        // RootNavigator swapping to MainStackNavigator, not by a
-        // navigate() call from here (MainTabs isn't part of this stack's
-        // tree at all).
-        if (!isAuthenticated) {
-          navigation.replace("Login");
-        } else {
-          // isAuthenticated is true but isEmailVerified is false — student
-          // has an account but hasn't confirmed their email yet.
-          navigation.replace("EmailVerification", {
-            email: pendingEmail ?? "",
-          });
-        }
-      });
-    }, 2000);
+    // ---- Minimum on-screen time. The actual exit (fade + navigate) is
+    // handled by a separate effect below, gated on this AND isLoading —
+    // this timer alone no longer decides when the screen leaves.
+    const minTimeTimer = setTimeout(() => setMinTimeElapsed(true), 2000);
 
     // ---- Cleanup: stop every loop and the pending timer if this screen
     // unmounts early for any reason, so nothing keeps animating in the
     // background or fires a navigation call after unmount.
     return () => {
-      clearTimeout(exitTimer);
+      clearTimeout(minTimeTimer);
       float1Loop.stop();
       float2Loop.stop();
       dot1Loop.stop();
@@ -358,7 +343,39 @@ const SplashScreen: React.FC<Props> = ({ navigation }) => {
       dot3Loop.stop();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [navigation, isAuthenticated, isEmailVerified, pendingEmail]);
+  }, []);
+
+  // ---- Exit + navigate, once the branding has had its minimum time on
+  // screen AND the real cold-start auth check has actually resolved — so
+  // the loading dots keep pulsing for as long as isLoading is true, rather
+  // than the screen navigating away before we actually know where to.
+  useEffect(() => {
+    if (!minTimeElapsed || isLoading || hasExitedRef.current) return;
+    hasExitedRef.current = true;
+
+    Animated.timing(pageOpacity, {
+      toValue: 0,
+      duration: 300,
+      easing: Easing.in(Easing.ease),
+      useNativeDriver: true,
+    }).start(() => {
+      if (isAuthenticated && isEmailVerified) {
+        // RootNavigator swaps AuthStack for MainStackNavigator on its own
+        // once isLoading/isAuthenticated/isEmailVerified settle — nothing
+        // to navigate to here, this whole stack is about to unmount.
+        return;
+      }
+      if (!isAuthenticated) {
+        navigation.replace("Login");
+      } else {
+        // isAuthenticated is true but isEmailVerified is false — student
+        // has an account but hasn't confirmed their email yet.
+        navigation.replace("EmailVerification", {
+          email: pendingEmail ?? "",
+        });
+      }
+    });
+  }, [minTimeElapsed, isLoading, isAuthenticated, isEmailVerified, pendingEmail, navigation, pageOpacity]);
 
   // Combined logo scale = entrance scale × pulse scale, so the same
   // transform smoothly carries from "growing in" straight into "breathing"

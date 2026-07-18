@@ -15,12 +15,10 @@
  */
 
 import React from "react";
-import { View, ActivityIndicator, StyleSheet } from "react-native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { useAuth } from "../context/AuthContext";
 import AuthStackNavigator from "./AuthStackNavigator";
 import MainStackNavigator from "./MainStackNavigator";
-import { COLORS } from "../theme/colors";
 
 // This top-level switch doesn't need typed route params — each branch is
 // a full component with no params of its own, and screens never navigate
@@ -28,27 +26,18 @@ import { COLORS } from "../theme/colors";
 // which one is mounted, not a navigate() call).
 const Stack = createNativeStackNavigator();
 
-/** Shown only while AuthContext resolves the cold-start session check
- *  (typically well under a second). Matches SplashScreen's brand color so
- *  the transition into AuthStack's own Splash screen is seamless. */
-const LoadingGate: React.FC = () => (
-  <View style={styles.loadingGate}>
-    <ActivityIndicator color={COLORS.white} size="large" />
-  </View>
-);
-
 const RootNavigator: React.FC = () => {
   const { isAuthenticated, isEmailVerified, isLoading } = useAuth();
 
-  if (isLoading) {
-    return <LoadingGate />;
-  }
-
-  // Only fully authenticated + verified students see the main app.
-  // Everyone else — logged out, or logged in but still pending email
-  // verification — sees AuthStack, which internally starts at Splash and
-  // routes to the right screen (see SplashScreen.tsx).
-  const showMainApp = isAuthenticated && isEmailVerified;
+  // While AuthContext resolves the cold-start session check, AuthStack
+  // (and therefore its own branded, animated SplashScreen) is what's on
+  // screen — there's no separate blue loading screen in front of it.
+  // SplashScreen itself watches isLoading and holds its loading dots
+  // running until the check resolves, only then navigating onward.
+  // Only fully authenticated + verified students see the main app;
+  // everyone else — logged out, or logged in but still pending email
+  // verification — sees AuthStack.
+  const showMainApp = !isLoading && isAuthenticated && isEmailVerified;
 
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
@@ -60,14 +49,5 @@ const RootNavigator: React.FC = () => {
     </Stack.Navigator>
   );
 };
-
-const styles = StyleSheet.create({
-  loadingGate: {
-    flex: 1,
-    backgroundColor: COLORS.primary,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-});
 
 export default RootNavigator;
