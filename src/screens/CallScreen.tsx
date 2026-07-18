@@ -38,7 +38,7 @@ import {
   useIsMuted,
   AudioSession,
 } from '@livekit/react-native';
-import { Track, ConnectionState, RoomEvent, DisconnectReason, Participant } from 'livekit-client';
+import { Track, ConnectionState, RoomEvent, DisconnectReason, Participant, LocalVideoTrack } from 'livekit-client';
 import type { TrackReferenceOrPlaceholder } from '@livekit/react-native';
 import { ThemeColors } from '../theme/colors';
 import { useTheme } from '../context/ThemeContext';
@@ -202,7 +202,9 @@ const CallRoomContent: React.FC<CallRoomContentProps> = ({ styles, COLORS, t, on
   const connectionState = useConnectionState();
   const participants = useParticipants();
   const cameraTracks = useTracks([Track.Source.Camera]);
-  const { isMicrophoneEnabled, isCameraEnabled, localParticipant } = useLocalParticipant();
+  const { isMicrophoneEnabled, isCameraEnabled, localParticipant, cameraTrack } = useLocalParticipant();
+  const [facingMode, setFacingMode] = useState<'user' | 'environment'>('user');
+  const [isFlippingCamera, setIsFlippingCamera] = useState(false);
 
   useEffect(() => {
     const handleDisconnected = (reason?: DisconnectReason) => {
@@ -226,6 +228,21 @@ const CallRoomContent: React.FC<CallRoomContentProps> = ({ styles, COLORS, t, on
   const handleLeave = () => {
     room.disconnect().catch(() => undefined);
     onLeave();
+  };
+
+  const handleFlipCamera = async () => {
+    const videoTrack = cameraTrack?.videoTrack;
+    if (!videoTrack || isFlippingCamera) return;
+    const nextFacingMode = facingMode === 'user' ? 'environment' : 'user';
+    setIsFlippingCamera(true);
+    try {
+      await (videoTrack as LocalVideoTrack).restartTrack({ facingMode: nextFacingMode });
+      setFacingMode(nextFacingMode);
+    } catch {
+      // Some devices only expose one camera — leave facingMode as-is.
+    } finally {
+      setIsFlippingCamera(false);
+    }
   };
 
   return (
@@ -279,6 +296,16 @@ const CallRoomContent: React.FC<CallRoomContentProps> = ({ styles, COLORS, t, on
         >
           <Feather name={isCameraEnabled ? 'video' : 'video-off'} size={22} color={COLORS.white} />
         </TouchableOpacity>
+        {isCameraEnabled && (
+          <TouchableOpacity
+            style={styles.controlButton}
+            activeOpacity={0.85}
+            disabled={isFlippingCamera}
+            onPress={handleFlipCamera}
+          >
+            <Feather name="refresh-cw" size={22} color={COLORS.white} />
+          </TouchableOpacity>
+        )}
         <TouchableOpacity style={styles.leaveButton} activeOpacity={0.85} onPress={handleLeave}>
           <Feather name="phone-off" size={22} color={COLORS.white} />
         </TouchableOpacity>
