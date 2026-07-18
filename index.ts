@@ -1,3 +1,5 @@
+import './src/livekitGlobals';
+
 import { registerRootComponent } from 'expo';
 
 import App from './App';
