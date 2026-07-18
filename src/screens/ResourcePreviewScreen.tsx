@@ -1,18 +1,17 @@
 /**
  * EduSphere — screens/ResourcePreviewScreen.tsx
  * -----------------------------------------------------------------------
- * In-app PDF preview via WebView, reached from ResourceDetailsScreen's
- * "Preview" button (PDF only — see that screen for why DOCX/PPTX/ZIP
- * don't get a Preview button: no document-conversion service exists here,
- * and a plain WebView can't render those formats).
+ * In-app PDF preview, opened from ResourceDetailsScreen's Preview button.
+ * PDF only — DOCX/PPTX/ZIP can't be rendered by a plain WebView and we
+ * don't have a document-conversion service, so those just keep Download.
  *
- * Uses the resource's fileUrl straight off the regular GET /resources/:id
- * fetch, not the /download endpoint — that endpoint increments
- * downloads_count server-side, which previewing shouldn't do.
+ * Pulls fileUrl off the normal GET /resources/:id response rather than
+ * hitting /download, since that endpoint bumps downloads_count and a
+ * preview isn't a download.
  *
- * Android's native WebView doesn't render PDFs directly (unlike iOS's
- * WKWebView, which does) — routed through Google's public viewer for
- * Android specifically, a well-established workaround for exactly this.
+ * Android's WebView won't render a PDF on its own the way iOS's WKWebView
+ * does, so Android routes through Google's viewer instead — the usual
+ * workaround for this.
  * -----------------------------------------------------------------------
  */
 

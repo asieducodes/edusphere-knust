@@ -1,13 +1,11 @@
 /**
  * EduSphere — screens/CallScreen.tsx
  * -----------------------------------------------------------------------
- * Live group voice/video room (LiveKit) — one persistent room per group,
- * reached from GroupDetailsScreen's "Join Call" action. Fetches a scoped
- * token from callService on mount, then renders the LiveKit room: video
- * tiles for every participant, mic/camera toggles, a reconnect banner,
- * and a distinct "removed from call" state when the disconnect reason is
- * PARTICIPANT_REMOVED (the frontend counterpart to group.service.ts's
- * removeMember/leaveGroup calling RoomServiceClient.removeParticipant).
+ * One persistent LiveKit room per group, opened from GroupDetailsScreen's
+ * "Join Call" button. Grabs a scoped token on mount, then renders the
+ * room itself — video tiles, mic/camera toggles, a reconnect banner, and
+ * a dedicated "removed from call" screen for when someone gets kicked
+ * (mirrors group.service.ts's removeMember/leaveGroup on the backend).
  * -----------------------------------------------------------------------
  */
 
@@ -105,11 +103,9 @@ const CallScreen: React.FC<Props> = ({ navigation, route }) => {
   }, []);
 
   useEffect(() => {
-    // Relying on the native module's undocumented defaults left remote
-    // audio playback unreliable on some Android devices in testing (mic
-    // publish worked, but incoming audio didn't) — configuring explicitly,
-    // with forceHandleAudioRouting for the devices LiveKit's own docs call
-    // out as needing it regardless of audio mode.
+    // Leaving this to the native module's defaults meant mic worked but
+    // incoming audio sometimes didn't on Android — forceHandleAudioRouting
+    // is LiveKit's own fix for exactly that.
     AudioSession.configureAudio({
       android: {
         audioTypeOptions: { ...AndroidAudioTypePresets.communication, forceHandleAudioRouting: true },

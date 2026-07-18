@@ -47,10 +47,9 @@ function invalidateResourceLists(queryClient: ReturnType<typeof useQueryClient>)
   queryClient.invalidateQueries({ queryKey: ['resources'] });
 }
 
-// Save/unsave should feel instant — the bookmark icon flipping color is
-// the whole point of the interaction, so it can't wait on a network
-// round-trip. Patches every cached list AND the single-resource query in
-// place; onError below rolls this back if the request actually fails.
+// The bookmark icon flipping color IS the interaction, so it can't wait
+// on a round-trip. Patches every cached list plus the single-resource
+// query directly; onError rolls it back if the request actually fails.
 function applyOptimisticSaveState(queryClient: QueryClient, resourceId: string, isSaved: boolean) {
   const delta = isSaved ? 1 : -1;
 

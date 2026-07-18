@@ -1,8 +1,8 @@
 /**
  * EduSphere — services/reportService.ts
  * -----------------------------------------------------------------------
- * Wraps /reports endpoints — matches ResourceDetailsScreen's
- * "Report Resource" button (currently a placeholder with no action).
+ * Wraps /reports endpoints — matches ResourceDetailsScreen's and
+ * GroupDetailsScreen's "Report" actions.
  * -----------------------------------------------------------------------
  */
 

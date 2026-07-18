@@ -4,9 +4,8 @@
  * Wraps /ratings endpoints — matches the star ratings shown throughout
  * the app (Group cards, ProfileScreen's stat row, Recommended Groups).
  *
- * NOTE: no dedicated types/rating.ts was in the requested type-file list,
- * so the Rating/CreateRatingPayload shapes are kept local to this file
- * rather than adding an extra file for two small interfaces.
+ * Rating/CreateRatingPayload live here instead of their own types file —
+ * two small interfaces don't earn one.
  * -----------------------------------------------------------------------
  */
 

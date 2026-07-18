@@ -29,14 +29,11 @@ const Stack = createNativeStackNavigator();
 const RootNavigator: React.FC = () => {
   const { isAuthenticated, isEmailVerified, isLoading } = useAuth();
 
-  // While AuthContext resolves the cold-start session check, AuthStack
-  // (and therefore its own branded, animated SplashScreen) is what's on
-  // screen — there's no separate blue loading screen in front of it.
-  // SplashScreen itself watches isLoading and holds its loading dots
-  // running until the check resolves, only then navigating onward.
-  // Only fully authenticated + verified students see the main app;
-  // everyone else — logged out, or logged in but still pending email
-  // verification — sees AuthStack.
+  // AuthStack (and its own branded SplashScreen) is what shows while
+  // AuthContext resolves the cold-start session check — no separate
+  // loading screen in front of it. Splash itself watches isLoading and
+  // keeps its dots going until that resolves. Only fully authenticated +
+  // verified students see the main app; everyone else sees AuthStack.
   const showMainApp = !isLoading && isAuthenticated && isEmailVerified;
 
   return (

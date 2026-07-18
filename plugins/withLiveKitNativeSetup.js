@@ -1,17 +1,13 @@
 /**
  * EduSphere — plugins/withLiveKitNativeSetup.js
  * -----------------------------------------------------------------------
- * @livekit/react-native requires a one-line native setup call
- * (LiveKitReactNative.setup(...)) in MainApplication.kt / AppDelegate.swift
- * before any other React Native init — see its README. Neither
- * @livekit/react-native-expo-plugin nor the native module itself does
- * this automatically (confirmed by reading LiveKitReactNative.kt: it
- * throws "Did you remember to call LiveKitReactNative.setup..." if
- * skipped, and the Expo plugin's own source only writes optional
- * AndroidManifest/Info.plist flags, never this call). Since this is a
- * managed/CNG project, android/ios aren't committed and get regenerated
- * on every prebuild — so this has to be a config plugin, not a one-off
- * manual edit, or it would silently disappear on the next prebuild.
+ * @livekit/react-native needs LiveKitReactNative.setup(...) called once
+ * in MainApplication.kt / AppDelegate.swift before RN initializes, per
+ * its README — skip it and it throws at runtime. Neither the library nor
+ * @livekit/react-native-expo-plugin adds this call for you (the Expo
+ * plugin only writes manifest/plist flags). Since android/ios aren't
+ * committed here and get regenerated on every prebuild, a manual edit
+ * would just vanish next time — has to be a config plugin.
  * -----------------------------------------------------------------------
  */
 const { withAppDelegate, withMainApplication } = require('@expo/config-plugins');

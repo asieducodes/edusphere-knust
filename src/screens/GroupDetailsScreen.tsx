@@ -49,6 +49,7 @@ import {
 } from '../hooks/useGroups';
 import { useResources } from '../hooks/useResources';
 import { useCreateReport } from '../hooks/useReports';
+import { useCreateRating } from '../hooks/useRatings';
 import { useCallParticipantCount } from '../hooks/useCall';
 import { useAuth } from '../context/AuthContext';
 import { GroupMember } from '../types/group';
@@ -150,7 +151,7 @@ const GroupDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
   );
 
 
-  const [activeModal, setActiveModal] = useState<'discussion' | 'session' | 'invite' | null>(null);
+  const [activeModal, setActiveModal] = useState<'discussion' | 'session' | 'invite' | 'rating' | null>(null);
   const [modalError, setModalError] = useState<string | null>(null);
 
   const [discussionTitle, setDiscussionTitle] = useState('');
@@ -161,6 +162,8 @@ const GroupDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
   const [sessionEndTime, setSessionEndTime] = useState('');
   const [sessionLocation, setSessionLocation] = useState('');
   const [inviteEmail, setInviteEmail] = useState('');
+  const [ratingScore, setRatingScore] = useState(0);
+  const [ratingComment, setRatingComment] = useState('');
 
   const groupQuery = useGroup(groupId);
   const group = groupQuery.data;
@@ -178,6 +181,7 @@ const GroupDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
   const inviteMutation = useInviteMember(groupId);
   const removeMemberMutation = useRemoveMember(groupId);
   const reportMutation = useCreateReport();
+  const rateGroupMutation = useCreateRating(groupId);
   const { user } = useAuth();
 
   useFocusEffect(
@@ -278,7 +282,7 @@ const GroupDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
   };
 
   const isModalSubmitting =
-    createPostMutation.isPending || createSessionMutation.isPending || inviteMutation.isPending;
+    createPostMutation.isPending || createSessionMutation.isPending || inviteMutation.isPending || rateGroupMutation.isPending;
 
   const handleSubmitDiscussion = () => {
     if (!discussionTitle.trim()) {
@@ -340,6 +344,25 @@ const GroupDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
           setInviteEmail('');
           closeModal();
           Alert.alert(t('groupDetails.inviteSent'), t('groupDetails.inviteSentBody'));
+        },
+        onError: (err) => setModalError((err as { message?: string })?.message ?? t('common.somethingWentWrong')),
+      }
+    );
+  };
+
+  const handleSubmitRating = () => {
+    if (ratingScore < 1) {
+      setModalError(t('groupDetails.ratingRequired'));
+      return;
+    }
+    setModalError(null);
+    rateGroupMutation.mutate(
+      { targetType: 'group', targetId: groupId, score: ratingScore, comment: ratingComment.trim() || undefined },
+      {
+        onSuccess: () => {
+          setRatingScore(0);
+          setRatingComment('');
+          closeModal();
         },
         onError: (err) => setModalError((err as { message?: string })?.message ?? t('common.somethingWentWrong')),
       }
@@ -757,6 +780,17 @@ const GroupDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
                   ) : null}
                 </View>
               </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.secondaryActionCard}
+                activeOpacity={0.85}
+                onPress={() => setActiveModal('rating')}
+              >
+                <View style={styles.secondaryActionIconWrap}>
+                  <Feather name="star" size={18} color={COLORS.primary} />
+                </View>
+                <Text style={styles.secondaryActionLabel}>{t('groupDetails.rateGroup')}</Text>
+              </TouchableOpacity>
             </View>
           </>
         )}
@@ -802,6 +836,34 @@ const GroupDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
         />
         {modalError ? <Text style={styles.modalErrorText}>{modalError}</Text> : null}
         <PrimaryButton label={t('groupDetails.sendInvite')} onPress={handleSubmitInvite} loading={isModalSubmitting} />
+      </ActionModal>
+
+      <ActionModal visible={activeModal === 'rating'} title={t('groupDetails.rateGroup')} onClose={closeModal}>
+        <View style={styles.starPickerRow}>
+          {[1, 2, 3, 4, 5].map((value) => (
+            <TouchableOpacity
+              key={value}
+              onPress={() => setRatingScore(value)}
+              hitSlop={{ top: 8, bottom: 8, left: 6, right: 6 }}
+            >
+              <Feather
+                name="star"
+                size={32}
+                color={value <= ratingScore ? COLORS.star : COLORS.border}
+                style={value < 5 ? { marginRight: 8 } : undefined}
+              />
+            </TouchableOpacity>
+          ))}
+        </View>
+        <AppTextInput
+          label={t('groupDetails.ratingCommentLabel')}
+          value={ratingComment}
+          onChangeText={setRatingComment}
+          placeholder={t('groupDetails.ratingCommentPlaceholder')}
+          multiline
+        />
+        {modalError ? <Text style={styles.modalErrorText}>{modalError}</Text> : null}
+        <PrimaryButton label={t('groupDetails.submitRating')} onPress={handleSubmitRating} loading={isModalSubmitting} />
       </ActionModal>
     </SafeAreaView>
   );
@@ -1321,6 +1383,10 @@ function createStyles(COLORS: ThemeColors) {
     fontSize: 12,
     color: COLORS.danger,
     marginBottom: 12,
+  },
+  starPickerRow: {
+    flexDirection: 'row',
+    marginBottom: 16,
   },
   });
 }

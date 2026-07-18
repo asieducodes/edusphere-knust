@@ -1,10 +1,8 @@
 /**
  * EduSphere — types/course.ts
  * -----------------------------------------------------------------------
- * NOTE: this file wasn't in the requested type-file list, but
- * courseService.ts (which was requested) needs Department/Course shapes
- * to exist somewhere — adding a small dedicated file for them is cleaner
- * than bundling unrelated types into user.ts or group.ts.
+ * Department/Course shapes for courseService.ts — split out here instead
+ * of getting bundled into user.ts or group.ts, where they don't belong.
  * -----------------------------------------------------------------------
  */
 

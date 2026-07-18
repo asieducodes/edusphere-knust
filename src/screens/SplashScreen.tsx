@@ -164,12 +164,10 @@ const SplashScreen: React.FC<Props> = ({ navigation }) => {
   const { isAuthenticated, isEmailVerified, isLoading, pendingEmail } = useAuth();
   const { t } = useLanguage();
 
-  // The branded entrance (logo/name/tagline/badge/dots) always plays out
-  // in full — this just tracks when it's had its minimum ~2s on screen.
-  // The actual exit is gated on this AND on the real auth check finishing
-  // (isLoading), not on a fixed timer alone: if the cold-start session
-  // check is still in flight past 2s, the dots keep looping instead of
-  // the screen navigating away prematurely.
+  // The entrance animation always plays out in full — this just tracks
+  // whether it's hit its ~2s minimum yet. Exiting waits on this AND
+  // isLoading, so if the session check runs long the dots just keep
+  // looping instead of the screen bailing early.
   const [minTimeElapsed, setMinTimeElapsed] = useState(false);
   const hasExitedRef = useRef(false);
 
@@ -326,9 +324,8 @@ const SplashScreen: React.FC<Props> = ({ navigation }) => {
     dot2Loop.start();
     dot3Loop.start();
 
-    // ---- Minimum on-screen time. The actual exit (fade + navigate) is
-    // handled by a separate effect below, gated on this AND isLoading —
-    // this timer alone no longer decides when the screen leaves.
+    // Just tracks the minimum on-screen time now — the exit effect below
+    // decides when to actually leave, gated on this AND isLoading.
     const minTimeTimer = setTimeout(() => setMinTimeElapsed(true), 2000);
 
     // ---- Cleanup: stop every loop and the pending timer if this screen
@@ -345,10 +342,8 @@ const SplashScreen: React.FC<Props> = ({ navigation }) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // ---- Exit + navigate, once the branding has had its minimum time on
-  // screen AND the real cold-start auth check has actually resolved — so
-  // the loading dots keep pulsing for as long as isLoading is true, rather
-  // than the screen navigating away before we actually know where to.
+  // ---- Exit once the branding's had its minimum time on screen AND the
+  // auth check has resolved — otherwise we'd navigate before knowing where to.
   useEffect(() => {
     if (!minTimeElapsed || isLoading || hasExitedRef.current) return;
     hasExitedRef.current = true;
@@ -360,16 +355,13 @@ const SplashScreen: React.FC<Props> = ({ navigation }) => {
       useNativeDriver: true,
     }).start(() => {
       if (isAuthenticated && isEmailVerified) {
-        // RootNavigator swaps AuthStack for MainStackNavigator on its own
-        // once isLoading/isAuthenticated/isEmailVerified settle — nothing
-        // to navigate to here, this whole stack is about to unmount.
+        // nothing to do — RootNavigator swaps this whole stack out on its own
         return;
       }
       if (!isAuthenticated) {
         navigation.replace("Login");
       } else {
-        // isAuthenticated is true but isEmailVerified is false — student
-        // has an account but hasn't confirmed their email yet.
+        // logged in but hasn't confirmed their email yet
         navigation.replace("EmailVerification", {
           email: pendingEmail ?? "",
         });

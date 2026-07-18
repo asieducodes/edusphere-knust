@@ -162,9 +162,8 @@ const EditProfileScreen: React.FC<Props> = ({ navigation }) => {
   const handleSelectAcademicOption = (option: string) => {
     if (activeDropdown === 'programme') {
       setProgramme(option);
-      // Department is fully derived from the chosen programme — not a
-      // separately pickable field — so students can't set a department
-      // that doesn't match their programme.
+      // department follows programme now, not pickable on its own —
+      // stops students from picking a mismatched department
       const matchedDeptName = PROGRAMME_TO_DEPARTMENT[option];
       const matchedDept = matchedDeptName ? departments.find((d) => d.name === matchedDeptName) : undefined;
       setDepartmentId(matchedDept?.id ?? null);

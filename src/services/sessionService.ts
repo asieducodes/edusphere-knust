@@ -2,8 +2,8 @@
  * EduSphere — services/sessionService.ts
  * -----------------------------------------------------------------------
  * Wraps every /sessions endpoint — matches HomeScreen's "Upcoming
- * Sessions" and GroupDetailsScreen's "Upcoming Session" card + the
- * (currently placeholder) "Schedule Session" action.
+ * Sessions", GroupDetailsScreen's "Upcoming Session" card, and its
+ * "Schedule Session" action.
  * -----------------------------------------------------------------------
  */
 

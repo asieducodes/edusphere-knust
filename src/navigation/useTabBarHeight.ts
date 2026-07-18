@@ -1,14 +1,12 @@
 /**
  * EduSphere — navigation/useTabBarHeight.ts
  * -----------------------------------------------------------------------
- * CustomTabBar is absolutely-positioned and floats over screen content
- * (a plain Tab.Navigator custom `tabBar` render prop doesn't reserve space
- * for it automatically) — so every tab screen's scrollable content needs
- * its own bottom clearance to keep the last item from sitting behind it.
- * BASE_HEIGHT mirrors CustomTabBar's fixed content: paddingTop 10 + icon
- * 22 + label marginTop 4 + label line ~13 + the bar's own design
- * paddingBottom 22. The safe-area inset is added on top since it varies
- * by device (see CustomTabBar's own use of it for the same reason).
+ * CustomTabBar floats over screen content (a custom `tabBar` render prop
+ * doesn't get any space reserved for it automatically), so every tab
+ * screen needs its own bottom padding to keep the last item clear of it.
+ * BASE_HEIGHT adds up CustomTabBar's own fixed content — paddingTop 10 +
+ * icon 22 + label margin 4 + label line ~13 + paddingBottom 22 — and the
+ * safe-area inset gets added on top since that varies by device.
  * -----------------------------------------------------------------------
  */
 

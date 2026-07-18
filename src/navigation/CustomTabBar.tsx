@@ -94,12 +94,10 @@ function createStyles(COLORS: ThemeColors, insetBottom: number) {
       right: 0,
       backgroundColor: COLORS.card,
       paddingTop: 10,
-      // 22 is the intended breathing room above the tab labels on a
-      // device with no system nav bar; insetBottom (the Android
-      // gesture/3-button bar height, or the iOS home indicator) is added
-      // on top rather than replacing it, since its height varies widely
-      // across devices and was previously not accounted for at all —
-      // the bar sat flush against, and got covered by, the system nav bar.
+      // 22 is the breathing room we actually want above the labels;
+      // insetBottom (the nav bar / home indicator) stacks on top of that
+      // instead of replacing it — this used to be ignored entirely, so
+      // the tab bar sat flush against and got covered by the system bar.
       paddingBottom: 22 + insetBottom,
       borderTopLeftRadius: 24,
       borderTopRightRadius: 24,

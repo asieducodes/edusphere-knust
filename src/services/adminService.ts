@@ -1,15 +1,11 @@
 /**
  * EduSphere — services/adminService.ts
  * -----------------------------------------------------------------------
- * Wraps every /admin endpoint. No screens currently call this (there's
- * no admin UI built yet), but the service layer is ready for whenever
- * an admin dashboard is added.
+ * Wraps every /admin endpoint. No screens call this yet — no admin UI
+ * exists — but the service layer is ready whenever one gets built.
  *
- * NOTE: no dedicated admin type file was in the requested list, so the
- * handful of admin-specific shapes (DashboardStats, AdminUser, etc.) are
- * kept local to this file rather than adding a types/admin.ts for a
- * screen that doesn't exist yet — easy to promote into its own file
- * later if the admin UI grows.
+ * DashboardStats/AdminUser etc. live here rather than in their own
+ * types/admin.ts for now; easy to split out later if the admin UI grows.
  * -----------------------------------------------------------------------
  */
 
