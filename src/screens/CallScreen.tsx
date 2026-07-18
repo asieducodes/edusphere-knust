@@ -50,6 +50,15 @@ import { CallToken } from '../types/call';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Call'>;
 
+function initialsOf(name: string): string {
+  return name
+    .split(' ')
+    .map((p) => p[0])
+    .join('')
+    .slice(0, 2)
+    .toUpperCase();
+}
+
 async function requestAndroidCallPermissions(): Promise<boolean> {
   if (Platform.OS !== 'android') return true;
   const results = await PermissionsAndroid.requestMultiple([
@@ -336,7 +345,7 @@ const ParticipantTile: React.FC<{
         <VideoTrack trackRef={trackRef} style={styles.tileVideo} objectFit="cover" mirror={mirror} />
       ) : (
         <View style={styles.tileAvatarWrap}>
-          <Text style={styles.tileAvatarInitial}>{participant.name?.[0]?.toUpperCase() ?? '?'}</Text>
+          <Text style={styles.tileAvatarInitial}>{initialsOf(participant.name || participant.identity)}</Text>
         </View>
       )}
       <View style={styles.tileNameRow}>
