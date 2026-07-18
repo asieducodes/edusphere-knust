@@ -47,7 +47,8 @@
       "expo-secure-store",
       "@livekit/react-native-expo-plugin",
       "@config-plugins/react-native-webrtc",
-      "./plugins/withLiveKitNativeSetup.js"
+      "./plugins/withLiveKitNativeSetup.js",
+      "./plugins/withApkFileName.js"
     ],
     "extra": {
       "eas": {
