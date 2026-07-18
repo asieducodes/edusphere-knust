@@ -270,6 +270,7 @@ const CallRoomContent: React.FC<CallRoomContentProps> = ({ styles, COLORS, t, on
           <ParticipantTile
             participant={item}
             trackRef={cameraTrackByIdentity.get(item.identity)}
+            mirror={item.identity === localParticipant.identity && facingMode === 'user'}
             styles={styles}
             COLORS={COLORS}
           />
@@ -320,9 +321,10 @@ const CallRoomContent: React.FC<CallRoomContentProps> = ({ styles, COLORS, t, on
 const ParticipantTile: React.FC<{
   participant: Participant;
   trackRef: TrackReferenceOrPlaceholder | undefined;
+  mirror: boolean;
   styles: ReturnType<typeof createStyles>;
   COLORS: ThemeColors;
-}> = ({ participant, trackRef, styles, COLORS }) => {
+}> = ({ participant, trackRef, mirror, styles, COLORS }) => {
   const isMuted = useIsMuted(
     trackRef ?? { participant, source: Track.Source.Microphone }
   );
@@ -331,7 +333,7 @@ const ParticipantTile: React.FC<{
   return (
     <View style={styles.tile}>
       {hasVideo ? (
-        <VideoTrack trackRef={trackRef} style={styles.tileVideo} objectFit="cover" />
+        <VideoTrack trackRef={trackRef} style={styles.tileVideo} objectFit="cover" mirror={mirror} />
       ) : (
         <View style={styles.tileAvatarWrap}>
           <Text style={styles.tileAvatarInitial}>{participant.name?.[0]?.toUpperCase() ?? '?'}</Text>
