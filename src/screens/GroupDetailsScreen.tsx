@@ -49,6 +49,7 @@ import {
 } from '../hooks/useGroups';
 import { useResources } from '../hooks/useResources';
 import { useCreateReport } from '../hooks/useReports';
+import { useCallParticipantCount } from '../hooks/useCall';
 import { useAuth } from '../context/AuthContext';
 import { GroupMember } from '../types/group';
 import { Resource } from '../types/resource';
@@ -168,6 +169,7 @@ const GroupDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
   const membersQuery = useGroupMembers(groupId, !!group?.isJoined);
   const sessionsQuery = useGroupSessions(groupId, !!group?.isJoined);
   const resourcesQuery = useResources({ groupId });
+  const callParticipantsQuery = useCallParticipantCount(groupId, !!group?.isJoined);
 
   const joinMutation = useJoinGroup();
   const leaveMutation = useLeaveGroup();
@@ -737,6 +739,24 @@ const GroupDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
                 </View>
                 <Text style={styles.secondaryActionLabel}>{t('groupDetails.inviteMember')}</Text>
               </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.secondaryActionCard}
+                activeOpacity={0.85}
+                onPress={() => navigation.navigate('Call', { groupId })}
+              >
+                <View style={styles.secondaryActionIconWrap}>
+                  <Feather name="video" size={18} color={COLORS.primary} />
+                </View>
+                <View style={{ flexShrink: 1 }}>
+                  <Text style={styles.secondaryActionLabel}>{t('groupDetails.joinCall')}</Text>
+                  {callParticipantsQuery.data && callParticipantsQuery.data.count > 0 ? (
+                    <Text style={styles.secondaryActionSubLabel}>
+                      {t('groupDetails.inCallCount', { count: callParticipantsQuery.data.count })}
+                    </Text>
+                  ) : null}
+                </View>
+              </TouchableOpacity>
             </View>
           </>
         )}
@@ -1214,6 +1234,12 @@ function createStyles(COLORS: ThemeColors) {
     fontWeight: '600',
     color: COLORS.textPrimary,
     flexShrink: 1,
+  },
+  secondaryActionSubLabel: {
+    fontSize: 10.5,
+    fontWeight: '600',
+    color: COLORS.success,
+    marginTop: 2,
   },
 
   // ---------------- EMPTY STATE (reusable) ----------------

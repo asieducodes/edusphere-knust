@@ -58,6 +58,7 @@ export type MainStackParamList = {
    *  list screen), and there's no single-notification GET endpoint, so
    *  refetching would add a round trip for no benefit. */
   NotificationDetail: { notification: AppNotification };
+  Call: { groupId: string };
 };
 
 /** Backward-compatible alias — screens written before this Auth/Main
