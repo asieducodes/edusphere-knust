@@ -9,6 +9,7 @@
 
 import React, { useMemo } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { ThemeColors } from '../theme/colors';
@@ -38,7 +39,8 @@ const TAB_LABEL_KEYS: Record<string, string> = {
 const CustomTabBar: React.FC<BottomTabBarProps> = ({ state, navigation }) => {
   const { colors } = useTheme();
   const { t } = useLanguage();
-  const styles = useMemo(() => createStyles(colors), [colors]);
+  const insets = useSafeAreaInsets();
+  const styles = useMemo(() => createStyles(colors, insets.bottom), [colors, insets.bottom]);
 
   return (
     <View style={styles.bottomNav}>
@@ -82,7 +84,7 @@ const CustomTabBar: React.FC<BottomTabBarProps> = ({ state, navigation }) => {
 
 export default CustomTabBar;
 
-function createStyles(COLORS: ThemeColors) {
+function createStyles(COLORS: ThemeColors, insetBottom: number) {
   return StyleSheet.create({
     bottomNav: {
       flexDirection: 'row',
@@ -92,7 +94,13 @@ function createStyles(COLORS: ThemeColors) {
       right: 0,
       backgroundColor: COLORS.card,
       paddingTop: 10,
-      paddingBottom: 22,
+      // 22 is the intended breathing room above the tab labels on a
+      // device with no system nav bar; insetBottom (the Android
+      // gesture/3-button bar height, or the iOS home indicator) is added
+      // on top rather than replacing it, since its height varies widely
+      // across devices and was previously not accounted for at all —
+      // the bar sat flush against, and got covered by, the system nav bar.
+      paddingBottom: 22 + insetBottom,
       borderTopLeftRadius: 24,
       borderTopRightRadius: 24,
       shadowColor: '#1B1F3B',
