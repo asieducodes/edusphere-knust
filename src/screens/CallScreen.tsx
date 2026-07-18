@@ -275,29 +275,45 @@ const CallRoomContent: React.FC<CallRoomContentProps> = ({ styles, COLORS, t, on
         </View>
       )}
 
-      <FlatList
-        data={participants}
-        keyExtractor={(p) => p.identity}
-        numColumns={2}
-        contentContainerStyle={styles.tilesGrid}
-        ListHeaderComponent={
-          participants.length === 1 ? (
-            <View style={styles.waitingBanner}>
-              <Feather name="users" size={14} color={COLORS.textMuted} />
-              <Text style={styles.waitingText}>{t('call.waitingForOthers')}</Text>
-            </View>
-          ) : null
-        }
-        renderItem={({ item }) => (
-          <ParticipantTile
-            participant={item}
-            trackRef={cameraTrackByIdentity.get(item.identity)}
-            mirror={item.identity === localParticipant.identity && facingMode === 'user'}
-            styles={styles}
-            COLORS={COLORS}
-          />
-        )}
-      />
+      {participants.length === 2 ? (
+        <View style={styles.stackedContainer}>
+          {participants.map((p) => (
+            <ParticipantTile
+              key={p.identity}
+              participant={p}
+              trackRef={cameraTrackByIdentity.get(p.identity)}
+              mirror={p.identity === localParticipant.identity && facingMode === 'user'}
+              fullBleed
+              styles={styles}
+              COLORS={COLORS}
+            />
+          ))}
+        </View>
+      ) : (
+        <FlatList
+          data={participants}
+          keyExtractor={(p) => p.identity}
+          numColumns={2}
+          contentContainerStyle={styles.tilesGrid}
+          ListHeaderComponent={
+            participants.length === 1 ? (
+              <View style={styles.waitingBanner}>
+                <Feather name="users" size={14} color={COLORS.textMuted} />
+                <Text style={styles.waitingText}>{t('call.waitingForOthers')}</Text>
+              </View>
+            ) : null
+          }
+          renderItem={({ item }) => (
+            <ParticipantTile
+              participant={item}
+              trackRef={cameraTrackByIdentity.get(item.identity)}
+              mirror={item.identity === localParticipant.identity && facingMode === 'user'}
+              styles={styles}
+              COLORS={COLORS}
+            />
+          )}
+        />
+      )}
 
       <View style={styles.participantCountBadge}>
         <Feather name="users" size={12} color={COLORS.white} />
@@ -344,16 +360,17 @@ const ParticipantTile: React.FC<{
   participant: Participant;
   trackRef: TrackReferenceOrPlaceholder | undefined;
   mirror: boolean;
+  fullBleed?: boolean;
   styles: ReturnType<typeof createStyles>;
   COLORS: ThemeColors;
-}> = ({ participant, trackRef, mirror, styles, COLORS }) => {
+}> = ({ participant, trackRef, mirror, fullBleed, styles, COLORS }) => {
   const isMuted = useIsMuted(
     trackRef ?? { participant, source: Track.Source.Microphone }
   );
   const hasVideo = trackRef && trackRef.publication;
 
   return (
-    <View style={styles.tile}>
+    <View style={[styles.tile, fullBleed && styles.tileFullBleed]}>
       {hasVideo ? (
         <VideoTrack trackRef={trackRef} style={styles.tileVideo} objectFit="cover" mirror={mirror} />
       ) : (
@@ -463,6 +480,10 @@ function createStyles(COLORS: ThemeColors) {
     tilesGrid: {
       padding: 8,
     },
+    stackedContainer: {
+      flex: 1,
+      flexDirection: 'column',
+    },
     tile: {
       flex: 1,
       aspectRatio: 3 / 4,
@@ -471,6 +492,11 @@ function createStyles(COLORS: ThemeColors) {
       overflow: 'hidden',
       backgroundColor: '#191B22',
       justifyContent: 'flex-end',
+    },
+    tileFullBleed: {
+      aspectRatio: undefined,
+      margin: 0,
+      borderRadius: 0,
     },
     tileVideo: {
       ...StyleSheet.absoluteFillObject,
