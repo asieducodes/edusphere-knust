@@ -5,11 +5,12 @@
  * -----------------------------------------------------------------------
  */
 
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient, QueryClient } from '@tanstack/react-query';
 import * as resourceService from '../services/resourceService';
 import { UploadProgressEvent } from '../services/resourceService';
 import { queryKeys } from '../lib/queryClient';
-import { CreateReviewPayload, ResourceQueryParams, UploadResourcePayload } from '../types/resource';
+import { CreateReviewPayload, Resource, ResourceQueryParams, UploadResourcePayload } from '../types/resource';
+import { PaginatedData } from '../types/api';
 
 export function useResources(params: ResourceQueryParams, enabled = true) {
   return useQuery({
@@ -46,6 +47,28 @@ function invalidateResourceLists(queryClient: ReturnType<typeof useQueryClient>)
   queryClient.invalidateQueries({ queryKey: ['resources'] });
 }
 
+// Save/unsave should feel instant — the bookmark icon flipping color is
+// the whole point of the interaction, so it can't wait on a network
+// round-trip. Patches every cached list AND the single-resource query in
+// place; onError below rolls this back if the request actually fails.
+function applyOptimisticSaveState(queryClient: QueryClient, resourceId: string, isSaved: boolean) {
+  const delta = isSaved ? 1 : -1;
+
+  queryClient.setQueriesData<PaginatedData<Resource>>({ queryKey: ['resources'] }, (old) => {
+    if (!old || !Array.isArray(old.items)) return old;
+    return {
+      ...old,
+      items: old.items.map((item) =>
+        item.id === resourceId ? { ...item, isSaved, savesCount: Math.max(0, item.savesCount + delta) } : item
+      ),
+    };
+  });
+
+  queryClient.setQueryData<Resource>(queryKeys.resource(resourceId), (old) =>
+    old ? { ...old, isSaved, savesCount: Math.max(0, old.savesCount + delta) } : old
+  );
+}
+
 export function useUploadResource() {
   const queryClient = useQueryClient();
   return useMutation({
@@ -67,7 +90,16 @@ export function useSaveResource() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (resourceId: string) => resourceService.saveResource(resourceId),
-    onSuccess: () => {
+    onMutate: async (resourceId) => {
+      await queryClient.cancelQueries({ queryKey: ['resources'] });
+      const previous = queryClient.getQueriesData({ queryKey: ['resources'] });
+      applyOptimisticSaveState(queryClient, resourceId, true);
+      return { previous };
+    },
+    onError: (_err, _resourceId, context) => {
+      context?.previous.forEach(([key, data]) => queryClient.setQueryData(key, data));
+    },
+    onSettled: () => {
       invalidateResourceLists(queryClient);
       queryClient.invalidateQueries({ queryKey: queryKeys.profileStats });
     },
@@ -78,7 +110,16 @@ export function useUnsaveResource() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (resourceId: string) => resourceService.unsaveResource(resourceId),
-    onSuccess: () => {
+    onMutate: async (resourceId) => {
+      await queryClient.cancelQueries({ queryKey: ['resources'] });
+      const previous = queryClient.getQueriesData({ queryKey: ['resources'] });
+      applyOptimisticSaveState(queryClient, resourceId, false);
+      return { previous };
+    },
+    onError: (_err, _resourceId, context) => {
+      context?.previous.forEach(([key, data]) => queryClient.setQueryData(key, data));
+    },
+    onSettled: () => {
       invalidateResourceLists(queryClient);
       queryClient.invalidateQueries({ queryKey: queryKeys.profileStats });
     },
