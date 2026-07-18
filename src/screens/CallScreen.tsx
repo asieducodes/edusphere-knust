@@ -236,27 +236,28 @@ const CallRoomContent: React.FC<CallRoomContentProps> = ({ styles, COLORS, t, on
         </View>
       )}
 
-      {participants.length === 1 ? (
-        <View style={styles.centerState}>
-          <Feather name="users" size={28} color={COLORS.textMuted} />
-          <Text style={styles.waitingText}>{t('call.waitingForOthers')}</Text>
-        </View>
-      ) : (
-        <FlatList
-          data={participants}
-          keyExtractor={(p) => p.identity}
-          numColumns={2}
-          contentContainerStyle={styles.tilesGrid}
-          renderItem={({ item }) => (
-            <ParticipantTile
-              participant={item}
-              trackRef={cameraTrackByIdentity.get(item.identity)}
-              styles={styles}
-              COLORS={COLORS}
-            />
-          )}
-        />
-      )}
+      <FlatList
+        data={participants}
+        keyExtractor={(p) => p.identity}
+        numColumns={2}
+        contentContainerStyle={styles.tilesGrid}
+        ListHeaderComponent={
+          participants.length === 1 ? (
+            <View style={styles.waitingBanner}>
+              <Feather name="users" size={14} color={COLORS.textMuted} />
+              <Text style={styles.waitingText}>{t('call.waitingForOthers')}</Text>
+            </View>
+          ) : null
+        }
+        renderItem={({ item }) => (
+          <ParticipantTile
+            participant={item}
+            trackRef={cameraTrackByIdentity.get(item.identity)}
+            styles={styles}
+            COLORS={COLORS}
+          />
+        )}
+      />
 
       <View style={styles.participantCountBadge}>
         <Feather name="users" size={12} color={COLORS.white} />
@@ -362,10 +363,16 @@ function createStyles(COLORS: ThemeColors) {
       lineHeight: 19,
       marginBottom: 24,
     },
+    waitingBanner: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingVertical: 14,
+    },
     waitingText: {
       fontSize: 13.5,
       color: '#9CA3AF',
-      marginTop: 10,
+      marginLeft: 8,
     },
     primaryButton: {
       backgroundColor: COLORS.primary,
