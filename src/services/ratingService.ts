@@ -24,6 +24,12 @@ export interface Rating {
   createdAt: string;
 }
 
+/** What the list endpoints return — a Rating plus who left it. */
+export interface RatingWithRater extends Rating {
+  raterName: string;
+  raterAvatarUrl: string | null;
+}
+
 export interface CreateRatingPayload {
   targetType: RatingTargetType;
   targetId: string;
@@ -37,21 +43,20 @@ export async function createRating(payload: CreateRatingPayload): Promise<ApiRes
   return response.data;
 }
 
-/** GET /users/:userId/ratings — matches ProfileScreen's "Rating" stat. */
+/** GET /users/:userId/ratings — the reviews list on MemberProfileScreen. */
 export async function getUserRatings(
   userId: string,
   params?: PaginationParams
-): Promise<ApiResponse<PaginatedData<Rating>>> {
-  const response = await api.get<ApiResponse<PaginatedData<Rating>>>(`/users/${userId}/ratings`, { params });
+): Promise<ApiResponse<PaginatedData<RatingWithRater>>> {
+  const response = await api.get<ApiResponse<PaginatedData<RatingWithRater>>>(`/users/${userId}/ratings`, { params });
   return response.data;
 }
 
-/** GET /groups/:groupId/ratings — matches the star rating shown on
- *  group cards and GroupDetailsScreen's hero card. */
+/** GET /groups/:groupId/ratings — the reviews list on GroupDetailsScreen. */
 export async function getGroupRatings(
   groupId: string,
   params?: PaginationParams
-): Promise<ApiResponse<PaginatedData<Rating>>> {
-  const response = await api.get<ApiResponse<PaginatedData<Rating>>>(`/groups/${groupId}/ratings`, { params });
+): Promise<ApiResponse<PaginatedData<RatingWithRater>>> {
+  const response = await api.get<ApiResponse<PaginatedData<RatingWithRater>>>(`/groups/${groupId}/ratings`, { params });
   return response.data;
 }

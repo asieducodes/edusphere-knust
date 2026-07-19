@@ -17,11 +17,32 @@ import { useTheme } from '../context/ThemeContext';
 import { useLanguage } from '../context/LanguageContext';
 import { useAuth } from '../context/AuthContext';
 import { RootStackParamList } from '../navigation/types';
-import { ScreenHeader, SectionCard, InfoRow, PrimaryButton, AppTextInput, LoadingView, ErrorView } from '../components/common';
+import { ScreenHeader, SectionCard, InfoRow, PrimaryButton, AppTextInput, LoadingView, ErrorView, EmptyState } from '../components/common';
 import { useUserProfile } from '../hooks/useUsers';
-import { useCreateRating } from '../hooks/useRatings';
+import { useCreateRating, useUserRatings } from '../hooks/useRatings';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'MemberProfile'>;
+
+function relativeTime(iso: string, t: (path: string, options?: Record<string, string | number>) => string): string {
+  const then = new Date(iso).getTime();
+  const diffMs = Date.now() - then;
+  const minutes = Math.floor(diffMs / 60000);
+  if (minutes < 1) return t('notifications.justNow');
+  if (minutes < 60) return t('notifications.minutesAgo', { count: minutes });
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return t('notifications.hoursAgo', { count: hours });
+  const days = Math.floor(hours / 24);
+  return t('notifications.daysAgo', { count: days });
+}
+
+function initialsOf(name: string): string {
+  return name
+    .split(' ')
+    .map((p) => p[0])
+    .join('')
+    .slice(0, 2)
+    .toUpperCase();
+}
 
 const MemberProfileScreen: React.FC<Props> = ({ navigation, route }) => {
   const { userId } = route.params;
@@ -31,6 +52,7 @@ const MemberProfileScreen: React.FC<Props> = ({ navigation, route }) => {
   const { user: viewer } = useAuth();
 
   const profileQuery = useUserProfile(userId);
+  const ratingsQuery = useUserRatings(userId);
   const rateMutation = useCreateRating();
 
   const [ratingModalVisible, setRatingModalVisible] = useState(false);
@@ -167,6 +189,49 @@ const MemberProfileScreen: React.FC<Props> = ({ navigation, route }) => {
             </View>
           </SectionCard>
         )}
+
+        <SectionCard title={t('memberProfile.reviews')}>
+          {ratingsQuery.isLoading ? (
+            <LoadingView message={t('memberProfile.loadingReviews')} />
+          ) : (ratingsQuery.data?.items.length ?? 0) > 0 ? (
+            ratingsQuery.data!.items.map((review, index) => (
+              <View
+                key={review.id}
+                style={[styles.reviewRow, index !== ratingsQuery.data!.items.length - 1 && styles.reviewRowDivider]}
+              >
+                <View style={styles.reviewAvatarCircle}>
+                  {review.raterAvatarUrl ? (
+                    <Image source={{ uri: review.raterAvatarUrl }} style={styles.reviewAvatarImage} />
+                  ) : (
+                    <Text style={styles.reviewAvatarInitials}>{initialsOf(review.raterName)}</Text>
+                  )}
+                </View>
+                <View style={styles.reviewBody}>
+                  <View style={styles.reviewHeaderRow}>
+                    <Text style={styles.reviewerName} numberOfLines={1}>
+                      {review.raterName}
+                    </Text>
+                    <View style={styles.reviewStarsRow}>
+                      {[1, 2, 3, 4, 5].map((value) => (
+                        <Feather
+                          key={value}
+                          name="star"
+                          size={11}
+                          color={value <= review.score ? COLORS.star : COLORS.border}
+                          style={value < 5 ? { marginRight: 1 } : undefined}
+                        />
+                      ))}
+                    </View>
+                  </View>
+                  {review.comment ? <Text style={styles.reviewComment}>{review.comment}</Text> : null}
+                  <Text style={styles.reviewTimestamp}>{relativeTime(review.createdAt, t)}</Text>
+                </View>
+              </View>
+            ))
+          ) : (
+            <EmptyState icon="star" title={t('memberProfile.noReviewsYet')} subtitle={t('memberProfile.noReviewsYetSubtitle')} />
+          )}
+        </SectionCard>
 
         {!isOwnProfile && (
           <View style={styles.rateButtonWrap}>
@@ -324,6 +389,64 @@ function createStyles(COLORS: ThemeColors) {
     rateButtonWrap: {
       paddingHorizontal: H_PADDING,
       marginTop: 8,
+    },
+
+    // ---------------- Reviews ----------------
+    reviewRow: {
+      flexDirection: 'row',
+      paddingVertical: 12,
+    },
+    reviewRowDivider: {
+      borderBottomWidth: 1,
+      borderBottomColor: COLORS.border,
+    },
+    reviewAvatarCircle: {
+      width: 36,
+      height: 36,
+      borderRadius: 18,
+      backgroundColor: COLORS.primaryLight,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginRight: 12,
+      overflow: 'hidden',
+    },
+    reviewAvatarImage: {
+      width: 36,
+      height: 36,
+    },
+    reviewAvatarInitials: {
+      fontSize: 13,
+      fontWeight: '700',
+      color: COLORS.primary,
+    },
+    reviewBody: {
+      flex: 1,
+    },
+    reviewHeaderRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginBottom: 3,
+    },
+    reviewerName: {
+      fontSize: 13,
+      fontWeight: '700',
+      color: COLORS.textPrimary,
+      flexShrink: 1,
+      marginRight: 8,
+    },
+    reviewStarsRow: {
+      flexDirection: 'row',
+    },
+    reviewComment: {
+      fontSize: 12.5,
+      color: COLORS.textSecondary,
+      lineHeight: 18,
+      marginBottom: 4,
+    },
+    reviewTimestamp: {
+      fontSize: 11,
+      color: COLORS.textMuted,
     },
 
     // ---------------- Rating modal ----------------

@@ -25,6 +25,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   Share,
+  Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather, Ionicons } from '@expo/vector-icons';
@@ -34,7 +35,7 @@ import { ThemeColors, SHADOW } from '../theme/colors';
 import { useTheme } from '../context/ThemeContext';
 import { useLanguage } from '../context/LanguageContext';
 import { RootStackParamList } from '../navigation/types';
-import { LoadingView, ErrorView, AppTextInput, PrimaryButton } from '../components/common';
+import { LoadingView, ErrorView, AppTextInput, PrimaryButton, EmptyState } from '../components/common';
 import {
   useGroup,
   useGroupPosts,
@@ -49,7 +50,7 @@ import {
 } from '../hooks/useGroups';
 import { useResources } from '../hooks/useResources';
 import { useCreateReport } from '../hooks/useReports';
-import { useCreateRating } from '../hooks/useRatings';
+import { useCreateRating, useGroupRatings } from '../hooks/useRatings';
 import { useCallParticipantCount } from '../hooks/useCall';
 import { useAuth } from '../context/AuthContext';
 import { GroupMember } from '../types/group';
@@ -66,6 +67,27 @@ const FILE_TYPE_STYLES: Record<Resource['fileType'], { bg: string; color: string
 
 function courseCodeToBadge(courseCode: string): string {
   return courseCode.split(' ')[0]?.slice(0, 2).toUpperCase() || '??';
+}
+
+function relativeTime(iso: string, t: (path: string, options?: Record<string, string | number>) => string): string {
+  const then = new Date(iso).getTime();
+  const diffMs = Date.now() - then;
+  const minutes = Math.floor(diffMs / 60000);
+  if (minutes < 1) return t('notifications.justNow');
+  if (minutes < 60) return t('notifications.minutesAgo', { count: minutes });
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return t('notifications.hoursAgo', { count: hours });
+  const days = Math.floor(hours / 24);
+  return t('notifications.daysAgo', { count: days });
+}
+
+function initialsOf(name: string): string {
+  return name
+    .split(' ')
+    .map((p) => p[0])
+    .join('')
+    .slice(0, 2)
+    .toUpperCase();
 }
 
 // -----------------------------------------------------------------------
@@ -181,7 +203,8 @@ const GroupDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
   const inviteMutation = useInviteMember(groupId);
   const removeMemberMutation = useRemoveMember(groupId);
   const reportMutation = useCreateReport();
-  const rateGroupMutation = useCreateRating(groupId);
+  const rateGroupMutation = useCreateRating();
+  const ratingsQuery = useGroupRatings(groupId);
   const { user } = useAuth();
 
   useFocusEffect(
@@ -715,6 +738,57 @@ const GroupDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
               </ScrollView>
             ) : null}
           </>
+        )}
+
+        {/* ---------------------------------------------------------- */}
+        {/* REVIEWS                                                     */}
+        {/* ---------------------------------------------------------- */}
+        <SectionHeader title={t('groupDetails.reviews')} />
+        {ratingsQuery.isLoading ? (
+          <View style={styles.listCard}>
+            <LoadingView message={t('groupDetails.loadingReviews')} />
+          </View>
+        ) : (ratingsQuery.data?.items.length ?? 0) > 0 ? (
+          <View style={styles.listCard}>
+            {ratingsQuery.data!.items.map((review, index) => (
+              <View
+                key={review.id}
+                style={[styles.reviewRow, index !== ratingsQuery.data!.items.length - 1 && styles.rowDivider]}
+              >
+                <View style={styles.reviewAvatarCircle}>
+                  {review.raterAvatarUrl ? (
+                    <Image source={{ uri: review.raterAvatarUrl }} style={styles.reviewAvatarImage} />
+                  ) : (
+                    <Text style={styles.reviewAvatarInitials}>{initialsOf(review.raterName)}</Text>
+                  )}
+                </View>
+                <View style={styles.reviewBody}>
+                  <View style={styles.reviewHeaderRow}>
+                    <Text style={styles.reviewerName} numberOfLines={1}>
+                      {review.raterName}
+                    </Text>
+                    <View style={styles.reviewStarsRow}>
+                      {[1, 2, 3, 4, 5].map((value) => (
+                        <Feather
+                          key={value}
+                          name="star"
+                          size={11}
+                          color={value <= review.score ? COLORS.star : COLORS.border}
+                          style={value < 5 ? { marginRight: 1 } : undefined}
+                        />
+                      ))}
+                    </View>
+                  </View>
+                  {review.comment ? <Text style={styles.reviewComment}>{review.comment}</Text> : null}
+                  <Text style={styles.reviewTimestamp}>{relativeTime(review.createdAt, t)}</Text>
+                </View>
+              </View>
+            ))}
+          </View>
+        ) : (
+          <View style={styles.listCard}>
+            <EmptyState icon="star" title={t('groupDetails.noReviewsYet')} subtitle={t('groupDetails.noReviewsYetSubtitle')} />
+          </View>
         )}
 
         {/* ---------------------------------------------------------- */}
@@ -1392,6 +1466,60 @@ function createStyles(COLORS: ThemeColors) {
   starPickerRow: {
     flexDirection: 'row',
     marginBottom: 16,
+  },
+
+  // ---------------- REVIEWS ----------------
+  reviewRow: {
+    flexDirection: 'row',
+    paddingVertical: 14,
+  },
+  reviewAvatarCircle: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: COLORS.primarySoft,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+    overflow: 'hidden',
+  },
+  reviewAvatarImage: {
+    width: 36,
+    height: 36,
+  },
+  reviewAvatarInitials: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: COLORS.primary,
+  },
+  reviewBody: {
+    flex: 1,
+  },
+  reviewHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 3,
+  },
+  reviewerName: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: COLORS.textPrimary,
+    flexShrink: 1,
+    marginRight: 8,
+  },
+  reviewStarsRow: {
+    flexDirection: 'row',
+  },
+  reviewComment: {
+    fontSize: 12.5,
+    color: COLORS.textSecondary,
+    lineHeight: 18,
+    marginBottom: 4,
+  },
+  reviewTimestamp: {
+    fontSize: 11,
+    color: COLORS.textMuted,
   },
   });
 }

@@ -35,6 +35,8 @@ export const queryClient = new QueryClient({
 export const queryKeys = {
   myProfile: ['profile', 'me'] as const,
   userProfile: (userId: string) => ['users', userId] as const,
+  userRatings: (userId: string) => ['users', userId, 'ratings'] as const,
+  groupRatings: (groupId: string) => ['groups', groupId, 'ratings'] as const,
   departments: ['departments'] as const,
   courses: ['courses'] as const,
 
