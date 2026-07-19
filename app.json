@@ -14,7 +14,7 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.palatipus.EduSphere",
+      "bundleIdentifier": "com.edusphere.knust",
       "infoPlist": {
         "NSCameraUsageDescription": "EduSphere needs camera access so you can be seen during group video calls.",
         "NSMicrophoneUsageDescription": "EduSphere needs microphone access so you can talk during group calls.",
@@ -28,7 +28,7 @@
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "package": "com.palatipus.EduSphere",
+      "package": "com.edusphere.knust",
       "permissions": [
         "CAMERA",
         "RECORD_AUDIO",
