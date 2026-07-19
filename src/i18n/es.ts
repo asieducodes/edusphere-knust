@@ -614,6 +614,26 @@ const es: TranslationDictionary = {
     loading: 'Cargando vista previa...',
     previewFailed: 'No se pudo cargar la vista previa.',
   },
+  memberProfile: {
+    title: 'Perfil',
+    loading: 'Cargando perfil...',
+    profilePrivate: 'Este perfil es privado.',
+    about: 'Acerca de',
+    academicInformation: 'Información académica',
+    programme: 'Programa',
+    department: 'Departamento',
+    college: 'Facultad',
+    level: 'Nivel',
+    notSet: 'No establecido',
+    studyInterests: 'Intereses de estudio',
+    skills: 'Habilidades',
+    availability: 'Disponibilidad',
+    rateStudent: 'Calificar estudiante',
+    ratingRequired: 'Toca una estrella para calificar a este estudiante.',
+    ratingCommentLabel: 'Comentario (opcional)',
+    ratingCommentPlaceholder: '¿Qué te pareció?',
+    submitRating: 'Enviar calificación',
+  },
 };
 
 export default es;

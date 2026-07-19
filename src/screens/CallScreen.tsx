@@ -159,7 +159,7 @@ const CallScreen: React.FC<Props> = ({ navigation, route }) => {
   }
 
   if (joinCallMutation.isError) {
-    const status = (joinCallMutation.error as { status?: number })?.status;
+    const status = (joinCallMutation.error as { statusCode?: number })?.statusCode;
     const message =
       status === 403
         ? t('call.notAMemberBody')

@@ -58,3 +58,21 @@ export interface UpdateProfilePayload {
 export interface UploadAvatarResponseData {
   avatarUrl: string;
 }
+
+/** GET /users/:userId — what you see viewing another student's profile.
+ *  No email, no raw privacy flags; rating is omitted entirely (not just
+ *  zero) if that student has turned off showRatings. */
+export interface PublicUser {
+  id: string;
+  fullName: string;
+  avatarUrl: string | null;
+  bio: string | null;
+  programme: string | null;
+  department: string | null;
+  college: string | null;
+  level: string | null;
+  interests: string[];
+  skills: string[];
+  availability: string[];
+  rating?: number;
+}

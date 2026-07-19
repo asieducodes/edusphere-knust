@@ -618,6 +618,26 @@ const en = {
     loading: 'Loading preview...',
     previewFailed: "Couldn't load this preview.",
   },
+  memberProfile: {
+    title: 'Profile',
+    loading: 'Loading profile...',
+    profilePrivate: 'This profile is private.',
+    about: 'About',
+    academicInformation: 'Academic Information',
+    programme: 'Programme',
+    department: 'Department',
+    college: 'College',
+    level: 'Level',
+    notSet: 'Not set',
+    studyInterests: 'Study Interests',
+    skills: 'Skills',
+    availability: 'Availability',
+    rateStudent: 'Rate Student',
+    ratingRequired: 'Tap a star to rate this student.',
+    ratingCommentLabel: 'Comment (optional)',
+    ratingCommentPlaceholder: 'What did you think?',
+    submitRating: 'Submit Rating',
+  },
 };
 
 export default en;

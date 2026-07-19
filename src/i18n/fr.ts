@@ -614,6 +614,26 @@ const fr: TranslationDictionary = {
     loading: 'Chargement de l’aperçu...',
     previewFailed: "Impossible de charger cet aperçu.",
   },
+  memberProfile: {
+    title: 'Profil',
+    loading: 'Chargement du profil...',
+    profilePrivate: 'Ce profil est privé.',
+    about: 'À propos',
+    academicInformation: 'Informations académiques',
+    programme: 'Filière',
+    department: 'Département',
+    college: 'Collège',
+    level: 'Niveau',
+    notSet: 'Non défini',
+    studyInterests: 'Centres d’intérêt',
+    skills: 'Compétences',
+    availability: 'Disponibilité',
+    rateStudent: "Noter l'étudiant",
+    ratingRequired: 'Appuyez sur une étoile pour noter cet étudiant.',
+    ratingCommentLabel: 'Commentaire (facultatif)',
+    ratingCommentPlaceholder: 'Qu’en avez-vous pensé ?',
+    submitRating: 'Envoyer la note',
+  },
 };
 
 export default fr;

@@ -34,6 +34,7 @@ export const queryClient = new QueryClient({
 // exists, instead of hand-typing matching key arrays in every screen.
 export const queryKeys = {
   myProfile: ['profile', 'me'] as const,
+  userProfile: (userId: string) => ['users', userId] as const,
   departments: ['departments'] as const,
   courses: ['courses'] as const,
 

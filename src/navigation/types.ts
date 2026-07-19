@@ -45,6 +45,7 @@ export type AuthStackParamList = {
 export type MainStackParamList = {
   MainTabs: NavigatorScreenParams<MainTabParamList> | undefined;
   GroupDetails: { groupId: string };
+  MemberProfile: { userId: string };
   PostDetails: { postId: string; groupId: string };
   Search: { initialQuery?: string } | undefined;
   Settings: undefined;

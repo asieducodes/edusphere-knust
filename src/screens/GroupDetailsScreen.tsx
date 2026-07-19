@@ -675,7 +675,12 @@ const GroupDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
                   const roleStyle = ROLE_STYLES[member.role];
                   const canRemove = isGroupOwner && member.role !== 'owner';
                   return (
-                    <View key={member.id} style={styles.memberCard}>
+                    <TouchableOpacity
+                      key={member.id}
+                      style={styles.memberCard}
+                      activeOpacity={0.75}
+                      onPress={() => navigation.navigate('MemberProfile', { userId: member.id })}
+                    >
                       {canRemove ? (
                         <TouchableOpacity
                           style={styles.memberRemoveButton}
@@ -704,7 +709,7 @@ const GroupDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
                           {member.role === 'owner' ? t('groupDetails.owner') : t('groupDetails.member')}
                         </Text>
                       </View>
-                    </View>
+                    </TouchableOpacity>
                   );
                 })}
               </ScrollView>

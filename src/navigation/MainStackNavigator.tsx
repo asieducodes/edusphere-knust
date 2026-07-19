@@ -19,6 +19,7 @@ import { MainStackParamList } from "./types";
 
 import MainTabNavigator from "./MainTabNavigator";
 import GroupDetailsScreen from "../screens/GroupDetailsScreen";
+import MemberProfileScreen from "../screens/MemberProfileScreen";
 import PostDetailsScreen from "../screens/PostDetailsScreen";
 import SearchScreen from "../screens/SearchScreen";
 import SettingsScreen from "../screens/SettingsScreen";
@@ -42,6 +43,7 @@ const MainStackNavigator: React.FC = () => {
     >
       <Stack.Screen name="MainTabs" component={MainTabNavigator} />
       <Stack.Screen name="GroupDetails" component={GroupDetailsScreen} />
+      <Stack.Screen name="MemberProfile" component={MemberProfileScreen} />
       <Stack.Screen name="PostDetails" component={PostDetailsScreen} />
       <Stack.Screen name="Search" component={SearchScreen} />
       <Stack.Screen name="Settings" component={SettingsScreen} />
