@@ -97,6 +97,8 @@ const es: TranslationDictionary = {
     logIn: 'Iniciar sesión',
     trustBadge: 'Acceso KNUST verificado',
     selectProgramme: 'Seleccionar programa',
+    searchProgrammePlaceholder: 'Buscar programas...',
+    noProgrammesFound: 'No se encontraron programas',
     selectLevel: 'Seleccionar nivel',
   },
   forgotPassword: {
@@ -474,6 +476,8 @@ const es: TranslationDictionary = {
     saveChanges: 'Guardar cambios',
     enterFullNameBeforeSaving: 'Ingresa tu nombre completo antes de guardar.',
     selectOption: 'Seleccionar {label}',
+    searchProgrammePlaceholder: 'Buscar programas...',
+    noProgrammesFound: 'No se encontraron programas',
   },
   settings: {
     title: 'Configuración',

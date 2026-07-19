@@ -8,7 +8,7 @@
  */
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, StatusBar, Alert, Modal, FlatList } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, StatusBar, Alert, Modal, FlatList, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
@@ -19,8 +19,9 @@ import { useLanguage } from '../context/LanguageContext';
 import { RootStackParamList } from '../navigation/types';
 import { ScreenHeader, AppTextInput, SelectableChip, SectionCard, PrimaryButton, LoadingView, ErrorView } from '../components/common';
 import { useMyProfile, useUpdateProfile, useUploadAvatar } from '../hooks/useProfile';
-import { useDepartments } from '../hooks/useCourses';
-import { PROGRAMME_OPTIONS, LEVEL_OPTIONS, PROGRAMME_TO_DEPARTMENT } from '../constants/academic';
+import { useDepartments, useProgrammes } from '../hooks/useCourses';
+import { LEVEL_OPTIONS } from '../constants/academic';
+import { Programme } from '../types/course';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'EditProfile'>;
 
@@ -88,10 +89,18 @@ const EditProfileScreen: React.FC<Props> = ({ navigation }) => {
   const [serverError, setServerError] = useState<string | null>(null);
 
   const [activeDropdown, setActiveDropdown] = useState<'programme' | 'level' | null>(null);
+  const [programmeSearch, setProgrammeSearch] = useState('');
 
   const departments = departmentsQuery.data?.items ?? [];
   const avatarUploading = uploadAvatarMutation.isPending;
   const isSaving = updateProfileMutation.isPending;
+
+  const programmesQuery = useProgrammes();
+  const programmes = programmesQuery.data?.items ?? [];
+  const isLoadingProgrammes = programmesQuery.isLoading;
+  const filteredProgrammes = programmeSearch.trim()
+    ? programmes.filter((p) => p.name.toLowerCase().includes(programmeSearch.trim().toLowerCase()))
+    : programmes;
 
   const initial = React.useRef<{
     fullName: string;
@@ -147,29 +156,33 @@ const EditProfileScreen: React.FC<Props> = ({ navigation }) => {
   };
 
   const ACADEMIC_FIELDS: {
-    field: 'programme' | 'level';
+    field: 'level';
     label: string;
     value: string;
     icon: keyof typeof Feather.glyphMap;
     options: string[];
   }[] = [
-    { field: 'programme', label: t('editProfile.programme'), value: programme || t('editProfile.notSet'), icon: 'book-open', options: PROGRAMME_OPTIONS },
     { field: 'level', label: t('editProfile.level'), value: level || t('editProfile.notSet'), icon: 'bar-chart-2', options: LEVEL_OPTIONS },
   ];
 
   const activeField = ACADEMIC_FIELDS.find((f) => f.field === activeDropdown);
 
-  const handleSelectAcademicOption = (option: string) => {
-    if (activeDropdown === 'programme') {
-      setProgramme(option);
-      // department follows programme now, not pickable on its own —
-      // stops students from picking a mismatched department
-      const matchedDeptName = PROGRAMME_TO_DEPARTMENT[option];
-      const matchedDept = matchedDeptName ? departments.find((d) => d.name === matchedDeptName) : undefined;
-      setDepartmentId(matchedDept?.id ?? null);
-    }
-    if (activeDropdown === 'level') setLevel(option);
+  const closeAcademicPicker = () => {
     setActiveDropdown(null);
+    setProgrammeSearch('');
+  };
+
+  const handleSelectAcademicOption = (option: string) => {
+    if (activeDropdown === 'level') setLevel(option);
+    closeAcademicPicker();
+  };
+
+  // Department now follows the selected programme's own departmentId —
+  // a real FK from the backend catalog, not a name-matching lookup table.
+  const handleSelectProgramme = (selected: Programme) => {
+    setProgramme(selected.name);
+    setDepartmentId(selected.departmentId);
+    closeAcademicPicker();
   };
 
   const handleChangePhoto = async () => {
@@ -474,27 +487,65 @@ const EditProfileScreen: React.FC<Props> = ({ navigation }) => {
         visible={activeDropdown !== null}
         transparent
         animationType="slide"
-        onRequestClose={() => setActiveDropdown(null)}
+        onRequestClose={closeAcademicPicker}
       >
         <TouchableOpacity
           style={styles.modalOverlay}
           activeOpacity={1}
-          onPress={() => setActiveDropdown(null)}
+          onPress={closeAcademicPicker}
         >
           <View style={styles.modalSheet} onStartShouldSetResponder={() => true}>
             <View style={styles.modalHandle} />
-            <Text style={styles.modalTitle}>{t('editProfile.selectOption', { label: activeField?.label ?? '' })}</Text>
-            <FlatList
-              data={activeField?.options ?? []}
-              keyExtractor={(item) => item}
-              style={{ maxHeight: 360 }}
-              renderItem={({ item }) => (
-                <TouchableOpacity style={styles.modalOptionRow} onPress={() => handleSelectAcademicOption(item)}>
-                  <Text style={styles.modalOptionText}>{item}</Text>
-                  <Feather name="chevron-right" size={16} color={COLORS.textMuted} />
-                </TouchableOpacity>
-              )}
-            />
+            <Text style={styles.modalTitle}>
+              {t('editProfile.selectOption', {
+                label: activeDropdown === 'programme' ? t('editProfile.programme') : activeField?.label ?? '',
+              })}
+            </Text>
+            {activeDropdown === 'programme' ? (
+              <>
+                <View style={styles.modalSearchWrapper}>
+                  <Feather name="search" size={16} color={COLORS.textMuted} />
+                  <TextInput
+                    style={styles.modalSearchInput}
+                    value={programmeSearch}
+                    onChangeText={setProgrammeSearch}
+                    placeholder={t('editProfile.searchProgrammePlaceholder')}
+                    placeholderTextColor={COLORS.textMuted}
+                    autoCapitalize="none"
+                  />
+                  {programmeSearch.length > 0 && (
+                    <TouchableOpacity onPress={() => setProgrammeSearch('')} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                      <Feather name="x" size={16} color={COLORS.textMuted} />
+                    </TouchableOpacity>
+                  )}
+                </View>
+                <FlatList
+                  data={filteredProgrammes}
+                  keyExtractor={(item) => item.id}
+                  style={{ maxHeight: 320 }}
+                  keyboardShouldPersistTaps="handled"
+                  ListEmptyComponent={<Text style={styles.modalEmptyText}>{t('editProfile.noProgrammesFound')}</Text>}
+                  renderItem={({ item }) => (
+                    <TouchableOpacity style={styles.modalOptionRow} onPress={() => handleSelectProgramme(item)}>
+                      <Text style={styles.modalOptionText}>{item.name}</Text>
+                      <Feather name="chevron-right" size={16} color={COLORS.textMuted} />
+                    </TouchableOpacity>
+                  )}
+                />
+              </>
+            ) : (
+              <FlatList
+                data={activeField?.options ?? []}
+                keyExtractor={(item) => item}
+                style={{ maxHeight: 360 }}
+                renderItem={({ item }) => (
+                  <TouchableOpacity style={styles.modalOptionRow} onPress={() => handleSelectAcademicOption(item)}>
+                    <Text style={styles.modalOptionText}>{item}</Text>
+                    <Feather name="chevron-right" size={16} color={COLORS.textMuted} />
+                  </TouchableOpacity>
+                )}
+              />
+            )}
           </View>
         </TouchableOpacity>
       </Modal>
@@ -688,6 +739,29 @@ function createStyles(COLORS: ThemeColors) {
   modalOptionText: {
     fontSize: 14,
     color: COLORS.textPrimary,
+  },
+  modalSearchWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    height: 44,
+    marginBottom: 10,
+    backgroundColor: COLORS.background,
+  },
+  modalSearchInput: {
+    flex: 1,
+    marginLeft: 8,
+    fontSize: 13.5,
+    color: COLORS.textPrimary,
+  },
+  modalEmptyText: {
+    fontSize: 13,
+    color: COLORS.textMuted,
+    textAlign: 'center',
+    paddingVertical: 24,
   },
   });
 }

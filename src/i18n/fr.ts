@@ -97,6 +97,8 @@ const fr: TranslationDictionary = {
     logIn: 'Se connecter',
     trustBadge: 'Accès KNUST vérifié',
     selectProgramme: 'Sélectionner la filière',
+    searchProgrammePlaceholder: 'Rechercher une filière...',
+    noProgrammesFound: 'Aucune filière trouvée',
     selectLevel: 'Sélectionner le niveau',
   },
   forgotPassword: {
@@ -474,6 +476,8 @@ const fr: TranslationDictionary = {
     saveChanges: 'Enregistrer les modifications',
     enterFullNameBeforeSaving: 'Veuillez entrer votre nom complet avant d’enregistrer.',
     selectOption: 'Sélectionner {label}',
+    searchProgrammePlaceholder: 'Rechercher une filière...',
+    noProgrammesFound: 'Aucune filière trouvée',
   },
   settings: {
     title: 'Paramètres',

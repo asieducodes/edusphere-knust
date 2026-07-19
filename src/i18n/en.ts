@@ -101,6 +101,8 @@ const en = {
     logIn: 'Log In',
     trustBadge: 'Verified KNUST access',
     selectProgramme: 'Select Programme',
+    searchProgrammePlaceholder: 'Search programmes...',
+    noProgrammesFound: 'No programmes found',
     selectLevel: 'Select Level',
   },
   forgotPassword: {
@@ -478,6 +480,8 @@ const en = {
     saveChanges: 'Save Changes',
     enterFullNameBeforeSaving: 'Please enter your full name before saving.',
     selectOption: 'Select {label}',
+    searchProgrammePlaceholder: 'Search programmes...',
+    noProgrammesFound: 'No programmes found',
   },
   settings: {
     title: 'Settings',

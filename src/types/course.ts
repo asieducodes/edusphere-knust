@@ -21,7 +21,13 @@ export interface Course {
   departmentId: string;
 }
 
-/** Shared by GET /departments and GET /courses. */
+export interface Programme {
+  id: string;
+  name: string;
+  departmentId: string;
+}
+
+/** Shared by GET /departments, GET /courses, and GET /programmes. */
 export interface CourseQueryParams extends PaginationParams {
   search?: string;
   departmentId?: string;

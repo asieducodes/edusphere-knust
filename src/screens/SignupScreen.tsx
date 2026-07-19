@@ -37,8 +37,9 @@ import { useLanguage } from '../context/LanguageContext';
 import { AuthStackParamList } from '../navigation/types';
 import { validateSignupForm } from '../utils/authValidation';
 import { useAuth } from '../context/AuthContext';
-import { useDepartments } from '../hooks/useCourses';
-import { PROGRAMME_OPTIONS, LEVEL_OPTIONS, PROGRAMME_TO_DEPARTMENT } from '../constants/academic';
+import { useDepartments, useProgrammes } from '../hooks/useCourses';
+import { LEVEL_OPTIONS } from '../constants/academic';
+import { Programme } from '../types/course';
 
 type Props = NativeStackScreenProps<AuthStackParamList, 'Signup'>;
 
@@ -153,10 +154,18 @@ const SignupScreen: React.FC<Props> = ({ navigation }) => {
   const [serverError, setServerError] = useState<string | null>(null);
 
   const [activePicker, setActivePicker] = useState<PickerField | null>(null);
+  const [programmeSearch, setProgrammeSearch] = useState('');
 
   const departmentsQuery = useDepartments();
   const departments = departmentsQuery.data?.items ?? [];
   const isLoadingDepartments = departmentsQuery.isLoading;
+
+  const programmesQuery = useProgrammes();
+  const programmes = programmesQuery.data?.items ?? [];
+  const isLoadingProgrammes = programmesQuery.isLoading;
+  const filteredProgrammes = programmeSearch.trim()
+    ? programmes.filter((p) => p.name.toLowerCase().includes(programmeSearch.trim().toLowerCase()))
+    : programmes;
 
   // ---- Validation (only shown after first submit attempt) -----------
   const { errors } = submitted
@@ -198,26 +207,25 @@ const SignupScreen: React.FC<Props> = ({ navigation }) => {
   };
 
   const openPicker = (field: PickerField) => setActivePicker(field);
-  const closePicker = () => setActivePicker(null);
+  const closePicker = () => {
+    setActivePicker(null);
+    setProgrammeSearch('');
+  };
 
-  const pickerOptions =
-    activePicker === 'programme'
-      ? PROGRAMME_OPTIONS
-      : activePicker === 'level'
-      ? LEVEL_OPTIONS
-      : [];
+  const pickerOptions = activePicker === 'level' ? LEVEL_OPTIONS : [];
 
   const handleSelectOption = (option: string) => {
-    if (activePicker === 'programme') {
-      setProgramme(option);
-      // department follows programme now, not pickable on its own —
-      // stops students from picking a mismatched department
-      const matchedDeptName = PROGRAMME_TO_DEPARTMENT[option];
-      const matchedDept = matchedDeptName ? departments.find((d) => d.name === matchedDeptName) : undefined;
-      setDepartment(matchedDept?.name ?? '');
-      setDepartmentId(matchedDept?.id ?? '');
-    }
     if (activePicker === 'level') setLevel(option);
+    closePicker();
+  };
+
+  // Department now follows the selected programme's own departmentId —
+  // a real FK from the backend catalog, not a name-matching lookup table.
+  const handleSelectProgramme = (selected: Programme) => {
+    setProgramme(selected.name);
+    const matchedDept = departments.find((d) => d.id === selected.departmentId);
+    setDepartment(matchedDept?.name ?? '');
+    setDepartmentId(selected.departmentId);
     closePicker();
   };
 
@@ -337,9 +345,9 @@ const SignupScreen: React.FC<Props> = ({ navigation }) => {
             <DropdownField
               icon="award"
               value={programme}
-              placeholder={t('signup.programmePlaceholder')}
+              placeholder={isLoadingProgrammes ? t('signup.loading') : t('signup.programmePlaceholder')}
               error={errors.programme}
-              onPress={() => openPicker('programme')}
+              onPress={() => !isLoadingProgrammes && openPicker('programme')}
             />
             {errors.programme ? <ErrorText text={errors.programme} /> : null}
 
@@ -456,17 +464,53 @@ const SignupScreen: React.FC<Props> = ({ navigation }) => {
             <Text style={styles.modalTitle}>
               {activePicker === 'programme' ? t('signup.selectProgramme') : t('signup.selectLevel')}
             </Text>
-            <FlatList
-              data={pickerOptions}
-              keyExtractor={(item) => item}
-              style={{ maxHeight: 360 }}
-              renderItem={({ item }) => (
-                <TouchableOpacity style={styles.modalOptionRow} onPress={() => handleSelectOption(item)}>
-                  <Text style={styles.modalOptionText}>{item}</Text>
-                  <Feather name="chevron-right" size={16} color={COLORS.textMuted} />
-                </TouchableOpacity>
-              )}
-            />
+            {activePicker === 'programme' ? (
+              <>
+                <View style={styles.modalSearchWrapper}>
+                  <Feather name="search" size={16} color={COLORS.textMuted} />
+                  <TextInput
+                    style={styles.modalSearchInput}
+                    value={programmeSearch}
+                    onChangeText={setProgrammeSearch}
+                    placeholder={t('signup.searchProgrammePlaceholder')}
+                    placeholderTextColor={COLORS.textMuted}
+                    autoCapitalize="none"
+                  />
+                  {programmeSearch.length > 0 && (
+                    <TouchableOpacity onPress={() => setProgrammeSearch('')} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                      <Feather name="x" size={16} color={COLORS.textMuted} />
+                    </TouchableOpacity>
+                  )}
+                </View>
+                <FlatList
+                  data={filteredProgrammes}
+                  keyExtractor={(item) => item.id}
+                  style={{ maxHeight: 320 }}
+                  keyboardShouldPersistTaps="handled"
+                  ListEmptyComponent={
+                    <Text style={styles.modalEmptyText}>{t('signup.noProgrammesFound')}</Text>
+                  }
+                  renderItem={({ item }) => (
+                    <TouchableOpacity style={styles.modalOptionRow} onPress={() => handleSelectProgramme(item)}>
+                      <Text style={styles.modalOptionText}>{item.name}</Text>
+                      <Feather name="chevron-right" size={16} color={COLORS.textMuted} />
+                    </TouchableOpacity>
+                  )}
+                />
+              </>
+            ) : (
+              <FlatList
+                data={pickerOptions}
+                keyExtractor={(item) => item}
+                style={{ maxHeight: 360 }}
+                renderItem={({ item }) => (
+                  <TouchableOpacity style={styles.modalOptionRow} onPress={() => handleSelectOption(item)}>
+                    <Text style={styles.modalOptionText}>{item}</Text>
+                    <Feather name="chevron-right" size={16} color={COLORS.textMuted} />
+                  </TouchableOpacity>
+                )}
+              />
+            )}
           </View>
         </TouchableOpacity>
       </Modal>
@@ -835,6 +879,29 @@ function createStyles(COLORS: ThemeColors) {
   modalOptionText: {
     fontSize: 14,
     color: COLORS.textPrimary,
+  },
+  modalSearchWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    height: 44,
+    marginBottom: 10,
+    backgroundColor: COLORS.card,
+  },
+  modalSearchInput: {
+    flex: 1,
+    marginLeft: 8,
+    fontSize: 13.5,
+    color: COLORS.textPrimary,
+  },
+  modalEmptyText: {
+    fontSize: 13,
+    color: COLORS.textMuted,
+    textAlign: 'center',
+    paddingVertical: 24,
   },
   });
 }

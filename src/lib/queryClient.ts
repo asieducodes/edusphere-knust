@@ -39,6 +39,7 @@ export const queryKeys = {
   groupRatings: (groupId: string) => ['groups', groupId, 'ratings'] as const,
   departments: ['departments'] as const,
   courses: ['courses'] as const,
+  programmes: ['programmes'] as const,
 
   myGroups: ['groups', 'my'] as const,
   recommendedGroups: ['groups', 'recommended'] as const,
