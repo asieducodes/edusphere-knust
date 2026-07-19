@@ -29,14 +29,6 @@ export function useDepartments() {
   });
 }
 
-export function useCourses() {
-  return useQuery({
-    queryKey: queryKeys.courses,
-    queryFn: () => courseService.getCourses(FULL_CATALOG_PARAMS).then((r) => r.data),
-    staleTime: REFERENCE_DATA_STALE_TIME,
-  });
-}
-
 export function useProgrammes() {
   return useQuery({
     queryKey: queryKeys.programmes,

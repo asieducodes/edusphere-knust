@@ -14,20 +14,13 @@ export interface Department {
   college?: string;
 }
 
-export interface Course {
-  id: string;
-  code: string;
-  title: string;
-  departmentId: string;
-}
-
 export interface Programme {
   id: string;
   name: string;
   departmentId: string;
 }
 
-/** Shared by GET /departments, GET /courses, and GET /programmes. */
+/** Shared by GET /departments and GET /programmes. */
 export interface CourseQueryParams extends PaginationParams {
   search?: string;
   departmentId?: string;

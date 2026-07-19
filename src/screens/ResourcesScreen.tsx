@@ -18,7 +18,6 @@ import {
   TouchableOpacity,
   TextInput,
   StatusBar,
-  Dimensions,
   Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -34,7 +33,6 @@ import { MainTabParamList, RootStackParamList } from '../navigation/types';
 import { useTabBarHeight } from '../navigation/useTabBarHeight';
 import { LoadingView, ErrorView } from '../components/common';
 import { useResources, useSaveResource, useUnsaveResource } from '../hooks/useResources';
-import { useCourses } from '../hooks/useCourses';
 import { Resource } from '../types/resource';
 
 // Navigation from this screen needs to reach screens in the root stack
@@ -44,8 +42,6 @@ type ResourcesScreenNavigationProp = CompositeNavigationProp<
   NativeStackNavigationProp<RootStackParamList>
 >;
 type ResourcesScreenRouteProp = RouteProp<MainTabParamList, 'Resources'>;
-
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 // -----------------------------------------------------------------------
 // TYPES
@@ -212,7 +208,6 @@ const ResourcesScreen: React.FC = () => {
     saved: activeFilter === 'Saved' ? true : undefined,
     mine: activeFilter === 'My Uploads' ? true : undefined,
   });
-  const coursesQuery = useCourses();
   const saveMutation = useSaveResource();
   const unsaveMutation = useUnsaveResource();
 
@@ -243,7 +238,6 @@ const ResourcesScreen: React.FC = () => {
   };
 
   const resources = resourcesQuery.data?.items ?? [];
-  const courses = (coursesQuery.data?.items ?? []).slice(0, 6);
   const isLoading = resourcesQuery.isLoading;
   const hasError = !resourcesQuery.data && resourcesQuery.isError;
   const featured = resources.slice(0, 2);
@@ -453,35 +447,6 @@ const ResourcesScreen: React.FC = () => {
                 </TouchableOpacity>
               ))}
             </View>
-          </>
-        )}
-
-        {/* ---------------------------------------------------------- */}
-        {/* POPULAR COURSES                                             */}
-        {/* ---------------------------------------------------------- */}
-        {courses.length > 0 && (
-          <>
-            <SectionHeader title={t('resources.popularCourses')} />
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.popularScroll}
-            >
-              {courses.map((course) => (
-                <TouchableOpacity
-                  key={course.id}
-                  style={styles.popularCard}
-                  activeOpacity={0.85}
-                  onPress={() => setSearchQuery(course.code)}
-                >
-                  <View style={styles.popularAccent} />
-                  <Text style={styles.popularCode}>{course.code}</Text>
-                  <Text style={styles.popularName} numberOfLines={1}>
-                    {course.title}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
           </>
         )}
 
@@ -790,41 +755,6 @@ function createStyles(COLORS: ThemeColors) {
     height: 30,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-
-  // ---------------- POPULAR COURSES ----------------
-  popularScroll: {
-    paddingHorizontal: H_PADDING,
-    paddingBottom: 4,
-  },
-  popularCard: {
-    width: SCREEN_WIDTH * 0.4,
-    backgroundColor: COLORS.card,
-    borderRadius: 16,
-    padding: 14,
-    marginRight: CARD_GAP,
-    overflow: 'hidden',
-    ...SHADOW,
-  },
-  popularAccent: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    height: 4,
-    backgroundColor: COLORS.primary,
-  },
-  popularCode: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: COLORS.primary,
-    marginTop: 6,
-  },
-  popularName: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: COLORS.textPrimary,
-    marginTop: 4,
   },
 
   // ---------------- UPLOAD RESOURCE CARD (CTA) ----------------

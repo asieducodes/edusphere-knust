@@ -179,7 +179,6 @@ const en = {
     uploadResource: 'Upload Resource',
     featuredResources: 'Featured Resources',
     moreResources: 'More Resources',
-    popularCourses: 'Popular Courses',
     downloads: '{count} downloads',
     download: 'Download',
     shareResources: 'Share notes, slides, or past questions',

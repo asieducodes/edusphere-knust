@@ -14,7 +14,7 @@ import { ApiResponse, PaginationParams } from '../types/api';
 import { Group, GroupQueryParams } from '../types/group';
 import { Resource, ResourceQueryParams } from '../types/resource';
 import { Report, ReportStatus } from '../types/report';
-import { Course, Department, CourseQueryParams } from '../types/course';
+import { Department, CourseQueryParams } from '../types/course';
 import { CampusLocation, LocationQueryParams } from '../types/location';
 
 // -----------------------------------------------------------------------
@@ -120,24 +120,6 @@ export async function updateReportStatus(
 }
 
 // -----------------------------------------------------------------------
-// COURSES (CRUD)
-// -----------------------------------------------------------------------
-export async function createCourse(payload: Omit<Course, 'id'>): Promise<ApiResponse<Course>> {
-  const response = await api.post<ApiResponse<Course>>('/admin/courses', payload);
-  return response.data;
-}
-
-export async function updateCourse(courseId: string, payload: Partial<Omit<Course, 'id'>>): Promise<ApiResponse<Course>> {
-  const response = await api.put<ApiResponse<Course>>(`/admin/courses/${courseId}`, payload);
-  return response.data;
-}
-
-export async function deleteCourse(courseId: string): Promise<ApiResponse<null>> {
-  const response = await api.delete<ApiResponse<null>>(`/admin/courses/${courseId}`);
-  return response.data;
-}
-
-// -----------------------------------------------------------------------
 // DEPARTMENTS (CRUD)
 // -----------------------------------------------------------------------
 export async function createDepartment(payload: Omit<Department, 'id'>): Promise<ApiResponse<Department>> {
@@ -189,6 +171,6 @@ export async function createAnnouncement(payload: CreateAnnouncementPayload): Pr
 
 // Re-exported so callers don't need to import CourseQueryParams/LocationQueryParams
 // separately just to call getAdminGroups/getAdminResources's cousins above —
-// kept here for discoverability if this file grows a getCourses/getLocations
-// admin-scoped listing later.
+// kept here for discoverability if this file grows a getLocations admin-scoped
+// listing later.
 export type { CourseQueryParams, LocationQueryParams };

@@ -175,7 +175,6 @@ const es: TranslationDictionary = {
     uploadResource: 'Subir recurso',
     featuredResources: 'Recursos destacados',
     moreResources: 'Más recursos',
-    popularCourses: 'Cursos populares',
     downloads: '{count} descargas',
     download: 'Descargar',
     shareResources: 'Comparte apuntes, diapositivas o exámenes anteriores',
