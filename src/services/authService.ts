@@ -24,9 +24,15 @@ import {
   AuthMeResponseData,
 } from '../types/auth';
 
-/** POST /auth/register — matches SignupScreen's form. */
+/** POST /auth/register — matches SignupScreen's form. Saves the token when
+ *  the backend issues one immediately (email auto-confirm on) — same as
+ *  login(), since AuthContext treats a returned token as "already signed
+ *  in" and routes straight into the main app. */
 export async function register(payload: RegisterPayload): Promise<ApiResponse<RegisterResponseData>> {
   const response = await api.post<ApiResponse<RegisterResponseData>>('/auth/register', payload);
+  if (response.data.data?.token) {
+    await saveToken(response.data.data.token);
+  }
   return response.data;
 }
 
