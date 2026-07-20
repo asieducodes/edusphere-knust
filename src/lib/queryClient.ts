@@ -41,6 +41,7 @@ export const queryKeys = {
   departments: ['departments'] as const,
   programmes: ['programmes'] as const,
   locations: (params: LocationQueryParams = {}) => ['locations', params] as const,
+  myReports: ['reports', 'my'] as const,
 
   myGroups: ['groups', 'my'] as const,
   recommendedGroups: ['groups', 'recommended'] as const,

@@ -124,6 +124,10 @@ const ProfileScreen: React.FC = () => {
       navigation.navigate("HelpSupport");
       return;
     }
+    if (item.id === "mn7") {
+      navigation.navigate("MyReports");
+      return;
+    }
   };
 
   const handleLogOut = () => {
@@ -182,6 +186,7 @@ const ProfileScreen: React.FC = () => {
     { id: "mn4", icon: "bell", label: t('profile.notifications'), subtitle: t('profile.manageAlerts') },
     { id: "mn5", icon: "shield", label: t('profile.privacySecurity'), subtitle: t('profile.passwordData') },
     { id: "mn6", icon: "help-circle", label: t('profile.helpSupport'), subtitle: t('profile.faqsContactUs') },
+    { id: "mn7", icon: "flag", label: t('profile.myReports'), subtitle: t('profile.reportsFiled') },
   ];
 
   return (

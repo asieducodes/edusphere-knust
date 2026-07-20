@@ -26,6 +26,7 @@ import {
   TextInput,
   StatusBar,
   Modal,
+  Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
@@ -167,6 +168,13 @@ const MapScreen: React.FC = () => {
     );
   };
 
+  // No maps SDK in the app, so directions hand off to whatever the phone
+  // already has — Google Maps app if installed, otherwise a browser.
+  const handleGetDirections = (location: CampusLocation) => {
+    const url = `https://www.google.com/maps/dir/?api=1&destination=${location.latitude},${location.longitude}`;
+    Linking.openURL(url).catch(() => undefined);
+  };
+
   const isLoading = locationsQuery.isLoading;
   const isError = !locationsQuery.data && locationsQuery.isError;
 
@@ -286,6 +294,13 @@ const MapScreen: React.FC = () => {
                       </View>
                     </View>
                     <TouchableOpacity
+                      style={styles.pinCalloutIconButton}
+                      activeOpacity={0.85}
+                      onPress={() => handleGetDirections(selectedPin.location)}
+                    >
+                      <Feather name="navigation" size={15} color={COLORS.primary} />
+                    </TouchableOpacity>
+                    <TouchableOpacity
                       style={styles.pinCalloutReportButton}
                       activeOpacity={0.85}
                       onPress={() => setReportTarget(selectedPin.location)}
@@ -356,14 +371,25 @@ const MapScreen: React.FC = () => {
                               </Text>
                             </TouchableOpacity>
 
-                            <TouchableOpacity
-                              style={styles.reportButton}
-                              activeOpacity={0.85}
-                              onPress={() => setReportTarget(spot)}
-                            >
-                              <Feather name="edit-2" size={12} color={COLORS.primary} />
-                              <Text style={styles.reportButtonText}>{t('map.reportStatus')}</Text>
-                            </TouchableOpacity>
+                            <View style={styles.spotActionsRow}>
+                              <TouchableOpacity
+                                style={styles.directionsButton}
+                                activeOpacity={0.85}
+                                onPress={() => handleGetDirections(spot)}
+                              >
+                                <Feather name="navigation" size={12} color={COLORS.primary} />
+                                <Text style={styles.directionsButtonText}>{t('map.getDirections')}</Text>
+                              </TouchableOpacity>
+
+                              <TouchableOpacity
+                                style={styles.reportButton}
+                                activeOpacity={0.85}
+                                onPress={() => setReportTarget(spot)}
+                              >
+                                <Feather name="edit-2" size={12} color={COLORS.primary} />
+                                <Text style={styles.reportButtonText}>{t('map.reportStatus')}</Text>
+                              </TouchableOpacity>
+                            </View>
                           </View>
                         </View>
                       );
@@ -583,6 +609,15 @@ function createStyles(COLORS: ThemeColors) {
       fontWeight: '700',
       color: COLORS.textPrimary,
     },
+    pinCalloutIconButton: {
+      width: 32,
+      height: 32,
+      borderRadius: 10,
+      backgroundColor: COLORS.primaryLight,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginRight: 8,
+    },
     pinCalloutReportButton: {
       backgroundColor: COLORS.primaryLight,
       paddingHorizontal: 12,
@@ -678,6 +713,21 @@ function createStyles(COLORS: ThemeColors) {
     statusChipText: {
       fontSize: 11.5,
       fontWeight: '700',
+    },
+    spotActionsRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
+    directionsButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginRight: 16,
+    },
+    directionsButtonText: {
+      fontSize: 12,
+      fontWeight: '600',
+      color: COLORS.primary,
+      marginLeft: 5,
     },
     reportButton: {
       flexDirection: 'row',

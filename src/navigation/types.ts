@@ -51,6 +51,7 @@ export type MainStackParamList = {
   Settings: undefined;
   PrivacySecurity: undefined;
   HelpSupport: undefined;
+  MyReports: undefined;
   CreateGroup: undefined;
   ResourceDetails: { resourceId: string };
   ResourcePreview: { resourceId: string };
