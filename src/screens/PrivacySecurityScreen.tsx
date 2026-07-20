@@ -36,7 +36,6 @@ const PrivacySecurityScreen: React.FC<Props> = ({ navigation }) => {
   const [privacy, setPrivacy] = useState<UserPrivacySettings>({
     showProfile: true,
     allowGroupInvitations: true,
-    showRatings: true,
     allowDirectStudyRequests: false,
   });
 
@@ -158,12 +157,6 @@ const PrivacySecurityScreen: React.FC<Props> = ({ navigation }) => {
             label={t('privacySecurity.allowInvitations')}
             value={privacy.allowGroupInvitations}
             onValueChange={(v) => handleTogglePrivacy('allowGroupInvitations', v)}
-          />
-          <ToggleRow
-            icon="star"
-            label={t('privacySecurity.showRatings')}
-            value={privacy.showRatings}
-            onValueChange={(v) => handleTogglePrivacy('showRatings', v)}
           />
           <ToggleRow
             icon="message-circle"

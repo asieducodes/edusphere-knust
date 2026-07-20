@@ -581,7 +581,6 @@ const fr: TranslationDictionary = {
     privacy: 'Confidentialité',
     showProfile: 'Afficher mon profil aux autres étudiants',
     allowInvitations: 'Autoriser les invitations de groupe',
-    showRatings: 'Afficher mes évaluations',
     allowStudyRequests: 'Autoriser les demandes d’étude directes',
     updateFailedTitle: 'Échec de la mise à jour',
     changePassword: 'Changer le mot de passe',

@@ -585,7 +585,6 @@ const en = {
     privacy: 'Privacy',
     showProfile: 'Show my profile to other students',
     allowInvitations: 'Allow group invitations',
-    showRatings: 'Show my ratings',
     allowStudyRequests: 'Allow direct study requests',
     updateFailedTitle: "Couldn't Update",
     changePassword: 'Change Password',

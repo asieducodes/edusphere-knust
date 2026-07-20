@@ -9,7 +9,6 @@
 export interface UserPrivacySettings {
   showProfile: boolean;
   allowGroupInvitations: boolean;
-  showRatings: boolean;
   allowDirectStudyRequests: boolean;
 }
 
@@ -61,7 +60,7 @@ export interface UploadAvatarResponseData {
 
 /** GET /users/:userId — what you see viewing another student's profile.
  *  No email, no raw privacy flags; rating is omitted entirely (not just
- *  zero) if that student has turned off showRatings. */
+ *  zero) if that student has no ratings yet. */
 export interface PublicUser {
   id: string;
   fullName: string;
