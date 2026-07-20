@@ -18,7 +18,7 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, StatusBar, Alert 
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { SHADOW, ThemeColors } from '../theme/colors';
+import { SHADOW, ThemeColors, ACCENT_COLORS, getColors } from '../theme/colors';
 import { RootStackParamList } from '../navigation/types';
 import { useTheme, ThemeMode } from '../context/ThemeContext';
 import { useLanguage, Language, LANGUAGE_LABELS } from '../context/LanguageContext';
@@ -37,7 +37,7 @@ const THEME_OPTIONS: { mode: ThemeMode; icon: keyof typeof Feather.glyphMap }[] 
 const LANGUAGE_OPTIONS: Language[] = ['en', 'fr', 'es'];
 
 const SettingsScreen: React.FC<Props> = ({ navigation }) => {
-  const { mode, setMode, colors: COLORS, isDark } = useTheme();
+  const { mode, setMode, colors: COLORS, isDark, accent, setAccent } = useTheme();
   const { language, setLanguage, t } = useLanguage();
   const styles = React.useMemo(() => createStyles(COLORS), [COLORS]);
   const deleteAccountMutation = useDeleteAccount();
@@ -92,6 +92,30 @@ const SettingsScreen: React.FC<Props> = ({ navigation }) => {
                 </View>
                 <Text style={styles.rowLabel}>{t(`settings.theme.${option.mode}`)}</Text>
                 {selected ? <Feather name="check" size={18} color={COLORS.primary} /> : null}
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+
+        {/* ---------------------------------------------------------- */}
+        {/* ACCENT COLOR                                                */}
+        {/* ---------------------------------------------------------- */}
+        <Text style={styles.sectionTitle}>{t('settings.accentColor')}</Text>
+        <View style={[styles.card, styles.accentCard]}>
+          {ACCENT_COLORS.map((option) => {
+            const swatchColor = getColors(isDark, option).primary;
+            const selected = accent === option;
+            return (
+              <TouchableOpacity
+                key={option}
+                style={styles.accentSwatchWrap}
+                activeOpacity={0.8}
+                onPress={() => setAccent(option)}
+              >
+                <View style={[styles.accentSwatch, { backgroundColor: swatchColor }, selected && styles.accentSwatchSelected]}>
+                  {selected ? <Feather name="check" size={18} color={COLORS.white} /> : null}
+                </View>
+                <Text style={styles.accentSwatchLabel}>{t(`settings.color.${option}`)}</Text>
               </TouchableOpacity>
             );
           })}
@@ -221,6 +245,31 @@ function createStyles(COLORS: ThemeColors) {
       flexDirection: 'row',
       alignItems: 'center',
       paddingVertical: 14,
+    },
+    accentCard: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      paddingVertical: 16,
+    },
+    accentSwatchWrap: {
+      alignItems: 'center',
+    },
+    accentSwatch: {
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    accentSwatchSelected: {
+      borderWidth: 2,
+      borderColor: COLORS.textPrimary,
+    },
+    accentSwatchLabel: {
+      fontSize: 11.5,
+      fontWeight: '600',
+      color: COLORS.textSecondary,
+      marginTop: 8,
     },
     rowDivider: {
       borderBottomWidth: 1,

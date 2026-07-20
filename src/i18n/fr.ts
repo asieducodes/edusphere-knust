@@ -500,6 +500,13 @@ const fr: TranslationDictionary = {
       dark: 'Sombre',
       system: 'Système',
     },
+    accentColor: 'Couleur d’accent',
+    color: {
+      blue: 'Bleu',
+      red: 'Rouge',
+      green: 'Vert',
+      yellow: 'Jaune',
+    },
     dangerZone: 'Zone de danger',
     deleteAccount: 'Supprimer le compte',
     deleteAccountConfirmTitle: 'Supprimer votre compte ?',

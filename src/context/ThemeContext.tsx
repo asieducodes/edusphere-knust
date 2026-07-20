@@ -7,13 +7,21 @@
  * needed. The resolved `colors` object is what every screen's styles are
  * built from (see theme/colors.ts's note on why StyleSheet.create can't
  * just read a mutable COLORS constant).
+ *
+ * Also drives the accent color (blue/red/green/yellow) — a separate axis
+ * from light/dark, both persisted independently.
  * -----------------------------------------------------------------------
  */
 
 import React, { createContext, useContext, useState, useMemo, useEffect, useCallback } from 'react';
 import { useColorScheme } from 'react-native';
-import { lightColors, darkColors, ThemeColors } from '../theme/colors';
-import { getStoredThemeMode, setStoredThemeMode } from '../services/preferencesStorage';
+import { getColors, ThemeColors, AccentColor, ACCENT_COLORS, DEFAULT_ACCENT } from '../theme/colors';
+import {
+  getStoredThemeMode,
+  setStoredThemeMode,
+  getStoredAccentColor,
+  setStoredAccentColor,
+} from '../services/preferencesStorage';
 
 export type ThemeMode = 'light' | 'dark' | 'system';
 
@@ -22,6 +30,8 @@ interface ThemeContextValue {
   isDark: boolean;
   colors: ThemeColors;
   setMode: (mode: ThemeMode) => void;
+  accent: AccentColor;
+  setAccent: (accent: AccentColor) => void;
 }
 
 const ThemeContext = createContext<ThemeContextValue | undefined>(undefined);
@@ -30,14 +40,20 @@ function isThemeMode(value: string | null): value is ThemeMode {
   return value === 'light' || value === 'dark' || value === 'system';
 }
 
+function isAccentColor(value: string | null): value is AccentColor {
+  return !!value && (ACCENT_COLORS as string[]).includes(value);
+}
+
 export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const systemScheme = useColorScheme();
   const [mode, setModeState] = useState<ThemeMode>('system');
+  const [accent, setAccentState] = useState<AccentColor>(DEFAULT_ACCENT);
 
   useEffect(() => {
     (async () => {
-      const stored = await getStoredThemeMode();
-      if (isThemeMode(stored)) setModeState(stored);
+      const [storedMode, storedAccent] = await Promise.all([getStoredThemeMode(), getStoredAccentColor()]);
+      if (isThemeMode(storedMode)) setModeState(storedMode);
+      if (isAccentColor(storedAccent)) setAccentState(storedAccent);
     })();
   }, []);
 
@@ -46,10 +62,18 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setStoredThemeMode(next).catch(() => undefined);
   }, []);
 
-  const isDark = mode === 'system' ? systemScheme === 'dark' : mode === 'dark';
-  const colors = isDark ? darkColors : lightColors;
+  const setAccent = useCallback((next: AccentColor) => {
+    setAccentState(next);
+    setStoredAccentColor(next).catch(() => undefined);
+  }, []);
 
-  const value = useMemo(() => ({ mode, isDark, colors, setMode }), [mode, isDark, colors, setMode]);
+  const isDark = mode === 'system' ? systemScheme === 'dark' : mode === 'dark';
+  const colors = useMemo(() => getColors(isDark, accent), [isDark, accent]);
+
+  const value = useMemo(
+    () => ({ mode, isDark, colors, setMode, accent, setAccent }),
+    [mode, isDark, colors, setMode, accent, setAccent]
+  );
 
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
 };

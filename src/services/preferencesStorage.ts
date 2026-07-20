@@ -11,6 +11,7 @@
 import * as SecureStore from 'expo-secure-store';
 
 const THEME_MODE_KEY = 'edusphere_theme_mode';
+const ACCENT_COLOR_KEY = 'edusphere_accent_color';
 const LANGUAGE_KEY = 'edusphere_language';
 
 export async function getStoredThemeMode(): Promise<string | null> {
@@ -19,6 +20,14 @@ export async function getStoredThemeMode(): Promise<string | null> {
 
 export async function setStoredThemeMode(mode: string): Promise<void> {
   await SecureStore.setItemAsync(THEME_MODE_KEY, mode);
+}
+
+export async function getStoredAccentColor(): Promise<string | null> {
+  return SecureStore.getItemAsync(ACCENT_COLOR_KEY);
+}
+
+export async function setStoredAccentColor(accent: string): Promise<void> {
+  await SecureStore.setItemAsync(ACCENT_COLOR_KEY, accent);
 }
 
 export async function getStoredLanguage(): Promise<string | null> {

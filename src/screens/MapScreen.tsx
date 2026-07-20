@@ -584,7 +584,7 @@ function createStyles(COLORS: ThemeColors) {
       width: 44,
       height: 44,
       borderRadius: 22,
-      backgroundColor: 'rgba(45,63,224,0.15)',
+      backgroundColor: COLORS.primary + '26',
     },
     mapHint: {
       textAlign: 'center',

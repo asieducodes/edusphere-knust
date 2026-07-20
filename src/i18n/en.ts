@@ -504,6 +504,13 @@ const en = {
       dark: 'Dark',
       system: 'System',
     },
+    accentColor: 'Accent Color',
+    color: {
+      blue: 'Blue',
+      red: 'Red',
+      green: 'Green',
+      yellow: 'Yellow',
+    },
     dangerZone: 'Danger Zone',
     deleteAccount: 'Delete Account',
     deleteAccountConfirmTitle: 'Delete your account?',
