@@ -14,6 +14,7 @@
 
 import { QueryClient } from '@tanstack/react-query';
 import { ResourceQueryParams } from '../types/resource';
+import { LocationQueryParams } from '../types/location';
 
 export const queryClient = new QueryClient({
   defaultOptions: {
@@ -39,6 +40,7 @@ export const queryKeys = {
   groupRatings: (groupId: string) => ['groups', groupId, 'ratings'] as const,
   departments: ['departments'] as const,
   programmes: ['programmes'] as const,
+  locations: (params: LocationQueryParams = {}) => ['locations', params] as const,
 
   myGroups: ['groups', 'my'] as const,
   recommendedGroups: ['groups', 'recommended'] as const,
