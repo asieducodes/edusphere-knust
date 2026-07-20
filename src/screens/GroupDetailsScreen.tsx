@@ -26,6 +26,7 @@ import {
   Platform,
   Share,
   Image,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather, Ionicons } from '@expo/vector-icons';
@@ -52,6 +53,7 @@ import { useResources } from '../hooks/useResources';
 import { useCreateReport } from '../hooks/useReports';
 import { useCreateRating, useGroupRatings } from '../hooks/useRatings';
 import { useCallParticipantCount } from '../hooks/useCall';
+import { useRsvpSession } from '../hooks/useSessions';
 import { useAuth } from '../context/AuthContext';
 import { GroupMember } from '../types/group';
 import { Resource } from '../types/resource';
@@ -205,6 +207,7 @@ const GroupDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
   const reportMutation = useCreateReport();
   const rateGroupMutation = useCreateRating();
   const ratingsQuery = useGroupRatings(groupId);
+  const rsvpMutation = useRsvpSession(groupId);
   const { user } = useAuth();
 
   useFocusEffect(
@@ -350,6 +353,18 @@ const GroupDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
           closeModal();
         },
         onError: (err) => setModalError((err as { message?: string })?.message ?? t('common.somethingWentWrong')),
+      }
+    );
+  };
+
+  const handleRsvp = (sessionId: string, isAttending: boolean) => {
+    rsvpMutation.mutate(
+      { sessionId, payload: { status: isAttending ? 'not_going' : 'going' } },
+      {
+        onError: (err) => {
+          const message = (err as { message?: string })?.message ?? t('common.somethingWentWrong');
+          Alert.alert(t('common.error'), message);
+        },
       }
     );
   };
@@ -566,6 +581,28 @@ const GroupDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
                       <Feather name="users" size={13} color={COLORS.textSecondary} />
                       <Text style={styles.sessionMetaText}>{t('groupDetails.attending', { count: session.attendeesCount ?? 0 })}</Text>
                     </View>
+
+                    <TouchableOpacity
+                      style={[styles.rsvpButton, session.isAttending && styles.rsvpButtonGoing]}
+                      activeOpacity={0.85}
+                      disabled={rsvpMutation.isPending && rsvpMutation.variables?.sessionId === session.id}
+                      onPress={() => handleRsvp(session.id, !!session.isAttending)}
+                    >
+                      {rsvpMutation.isPending && rsvpMutation.variables?.sessionId === session.id ? (
+                        <ActivityIndicator size="small" color={session.isAttending ? COLORS.primary : '#FFFFFF'} />
+                      ) : (
+                        <>
+                          <Feather
+                            name={session.isAttending ? 'check-circle' : 'calendar'}
+                            size={15}
+                            color={session.isAttending ? COLORS.primary : '#FFFFFF'}
+                          />
+                          <Text style={[styles.rsvpButtonText, session.isAttending && styles.rsvpButtonTextGoing]}>
+                            {session.isAttending ? t('groupDetails.rsvpGoing') : t('groupDetails.rsvpJoin')}
+                          </Text>
+                        </>
+                      )}
+                    </TouchableOpacity>
                   </View>
                 ))}
               </View>
@@ -1180,6 +1217,27 @@ function createStyles(COLORS: ThemeColors) {
     fontSize: 12.5,
     color: COLORS.textSecondary,
     marginLeft: 7,
+  },
+  rsvpButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: COLORS.primary,
+    borderRadius: 12,
+    paddingVertical: 9,
+    marginTop: 12,
+  },
+  rsvpButtonGoing: {
+    backgroundColor: COLORS.primaryLight,
+  },
+  rsvpButtonText: {
+    fontSize: 13.5,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    marginLeft: 6,
+  },
+  rsvpButtonTextGoing: {
+    color: COLORS.primary,
   },
   emptyStateCard: {
     backgroundColor: COLORS.card,

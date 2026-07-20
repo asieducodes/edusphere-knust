@@ -8,8 +8,21 @@
  * -----------------------------------------------------------------------
  */
 
-import React, { useCallback } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, StatusBar, Alert, Share, Linking } from 'react-native';
+import React, { useCallback, useState } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
+  StatusBar,
+  Alert,
+  Share,
+  Linking,
+  Modal,
+  KeyboardAvoidingView,
+  Platform,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather, Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
@@ -25,6 +38,8 @@ import {
   FileTypeBadge,
   PrimaryButton,
   SecondaryButton,
+  AppTextInput,
+  EmptyState,
   LoadingView,
   ErrorView,
 } from '../components/common';
@@ -35,6 +50,7 @@ import {
   useSaveResource,
   useUnsaveResource,
   useDownloadResource,
+  useCreateResourceReview,
 } from '../hooks/useResources';
 import { useCreateReport } from '../hooks/useReports';
 
@@ -65,6 +81,60 @@ const ResourceDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
   const unsaveMutation = useUnsaveResource();
   const downloadMutation = useDownloadResource();
   const reportMutation = useCreateReport();
+  const createReviewMutation = useCreateResourceReview(resourceId);
+
+  const [isReviewModalVisible, setReviewModalVisible] = useState(false);
+  const [reviewScore, setReviewScore] = useState(0);
+  const [reviewComment, setReviewComment] = useState('');
+  const [reviewError, setReviewError] = useState<string | null>(null);
+
+  const ReviewModal: React.FC<{ visible: boolean; onClose: () => void; children: React.ReactNode }> = ({
+    visible,
+    onClose,
+    children,
+  }) => (
+    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={onClose}>
+          <View style={styles.modalSheet} onStartShouldSetResponder={() => true}>
+            <View style={styles.modalHandle} />
+            <View style={styles.modalHeaderRow}>
+              <Text style={styles.modalTitle}>{t('resourceDetails.writeReview')}</Text>
+              <TouchableOpacity onPress={onClose} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                <Feather name="x" size={20} color={COLORS.textMuted} />
+              </TouchableOpacity>
+            </View>
+            {children}
+          </View>
+        </TouchableOpacity>
+      </KeyboardAvoidingView>
+    </Modal>
+  );
+
+  const closeReviewModal = () => {
+    setReviewModalVisible(false);
+    setReviewScore(0);
+    setReviewComment('');
+    setReviewError(null);
+  };
+
+  const handleSubmitReview = () => {
+    if (reviewScore < 1) {
+      setReviewError(t('resourceDetails.reviewRatingRequired'));
+      return;
+    }
+    setReviewError(null);
+    createReviewMutation.mutate(
+      { rating: reviewScore, comment: reviewComment.trim() || undefined },
+      {
+        onSuccess: () => closeReviewModal(),
+        onError: (err) => {
+          const message = (err as { message?: string })?.message ?? t('common.somethingWentWrong');
+          setReviewError(message);
+        },
+      }
+    );
+  };
 
   useFocusEffect(
     useCallback(() => {
@@ -319,26 +389,71 @@ const ResourceDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
         {/* ---------------------------------------------------------- */}
         {/* STUDENT FEEDBACK                                            */}
         {/* ---------------------------------------------------------- */}
-        {reviews.length > 0 && (
-          <>
-            <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>{t('resourceDetails.studentFeedback')}</Text>
-            </View>
-            <View style={styles.listCard}>
-              {reviews.map((item, index) => (
-                <View key={item.id} style={[styles.feedbackRow, index !== reviews.length - 1 && styles.rowDivider]}>
-                  <Feather name="message-circle" size={14} color={COLORS.primary} style={{ marginTop: 2 }} />
-                  <View style={styles.feedbackTextBlock}>
-                    {item.comment ? <Text style={styles.feedbackText}>&ldquo;{item.comment}&rdquo;</Text> : null}
-                    <Text style={styles.feedbackMeta}>
-                      {t('resourceDetails.ratingBy', { rating: item.rating, name: item.authorName })}
-                    </Text>
-                  </View>
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>{t('resourceDetails.studentFeedback')}</Text>
+          {reviews.length > 0 && (
+            <TouchableOpacity onPress={() => setReviewModalVisible(true)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+              <Text style={styles.viewAllText}>{t('resourceDetails.writeReview')}</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+        {reviews.length > 0 ? (
+          <View style={styles.listCard}>
+            {reviews.map((item, index) => (
+              <View key={item.id} style={[styles.feedbackRow, index !== reviews.length - 1 && styles.rowDivider]}>
+                <Feather name="message-circle" size={14} color={COLORS.primary} style={{ marginTop: 2 }} />
+                <View style={styles.feedbackTextBlock}>
+                  {item.comment ? <Text style={styles.feedbackText}>&ldquo;{item.comment}&rdquo;</Text> : null}
+                  <Text style={styles.feedbackMeta}>
+                    {t('resourceDetails.ratingBy', { rating: item.rating, name: item.authorName })}
+                  </Text>
                 </View>
-              ))}
-            </View>
-          </>
+              </View>
+            ))}
+          </View>
+        ) : (
+          <View style={styles.listCard}>
+            <EmptyState
+              icon="message-circle"
+              title={t('resourceDetails.noReviewsYet')}
+              subtitle={t('resourceDetails.noReviewsYetSubtitle')}
+              actionLabel={t('resourceDetails.writeReview')}
+              onAction={() => setReviewModalVisible(true)}
+            />
+          </View>
         )}
+
+        <ReviewModal visible={isReviewModalVisible} onClose={closeReviewModal}>
+          <View style={styles.starPickerRow}>
+            {[1, 2, 3, 4, 5].map((value) => (
+              <TouchableOpacity
+                key={value}
+                onPress={() => setReviewScore(value)}
+                hitSlop={{ top: 8, bottom: 8, left: 6, right: 6 }}
+              >
+                <Feather
+                  name="star"
+                  size={32}
+                  color={value <= reviewScore ? COLORS.star : COLORS.border}
+                  style={value < 5 ? { marginRight: 8 } : undefined}
+                />
+              </TouchableOpacity>
+            ))}
+          </View>
+          <AppTextInput
+            label={t('resourceDetails.reviewCommentLabel')}
+            value={reviewComment}
+            onChangeText={setReviewComment}
+            placeholder={t('resourceDetails.reviewCommentPlaceholder')}
+            multiline
+          />
+          {reviewError ? <Text style={styles.modalErrorText}>{reviewError}</Text> : null}
+          <PrimaryButton
+            label={t('resourceDetails.submitReview')}
+            onPress={handleSubmitReview}
+            loading={createReviewMutation.isPending}
+          />
+        </ReviewModal>
 
         {/* ---------------------------------------------------------- */}
         {/* REPORT BUTTON                                               */}
@@ -513,6 +628,11 @@ function createStyles(COLORS: ThemeColors) {
     fontWeight: '700',
     color: COLORS.textPrimary,
   },
+  viewAllText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: COLORS.primary,
+  },
 
   // Shared list card
   listCard: {
@@ -582,6 +702,49 @@ function createStyles(COLORS: ThemeColors) {
     fontWeight: '600',
     color: COLORS.textMuted,
     marginLeft: 6,
+  },
+
+  // Review modal
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(17,17,17,0.4)',
+    justifyContent: 'flex-end',
+  },
+  modalSheet: {
+    backgroundColor: COLORS.card,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingHorizontal: 20,
+    paddingTop: 12,
+    paddingBottom: 32,
+  },
+  modalHandle: {
+    width: 40,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: COLORS.border,
+    alignSelf: 'center',
+    marginBottom: 14,
+  },
+  modalHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 16,
+  },
+  modalTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: COLORS.textPrimary,
+  },
+  modalErrorText: {
+    fontSize: 12,
+    color: COLORS.danger,
+    marginBottom: 12,
+  },
+  starPickerRow: {
+    flexDirection: 'row',
+    marginBottom: 16,
   },
   });
 }
