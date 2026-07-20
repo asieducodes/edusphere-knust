@@ -125,6 +125,19 @@ export function useLeaveGroup() {
   });
 }
 
+export function useDeleteGroup() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (groupId: string) => groupService.deleteGroup(groupId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.myGroups });
+      queryClient.invalidateQueries({ queryKey: ['groups', 'discover'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.recommendedGroups });
+      queryClient.invalidateQueries({ queryKey: queryKeys.profileStats });
+    },
+  });
+}
+
 export function useRemoveMember(groupId: string) {
   const queryClient = useQueryClient();
   return useMutation({

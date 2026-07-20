@@ -44,6 +44,7 @@ import {
   useGroupSessions,
   useJoinGroup,
   useLeaveGroup,
+  useDeleteGroup,
   useCreateGroupPost,
   useCreateGroupSession,
   useInviteMember,
@@ -204,6 +205,7 @@ const GroupDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
 
   const joinMutation = useJoinGroup();
   const leaveMutation = useLeaveGroup();
+  const deleteGroupMutation = useDeleteGroup();
   const createPostMutation = useCreateGroupPost(groupId);
   const createSessionMutation = useCreateGroupSession(groupId);
   const inviteMutation = useInviteMember(groupId);
@@ -246,6 +248,25 @@ const GroupDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
         style: 'destructive',
         onPress: () =>
           removeMemberMutation.mutate(member.id, {
+            onError: (err) => {
+              const message = (err as { message?: string })?.message ?? t('common.somethingWentWrong');
+              Alert.alert(t('common.error'), message);
+            },
+          }),
+      },
+    ]);
+  };
+
+  const handleDeleteGroup = () => {
+    if (!group) return;
+    Alert.alert(t('groupDetails.deleteGroupConfirmTitle'), t('groupDetails.deleteGroupConfirmBody', { name: group.name }), [
+      { text: t('common.cancel'), style: 'cancel' },
+      {
+        text: t('groupDetails.deleteGroup'),
+        style: 'destructive',
+        onPress: () =>
+          deleteGroupMutation.mutate(groupId, {
+            onSuccess: () => navigation.goBack(),
             onError: (err) => {
               const message = (err as { message?: string })?.message ?? t('common.somethingWentWrong');
               Alert.alert(t('common.error'), message);
@@ -915,6 +936,30 @@ const GroupDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
           </>
         )}
 
+        {/* ---------------------------------------------------------- */}
+        {/* DANGER ZONE (owner only)                                    */}
+        {/* ---------------------------------------------------------- */}
+        {isGroupOwner && (
+          <>
+            <SectionHeader title={t('groupDetails.dangerZone')} />
+            <View style={styles.dangerCard}>
+              <TouchableOpacity
+                style={styles.dangerRow}
+                activeOpacity={0.7}
+                onPress={handleDeleteGroup}
+                disabled={deleteGroupMutation.isPending}
+              >
+                <View style={styles.dangerIconWrap}>
+                  <Feather name="trash-2" size={16} color={COLORS.danger} />
+                </View>
+                <Text style={styles.dangerRowLabel}>
+                  {deleteGroupMutation.isPending ? t('groupDetails.deletingGroup') : t('groupDetails.deleteGroup')}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </>
+        )}
+
         {/* Bottom spacer */}
         <View style={{ height: 40 }} />
       </ScrollView>
@@ -1260,6 +1305,35 @@ function createStyles(COLORS: ThemeColors) {
   rowDivider: {
     borderBottomWidth: 1,
     borderBottomColor: COLORS.border,
+  },
+
+  // ---------------- DANGER ZONE ----------------
+  dangerCard: {
+    backgroundColor: COLORS.card,
+    borderRadius: 18,
+    marginHorizontal: H_PADDING,
+    paddingHorizontal: 16,
+    ...SHADOW,
+  },
+  dangerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 14,
+  },
+  dangerIconWrap: {
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    backgroundColor: COLORS.danger + '1A',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  dangerRowLabel: {
+    flex: 1,
+    fontSize: 14,
+    fontWeight: '600',
+    color: COLORS.danger,
   },
 
   // ---------------- DISCUSSIONS ----------------

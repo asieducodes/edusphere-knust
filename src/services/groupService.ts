@@ -72,6 +72,12 @@ export async function leaveGroup(groupId: string): Promise<ApiResponse<null>> {
   return response.data;
 }
 
+/** DELETE /groups/:groupId — owner-only. */
+export async function deleteGroup(groupId: string): Promise<ApiResponse<null>> {
+  const response = await api.delete<ApiResponse<null>>(`/groups/${groupId}`);
+  return response.data;
+}
+
 /** POST /groups/:groupId/invite — matches GroupDetailsScreen's
  *  "Invite Member" action. */
 export async function inviteMember(
