@@ -88,29 +88,6 @@ const ResourceDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
   const [reviewComment, setReviewComment] = useState('');
   const [reviewError, setReviewError] = useState<string | null>(null);
 
-  const ReviewModal: React.FC<{ visible: boolean; onClose: () => void; children: React.ReactNode }> = ({
-    visible,
-    onClose,
-    children,
-  }) => (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-        <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={onClose}>
-          <View style={styles.modalSheet} onStartShouldSetResponder={() => true}>
-            <View style={styles.modalHandle} />
-            <View style={styles.modalHeaderRow}>
-              <Text style={styles.modalTitle}>{t('resourceDetails.writeReview')}</Text>
-              <TouchableOpacity onPress={onClose} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-                <Feather name="x" size={20} color={COLORS.textMuted} />
-              </TouchableOpacity>
-            </View>
-            {children}
-          </View>
-        </TouchableOpacity>
-      </KeyboardAvoidingView>
-    </Modal>
-  );
-
   const closeReviewModal = () => {
     setReviewModalVisible(false);
     setReviewScore(0);
@@ -423,37 +400,51 @@ const ResourceDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
           </View>
         )}
 
-        <ReviewModal visible={isReviewModalVisible} onClose={closeReviewModal}>
-          <View style={styles.starPickerRow}>
-            {[1, 2, 3, 4, 5].map((value) => (
-              <TouchableOpacity
-                key={value}
-                onPress={() => setReviewScore(value)}
-                hitSlop={{ top: 8, bottom: 8, left: 6, right: 6 }}
-              >
-                <Feather
-                  name="star"
-                  size={32}
-                  color={value <= reviewScore ? COLORS.star : COLORS.border}
-                  style={value < 5 ? { marginRight: 8 } : undefined}
+        <Modal visible={isReviewModalVisible} transparent animationType="slide" onRequestClose={closeReviewModal}>
+          <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+            <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={closeReviewModal}>
+              <View style={styles.modalSheet} onStartShouldSetResponder={() => true}>
+                <View style={styles.modalHandle} />
+                <View style={styles.modalHeaderRow}>
+                  <Text style={styles.modalTitle}>{t('resourceDetails.writeReview')}</Text>
+                  <TouchableOpacity onPress={closeReviewModal} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                    <Feather name="x" size={20} color={COLORS.textMuted} />
+                  </TouchableOpacity>
+                </View>
+
+                <View style={styles.starPickerRow}>
+                  {[1, 2, 3, 4, 5].map((value) => (
+                    <TouchableOpacity
+                      key={value}
+                      onPress={() => setReviewScore(value)}
+                      hitSlop={{ top: 8, bottom: 8, left: 6, right: 6 }}
+                    >
+                      <Feather
+                        name="star"
+                        size={32}
+                        color={value <= reviewScore ? COLORS.star : COLORS.border}
+                        style={value < 5 ? { marginRight: 8 } : undefined}
+                      />
+                    </TouchableOpacity>
+                  ))}
+                </View>
+                <AppTextInput
+                  label={t('resourceDetails.reviewCommentLabel')}
+                  value={reviewComment}
+                  onChangeText={setReviewComment}
+                  placeholder={t('resourceDetails.reviewCommentPlaceholder')}
+                  multiline
                 />
-              </TouchableOpacity>
-            ))}
-          </View>
-          <AppTextInput
-            label={t('resourceDetails.reviewCommentLabel')}
-            value={reviewComment}
-            onChangeText={setReviewComment}
-            placeholder={t('resourceDetails.reviewCommentPlaceholder')}
-            multiline
-          />
-          {reviewError ? <Text style={styles.modalErrorText}>{reviewError}</Text> : null}
-          <PrimaryButton
-            label={t('resourceDetails.submitReview')}
-            onPress={handleSubmitReview}
-            loading={createReviewMutation.isPending}
-          />
-        </ReviewModal>
+                {reviewError ? <Text style={styles.modalErrorText}>{reviewError}</Text> : null}
+                <PrimaryButton
+                  label={t('resourceDetails.submitReview')}
+                  onPress={handleSubmitReview}
+                  loading={createReviewMutation.isPending}
+                />
+              </View>
+            </TouchableOpacity>
+          </KeyboardAvoidingView>
+        </Modal>
 
         {/* ---------------------------------------------------------- */}
         {/* REPORT BUTTON                                               */}

@@ -60,6 +60,39 @@ import { Resource } from '../types/resource';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'GroupDetails'>;
 
+/** Bottom-sheet modal shell shared by the group-action forms below.
+ *  Module-scope (not defined inside GroupDetailsScreen's render) so it
+ *  keeps a stable component identity across renders — typing into a
+ *  field inside it re-renders the screen on every keystroke, and an
+ *  inline component definition would get treated as a brand-new
+ *  component type each time, remounting (and visibly resetting) the
+ *  modal on every click. */
+const ActionModal: React.FC<{
+  visible: boolean;
+  title: string;
+  onClose: () => void;
+  styles: ReturnType<typeof createStyles>;
+  colors: ThemeColors;
+  children: React.ReactNode;
+}> = ({ visible, title, onClose, styles, colors, children }) => (
+  <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={onClose}>
+        <View style={styles.modalSheet} onStartShouldSetResponder={() => true}>
+          <View style={styles.modalHandle} />
+          <View style={styles.modalHeaderRow}>
+            <Text style={styles.modalTitle}>{title}</Text>
+            <TouchableOpacity onPress={onClose} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+              <Feather name="x" size={20} color={colors.textMuted} />
+            </TouchableOpacity>
+          </View>
+          {children}
+        </View>
+      </TouchableOpacity>
+    </KeyboardAvoidingView>
+  </Modal>
+);
+
 const FILE_TYPE_STYLES: Record<Resource['fileType'], { bg: string; color: string }> = {
   PDF: { bg: '#FDEAEA', color: '#D93A3A' },
   DOCX: { bg: '#E7EEFD', color: '#2D3FE0' },
@@ -145,35 +178,6 @@ const GroupDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
       ) : null}
     </View>
   );
-
-  /** Bottom-sheet modal shell shared by the 3 group-action forms below. */
-  const ActionModal: React.FC<{
-    visible: boolean;
-    title: string;
-    onClose: () => void;
-    children: React.ReactNode;
-  }> = ({ visible, title, onClose, children }) => (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <KeyboardAvoidingView
-        style={{ flex: 1 }}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      >
-        <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={onClose}>
-          <View style={styles.modalSheet} onStartShouldSetResponder={() => true}>
-            <View style={styles.modalHandle} />
-            <View style={styles.modalHeaderRow}>
-              <Text style={styles.modalTitle}>{title}</Text>
-              <TouchableOpacity onPress={onClose} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-                <Feather name="x" size={20} color={COLORS.textMuted} />
-              </TouchableOpacity>
-            </View>
-            {children}
-          </View>
-        </TouchableOpacity>
-      </KeyboardAvoidingView>
-    </Modal>
-  );
-
 
   const [activeModal, setActiveModal] = useState<'discussion' | 'session' | 'invite' | 'rating' | null>(null);
   const [modalError, setModalError] = useState<string | null>(null);
@@ -918,7 +922,7 @@ const GroupDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
       {/* ------------------------------------------------------------ */}
       {/* GROUP ACTION MODALS                                           */}
       {/* ------------------------------------------------------------ */}
-      <ActionModal visible={activeModal === 'discussion'} title={t('groupDetails.startDiscussion')} onClose={closeModal}>
+      <ActionModal visible={activeModal === 'discussion'} title={t('groupDetails.startDiscussion')} onClose={closeModal} styles={styles} colors={COLORS}>
         <AppTextInput label={t('groupDetails.discussionTitleLabel')} value={discussionTitle} onChangeText={setDiscussionTitle} placeholder={t('groupDetails.discussionTitlePlaceholder')} />
         <AppTextInput
           label={t('groupDetails.discussionDetailsLabel')}
@@ -931,7 +935,7 @@ const GroupDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
         <PrimaryButton label={t('groupDetails.postDiscussion')} onPress={handleSubmitDiscussion} loading={isModalSubmitting} />
       </ActionModal>
 
-      <ActionModal visible={activeModal === 'session'} title={t('groupDetails.scheduleSession')} onClose={closeModal}>
+      <ActionModal visible={activeModal === 'session'} title={t('groupDetails.scheduleSession')} onClose={closeModal} styles={styles} colors={COLORS}>
         <AppTextInput label={t('groupDetails.discussionTitleLabel')} value={sessionTitle} onChangeText={setSessionTitle} placeholder={t('groupDetails.sessionTitlePlaceholder')} />
         <AppTextInput label={t('groupDetails.sessionDateLabel')} value={sessionDate} onChangeText={setSessionDate} placeholder={t('groupDetails.sessionDatePlaceholder')} />
         <AppTextInput label={t('groupDetails.sessionStartTimeLabel')} value={sessionStartTime} onChangeText={setSessionStartTime} placeholder={t('groupDetails.sessionStartTimePlaceholder')} />
@@ -941,7 +945,7 @@ const GroupDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
         <PrimaryButton label={t('groupDetails.scheduleSession')} onPress={handleSubmitSession} loading={isModalSubmitting} />
       </ActionModal>
 
-      <ActionModal visible={activeModal === 'invite'} title={t('groupDetails.inviteMember')} onClose={closeModal}>
+      <ActionModal visible={activeModal === 'invite'} title={t('groupDetails.inviteMember')} onClose={closeModal} styles={styles} colors={COLORS}>
         <AppTextInput
           label={t('groupDetails.knustEmailLabel')}
           value={inviteEmail}
@@ -954,7 +958,7 @@ const GroupDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
         <PrimaryButton label={t('groupDetails.sendInvite')} onPress={handleSubmitInvite} loading={isModalSubmitting} />
       </ActionModal>
 
-      <ActionModal visible={activeModal === 'rating'} title={t('groupDetails.rateGroup')} onClose={closeModal}>
+      <ActionModal visible={activeModal === 'rating'} title={t('groupDetails.rateGroup')} onClose={closeModal} styles={styles} colors={COLORS}>
         <View style={styles.starPickerRow}>
           {[1, 2, 3, 4, 5].map((value) => (
             <TouchableOpacity
