@@ -91,6 +91,8 @@
 </table>
 </div>
 
+
+
 <div align="right"><a href="#top"><img src="https://api.iconify.design/lucide/arrow-up.svg?color=%23F5A623" width="16" valign="middle"/> Back to top</a> · <a href="#bottom"><img src="https://api.iconify.design/lucide/arrow-down.svg?color=%23F5A623" width="16" valign="middle"/> Jump to bottom</a></div>
 
 ---
@@ -314,7 +316,6 @@ Every response follows a consistent envelope — `{ success, message, data }` �
       <th align="left">Contributor</th>
       <th align="center">Domain / Sub-Team</th>
       <th align="left">Primary Responsibility</th>
-      <th align="center">Profile</th>
     </tr>
   </thead>
   <tbody>
@@ -327,55 +328,46 @@ Every response follows a consistent envelope — `{ success, message, data }` �
       <td><b>Frimpong Solomon Junior</b></td>
       <td align="center"><img src="https://img.shields.io/badge/Backend_Tier-4F46E5?style=flat-square"/></td>
       <td>Core API Development &amp; Business Logic</td>
-      <td align="center">—</td>
     </tr>
     <tr>
       <td><b>Agyemang Casper Adu-Gyamfi</b></td>
       <td align="center"><img src="https://img.shields.io/badge/Mobile_Frontend-0891B2?style=flat-square"/></td>
       <td>UI Architecture &amp; Mobile Client Implementation</td>
-      <td align="center">—</td>
     </tr>
     <tr>
       <td><b>Ackom Arnold</b></td>
       <td align="center"><img src="https://img.shields.io/badge/Mobile_Frontend-0891B2?style=flat-square"/></td>
       <td>Client-Side Views &amp; User Flow Engineering</td>
-      <td align="center">—</td>
     </tr>
     <tr>
       <td><b>Jessica Oforiwaa Anim</b></td>
       <td align="center"><img src="https://img.shields.io/badge/Data_Architecture-059669?style=flat-square"/></td>
       <td>Relational Database Design &amp; Schema Modeling</td>
-      <td align="center">—</td>
     </tr>
     <tr>
       <td><b>Amuzu Emmanuel</b></td>
       <td align="center"><img src="https://img.shields.io/badge/Data_Architecture-059669?style=flat-square"/></td>
       <td>Database Query Optimizations &amp; Seed Scripts</td>
-      <td align="center">—</td>
     </tr>
     <tr>
       <td><b>Asante Samuel Osei</b></td>
       <td align="center"><img src="https://img.shields.io/badge/Quality_Assurance-EA580C?style=flat-square"/></td>
       <td>Frontend System Testing &amp; Integration Verification</td>
-      <td align="center">—</td>
     </tr>
     <tr>
       <td><b>Samuella Andoh Bannerman</b></td>
       <td align="center"><img src="https://img.shields.io/badge/Quality_Assurance-EA580C?style=flat-square"/></td>
       <td>Backend API Testing &amp; Endpoint Validation Suites</td>
-      <td align="center">—</td>
     </tr>
     <tr>
       <td><b>Daniel Kuma Gyebi</b></td>
       <td align="center"><img src="https://img.shields.io/badge/Technical_Writing-4B5563?style=flat-square"/></td>
       <td>System Documentation &amp; Architecture Manuals</td>
-      <td align="center">—</td>
     </tr>
     <tr>
       <td><b>Joshua Adu Sarfo</b></td>
       <td align="center"><img src="https://img.shields.io/badge/Technical_Writing-4B5563?style=flat-square"/></td>
       <td>Technical Specification Documentation &amp; Guides</td>
-      <td align="center">—</td>
     </tr>
   </tbody>
 </table>
