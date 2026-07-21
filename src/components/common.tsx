@@ -16,7 +16,7 @@
  * -----------------------------------------------------------------------
  */
 
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -26,7 +26,13 @@ import {
   StyleSheet,
   TextInputProps,
   ActivityIndicator,
+  Animated,
+  Easing,
+  DimensionValue,
+  StyleProp,
+  ViewStyle,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Feather } from '@expo/vector-icons';
 import { ThemeColors } from '../theme/colors';
 import { useTheme } from '../context/ThemeContext';
@@ -299,17 +305,79 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
 };
 
 // -----------------------------------------------------------------------
-// LoadingView — centered spinner (+ optional message), fills its parent
+// Shimmer — a single skeleton block with a light sweeping highlight, the
+// building block LoadingView (below) composes into a placeholder layout.
+// Plain Animated (no Reanimated in this project) driving a translateX
+// loop, same approach as SplashScreen's animations.
+// -----------------------------------------------------------------------
+interface ShimmerProps {
+  width: DimensionValue;
+  height: number;
+  borderRadius?: number;
+  style?: StyleProp<ViewStyle>;
+}
+
+export const Shimmer: React.FC<ShimmerProps> = ({ width, height, borderRadius = 8, style }) => {
+  const { colors: COLORS, isDark } = useTheme();
+  const sweepAnim = useRef(new Animated.Value(0)).current;
+  const [measuredWidth, setMeasuredWidth] = useState(0);
+
+  useEffect(() => {
+    const loop = Animated.loop(
+      Animated.timing(sweepAnim, {
+        toValue: 1,
+        duration: 1100,
+        easing: Easing.linear,
+        useNativeDriver: true,
+      })
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [sweepAnim]);
+
+  // Falls back to a generous fixed distance until the first onLayout
+  // reports the real width — the loop just runs once with a slightly-off
+  // sweep before self-correcting, not worth blocking the animation on.
+  const sweepDistance = measuredWidth || 200;
+  const translateX = sweepAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [-sweepDistance, sweepDistance],
+  });
+
+  return (
+    <View
+      onLayout={(e) => setMeasuredWidth(e.nativeEvent.layout.width)}
+      style={[{ width, height, borderRadius, backgroundColor: COLORS.chipBg, overflow: 'hidden' }, style]}
+    >
+      <Animated.View style={[StyleSheet.absoluteFillObject, { width: sweepDistance, transform: [{ translateX }] }]}>
+        <LinearGradient
+          colors={isDark ? ['transparent', 'rgba(255,255,255,0.06)', 'transparent'] : ['transparent', 'rgba(255,255,255,0.7)', 'transparent']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+          style={StyleSheet.absoluteFillObject}
+        />
+      </Animated.View>
+    </View>
+  );
+};
+
+// -----------------------------------------------------------------------
+// LoadingView — shimmering skeleton placeholder (+ optional message),
+// fills its parent. Used everywhere a screen/section is fetching data.
 // -----------------------------------------------------------------------
 interface LoadingViewProps {
   message?: string;
 }
 
 export const LoadingView: React.FC<LoadingViewProps> = ({ message }) => {
-  const { styles, COLORS } = useCommonStyles();
+  const { styles } = useCommonStyles();
   return (
     <View style={styles.loadingView}>
-      <ActivityIndicator color={COLORS.primary} size="large" />
+      <View style={styles.loadingShimmerBlock}>
+        <Shimmer width="70%" height={14} style={{ marginBottom: 10 }} />
+        <Shimmer width="100%" height={14} style={{ marginBottom: 10 }} />
+        <Shimmer width="85%" height={14} />
+      </View>
       {message ? <Text style={styles.loadingMessage}>{message}</Text> : null}
     </View>
   );
@@ -644,6 +712,9 @@ function createStyles(COLORS: ThemeColors) {
       alignItems: 'center',
       justifyContent: 'center',
       paddingVertical: 48,
+    },
+    loadingShimmerBlock: {
+      width: '70%',
     },
     loadingMessage: {
       fontSize: 13,
