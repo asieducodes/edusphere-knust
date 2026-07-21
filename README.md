@@ -91,8 +91,6 @@
 </table>
 </div>
 
-> Screenshots pending — save your exported images to `assets/screenshots/` using the exact filenames above (`login.png`, `signup.png`, `home.png`, `groups.png`, `resources.png`, `map.png`, `profile.png`) and they'll render automatically once pushed to the repo.
-
 <div align="right"><a href="#top"><img src="https://api.iconify.design/lucide/arrow-up.svg?color=%23F5A623" width="16" valign="middle"/> Back to top</a> · <a href="#bottom"><img src="https://api.iconify.design/lucide/arrow-down.svg?color=%23F5A623" width="16" valign="middle"/> Jump to bottom</a></div>
 
 ---
@@ -324,7 +322,6 @@ Every response follows a consistent envelope — `{ success, message, data }` �
       <td><b>Asiedu Seth Osei</b></td>
       <td align="center"><img src="https://img.shields.io/badge/Engineering_Lead-2D3FE0?style=flat-square"/></td>
       <td>Backend Lead / System &amp; Software Architect</td>
-      <td align="center"><a href="https://github.com/asieducodes">@asieducodes</a></td>
     </tr>
     <tr>
       <td><b>Frimpong Solomon Junior</b></td>
