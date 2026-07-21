@@ -17,6 +17,7 @@ import React, { createContext, useContext, useState, useMemo, useEffect, useCall
 import * as authService from '../services/authService';
 import { getToken } from '../services/tokenStorage';
 import { setUnauthorizedHandler } from '../services/api';
+import { registerForPushNotifications, unregisterPushNotifications } from '../services/pushNotifications';
 import { User } from '../types/user';
 import { LoginPayload, RegisterPayload } from '../types/auth';
 
@@ -88,6 +89,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => setUnauthorizedHandler(null);
   }, [clearSession]);
 
+  // Covers every path that flips isAuthenticated to true — login,
+  // register-with-immediate-token, cold-start session restore, and
+  // refreshSession — without duplicating the call at each of those sites.
+  useEffect(() => {
+    if (isAuthenticated) {
+      registerForPushNotifications().catch(() => undefined);
+    }
+  }, [isAuthenticated]);
+
   const login = useCallback(
     async (payload: LoginPayload) => {
       const response = await authService.login(payload);
@@ -112,6 +122,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const logout = useCallback(async () => {
     try {
+      // Must run before authService.logout(), which clears the auth
+      // token in its own finally block — after that, this DELETE call
+      // would go out unauthenticated and fail.
+      await unregisterPushNotifications().catch(() => undefined);
       await authService.logout();
     } finally {
       clearSession();
