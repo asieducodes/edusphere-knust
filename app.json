@@ -18,8 +18,14 @@
       "infoPlist": {
         "NSCameraUsageDescription": "EduSphere needs camera access so you can be seen during group video calls.",
         "NSMicrophoneUsageDescription": "EduSphere needs microphone access so you can talk during group calls.",
-        "UIBackgroundModes": ["audio", "voip"]
-      }
+        "UIBackgroundModes": [
+          "audio",
+          "voip",
+          "audio",
+          "voip"
+        ]
+      },
+      "bitcode": false
     },
     "android": {
       "adaptiveIcon": {
@@ -38,7 +44,32 @@
         "FOREGROUND_SERVICE_CAMERA",
         "FOREGROUND_SERVICE_MICROPHONE",
         "FOREGROUND_SERVICE_MEDIA_PLAYBACK",
-        "POST_NOTIFICATIONS"
+        "POST_NOTIFICATIONS",
+        "android.permission.ACCESS_NETWORK_STATE",
+        "android.permission.CAMERA",
+        "android.permission.INTERNET",
+        "android.permission.MODIFY_AUDIO_SETTINGS",
+        "android.permission.RECORD_AUDIO",
+        "android.permission.SYSTEM_ALERT_WINDOW",
+        "android.permission.WAKE_LOCK",
+        "android.permission.BLUETOOTH",
+        "CAMERA",
+        "RECORD_AUDIO",
+        "MODIFY_AUDIO_SETTINGS",
+        "BLUETOOTH",
+        "FOREGROUND_SERVICE",
+        "FOREGROUND_SERVICE_CAMERA",
+        "FOREGROUND_SERVICE_MICROPHONE",
+        "FOREGROUND_SERVICE_MEDIA_PLAYBACK",
+        "POST_NOTIFICATIONS",
+        "android.permission.ACCESS_NETWORK_STATE",
+        "android.permission.CAMERA",
+        "android.permission.INTERNET",
+        "android.permission.MODIFY_AUDIO_SETTINGS",
+        "android.permission.RECORD_AUDIO",
+        "android.permission.SYSTEM_ALERT_WINDOW",
+        "android.permission.WAKE_LOCK",
+        "android.permission.BLUETOOTH"
       ]
     },
     "web": {
@@ -63,6 +94,12 @@
         "projectId": "310e7845-686a-4db0-99c3-e8c253c6975a"
       }
     },
-    "owner": "edusphereknust"
+    "owner": "edusphereknust",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/310e7845-686a-4db0-99c3-e8c253c6975a"
+    }
   }
 }
