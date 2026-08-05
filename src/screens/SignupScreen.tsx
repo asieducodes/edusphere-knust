@@ -26,6 +26,7 @@ import {
   Modal,
   FlatList,
   ActivityIndicator,
+  Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -40,6 +41,7 @@ import { useAuth } from '../context/AuthContext';
 import { useDepartments, useProgrammes } from '../hooks/useCourses';
 import { LEVEL_OPTIONS } from '../constants/academic';
 import { Programme } from '../types/course';
+import { PRIVACY_POLICY_URL, TERMS_OF_SERVICE_URL } from '../constants/legal';
 
 type Props = NativeStackScreenProps<AuthStackParamList, 'Signup'>;
 
@@ -146,6 +148,7 @@ const SignupScreen: React.FC<Props> = ({ navigation }) => {
   const [level, setLevel] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
 
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -169,7 +172,7 @@ const SignupScreen: React.FC<Props> = ({ navigation }) => {
 
   // ---- Validation (only shown after first submit attempt) -----------
   const { errors } = submitted
-    ? validateSignupForm({ fullName, email, programme, department, level, password, confirmPassword })
+    ? validateSignupForm({ fullName, email, programme, department, level, password, confirmPassword, agreedToTerms })
     : { errors: {} as Record<string, string> };
 
   const handleCreateAccount = async () => {
@@ -183,6 +186,7 @@ const SignupScreen: React.FC<Props> = ({ navigation }) => {
       level,
       password,
       confirmPassword,
+      agreedToTerms,
     });
 
     if (!isValid || !departmentId) {
@@ -419,6 +423,28 @@ const SignupScreen: React.FC<Props> = ({ navigation }) => {
               </TouchableOpacity>
             </View>
             {errors.confirmPassword ? <ErrorText text={errors.confirmPassword} /> : null}
+
+            {/* Terms / Privacy consent */}
+            <TouchableOpacity
+              style={styles.consentRow}
+              activeOpacity={0.8}
+              onPress={() => setAgreedToTerms((prev) => !prev)}
+            >
+              <View style={[styles.checkbox, agreedToTerms && styles.checkboxChecked]}>
+                {agreedToTerms ? <Feather name="check" size={13} color={COLORS.white} /> : null}
+              </View>
+              <Text style={styles.consentText}>
+                {t('signup.agreeToPrefix')}{' '}
+                <Text style={styles.consentLink} onPress={() => Linking.openURL(TERMS_OF_SERVICE_URL)}>
+                  {t('signup.termsOfService')}
+                </Text>{' '}
+                {t('signup.and')}{' '}
+                <Text style={styles.consentLink} onPress={() => Linking.openURL(PRIVACY_POLICY_URL)}>
+                  {t('signup.privacyPolicy')}
+                </Text>
+              </Text>
+            </TouchableOpacity>
+            {errors.agreedToTerms ? <ErrorText text={errors.agreedToTerms} /> : null}
 
             {serverError ? <ErrorText text={serverError} /> : null}
 
@@ -779,6 +805,38 @@ function createStyles(COLORS: ThemeColors) {
     color: COLORS.danger,
     marginLeft: 5,
     flexShrink: 1,
+  },
+
+  // Terms / Privacy consent
+  consentRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginTop: 18,
+  },
+  checkbox: {
+    width: 20,
+    height: 20,
+    borderRadius: 6,
+    borderWidth: 1.5,
+    borderColor: COLORS.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 10,
+    marginTop: 1,
+  },
+  checkboxChecked: {
+    backgroundColor: COLORS.primary,
+    borderColor: COLORS.primary,
+  },
+  consentText: {
+    flex: 1,
+    fontSize: 12.5,
+    lineHeight: 18,
+    color: COLORS.textSecondary,
+  },
+  consentLink: {
+    color: COLORS.primary,
+    fontWeight: '700',
   },
 
   // Department + Level row

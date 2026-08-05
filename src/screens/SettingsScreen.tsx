@@ -14,7 +14,7 @@
  */
 
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, StatusBar, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, StatusBar, Alert, Linking } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -23,6 +23,7 @@ import { RootStackParamList } from '../navigation/types';
 import { useTheme, ThemeMode } from '../context/ThemeContext';
 import { useLanguage, Language, LANGUAGE_LABELS } from '../context/LanguageContext';
 import { useDeleteAccount } from '../hooks/useProfile';
+import { PRIVACY_POLICY_URL, TERMS_OF_SERVICE_URL } from '../constants/legal';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Settings'>;
 
@@ -157,6 +158,35 @@ const SettingsScreen: React.FC<Props> = ({ navigation }) => {
             <Text style={styles.rowLabel}>EduSphere</Text>
             <Text style={styles.versionText}>v{APP_VERSION}</Text>
           </View>
+        </View>
+
+        {/* ---------------------------------------------------------- */}
+        {/* LEGAL                                                       */}
+        {/* ---------------------------------------------------------- */}
+        <Text style={styles.sectionTitle}>{t('settings.legal')}</Text>
+        <View style={styles.card}>
+          <TouchableOpacity
+            style={[styles.row, styles.rowDivider]}
+            activeOpacity={0.7}
+            onPress={() => Linking.openURL(PRIVACY_POLICY_URL).catch(() => undefined)}
+          >
+            <View style={styles.rowIconWrap}>
+              <Feather name="shield" size={16} color={COLORS.primary} />
+            </View>
+            <Text style={styles.rowLabel}>{t('settings.privacyPolicy')}</Text>
+            <Feather name="external-link" size={16} color={COLORS.textMuted} />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.row}
+            activeOpacity={0.7}
+            onPress={() => Linking.openURL(TERMS_OF_SERVICE_URL).catch(() => undefined)}
+          >
+            <View style={styles.rowIconWrap}>
+              <Feather name="file-text" size={16} color={COLORS.primary} />
+            </View>
+            <Text style={styles.rowLabel}>{t('settings.termsOfService')}</Text>
+            <Feather name="external-link" size={16} color={COLORS.textMuted} />
+          </TouchableOpacity>
         </View>
 
         {/* ---------------------------------------------------------- */}

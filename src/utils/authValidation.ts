@@ -76,6 +76,7 @@ export interface SignupFormData {
   level: string;
   password: string;
   confirmPassword: string;
+  agreedToTerms: boolean;
 }
 
 export function validateSignupForm(data: SignupFormData): ValidationResult {
@@ -116,6 +117,10 @@ export function validateSignupForm(data: SignupFormData): ValidationResult {
     errors.confirmPassword = 'Please confirm your password.';
   } else if (data.confirmPassword !== data.password) {
     errors.confirmPassword = 'Passwords do not match.';
+  }
+
+  if (!data.agreedToTerms) {
+    errors.agreedToTerms = 'Please agree to the Terms of Service and Privacy Policy to continue.';
   }
 
   return buildResult(errors);

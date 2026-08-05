@@ -1,42 +1,41 @@
 /**
  * EduSphere — screens/MapScreen.tsx
  * -----------------------------------------------------------------------
- * Campus Study Group & Resource Finder — Study Spaces Screen
+ * Campus Study Group & Resource Finder — Study Spaces Map
  *
- * Real KNUST study locations (libraries, discussion areas, reading rooms)
- * fetched from the backend and grouped by college, plus a compact visual
- * overview of the main campus cluster built from actual lat/lng — no map
- * SDK required. Two of the fourteen seeded spots (the CHS discussion
- * areas at Boadi and KATH) sit well off the main campus, so they're
- * excluded from the overview pins and flagged "Off main campus" in their
- * card instead of distorting the map's scale.
+ * A real Google/Apple map (react-native-maps) with every curated study
+ * spot shown as a miniature-building marker — a small pre-rendered image
+ * (assets/markers/) passed as each Marker's `image` prop, not a live JS
+ * view. That's deliberate: react-native-maps markers built from JS view
+ * children can fail to rasterize into a visible bitmap on Android, so a
+ * static image is the reliable choice. Locations outside the registry in
+ * data/campusBuildings.ts fall back to a generic marker.
+ *
+ * Tapping a building animates the camera to it and opens a glassmorphic
+ * card with the real photo, description, distance/walk time, and the
+ * Directions / status-report actions.
  *
  * Status (Open/Busy/Available/Closed) is entirely student-reported — there
  * is no live feed, so whatever the last person tapped is what's shown.
  * -----------------------------------------------------------------------
  */
 
-import React, { useMemo, useState } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  TextInput,
-  StatusBar,
-  Modal,
-  Linking,
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { Feather } from '@expo/vector-icons';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { Linking, Modal, Platform, StatusBar, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import MapView, { Marker, PROVIDER_GOOGLE, Region } from 'react-native-maps';
+import * as Location from 'expo-location';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ThemeColors, SHADOW } from '../theme/colors';
 import { useTheme } from '../context/ThemeContext';
 import { useLanguage } from '../context/LanguageContext';
 import { useTabBarHeight } from '../navigation/useTabBarHeight';
-import { EmptyState, LoadingView, ErrorView } from '../components/common';
+import { ErrorView, LoadingView } from '../components/common';
 import { useLocations, useReportLocationStatus } from '../hooks/useLocations';
 import { CampusLocation, LocationStatus } from '../types/location';
+import { getCampusBuilding, MARKER_IMAGES } from '../data/campusBuildings';
+import MapInfoCard from '../components/map/MapInfoCard';
+import FloatingSearchBar, { FilterOption } from '../components/map/FloatingSearchBar';
+import MapControls from '../components/map/MapControls';
 
 // -----------------------------------------------------------------------
 // HELPERS
@@ -56,18 +55,44 @@ function collegeShortLabel(college: string): string {
   return COLLEGE_SHORT_LABELS[college] ?? college;
 }
 
-// The overview map represents the walkable main campus — the Main
-// Library's coordinates anchor that cluster. Anything more than ~2km out
-// (Boadi, KATH) is a different part of Kumasi entirely and gets excluded
-// from the pins so it doesn't collapse the whole main-campus cluster into
-// one corner.
-const MAIN_LIBRARY_COORD = { lat: 6.6745, lng: -1.5716 };
-const MAIN_CAMPUS_RADIUS_DEG = 0.02;
+/** Prempeh II Library anchors the walkable main-campus cluster. */
+const CAMPUS_CENTER = { latitude: 6.6745, longitude: -1.5716 };
+const CAMPUS_REGION: Region = {
+  ...CAMPUS_CENTER,
+  latitudeDelta: 0.02,
+  longitudeDelta: 0.02,
+};
+const BUILDING_FOCUS_DELTA = 0.0035;
 
+// Simple, well-known "muted dark" Google Maps style (static JSON, no
+// runtime cost) so dark theme doesn't hand you a blindingly bright map.
+const DARK_MAP_STYLE = [
+  { elementType: 'geometry', stylers: [{ color: '#1d2129' }] },
+  { elementType: 'labels.text.stroke', stylers: [{ color: '#1d2129' }] },
+  { elementType: 'labels.text.fill', stylers: [{ color: '#8a94a6' }] },
+  { featureType: 'administrative', elementType: 'geometry', stylers: [{ color: '#333f4f' }] },
+  { featureType: 'poi', elementType: 'labels', stylers: [{ visibility: 'off' }] },
+  { featureType: 'poi', elementType: 'geometry', stylers: [{ color: '#263042' }] },
+  { featureType: 'road', elementType: 'geometry', stylers: [{ color: '#2a323f' }] },
+  { featureType: 'road', elementType: 'labels.text.fill', stylers: [{ color: '#6b7488' }] },
+  { featureType: 'transit', stylers: [{ visibility: 'off' }] },
+  { featureType: 'water', elementType: 'geometry', stylers: [{ color: '#17202c' }] },
+];
+
+/** Haversine distance in km — used only to flag the couple of seeded
+ *  spots (Boadi, KATH) that sit well outside the walkable main campus. */
+function distanceKmBetween(a: { latitude: number; longitude: number }, b: { latitude: number; longitude: number }) {
+  const R = 6371;
+  const dLat = ((b.latitude - a.latitude) * Math.PI) / 180;
+  const dLng = ((b.longitude - a.longitude) * Math.PI) / 180;
+  const s =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos((a.latitude * Math.PI) / 180) * Math.cos((b.latitude * Math.PI) / 180) * Math.sin(dLng / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(s), Math.sqrt(1 - s));
+}
+const MAIN_CAMPUS_RADIUS_KM = 2.4;
 function isOnMainCampus(location: CampusLocation): boolean {
-  const dLat = location.latitude - MAIN_LIBRARY_COORD.lat;
-  const dLng = location.longitude - MAIN_LIBRARY_COORD.lng;
-  return Math.sqrt(dLat * dLat + dLng * dLng) < MAIN_CAMPUS_RADIUS_DEG;
+  return distanceKmBetween(CAMPUS_CENTER, location) < MAIN_CAMPUS_RADIUS_KM;
 }
 
 const STATUS_ORDER: LocationStatus[] = ['open', 'available', 'busy', 'closed'];
@@ -80,25 +105,33 @@ const MapScreen: React.FC = () => {
   const { t } = useLanguage();
   const styles = React.useMemo(() => createStyles(COLORS), [COLORS]);
   const tabBarHeight = useTabBarHeight();
+  const insets = useSafeAreaInsets();
 
-  const STATUS_STYLES: Record<LocationStatus, { bg: string; color: string; label: string }> = {
-    open: { bg: COLORS.successLight, color: COLORS.success, label: t('map.statusOpen') },
-    available: { bg: COLORS.primaryLight, color: COLORS.primary, label: t('map.statusAvailable') },
-    busy: { bg: COLORS.dangerLight, color: COLORS.danger, label: t('map.statusBusy') },
-    closed: { bg: COLORS.chipBg, color: COLORS.textMuted, label: t('map.statusClosed') },
-  };
-
-  const locationsQuery = useLocations();
-  const reportStatusMutation = useReportLocationStatus();
+  const mapRef = useRef<MapView>(null);
 
   const [searchQuery, setSearchQuery] = useState('');
   const [activeCollege, setActiveCollege] = useState<string>('All');
-  const [selectedPinId, setSelectedPinId] = useState<string | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
   const [reportTarget, setReportTarget] = useState<CampusLocation | null>(null);
+  const [userCoords, setUserCoords] = useState<{ lat: number; lng: number } | null>(null);
 
+  // With permission, the backend gets our coords and returns distanceKm.
+  useEffect(() => {
+    (async () => {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') return;
+      const position = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.Balanced,
+      });
+      setUserCoords({ lat: position.coords.latitude, lng: position.coords.longitude });
+    })().catch(() => undefined);
+  }, []);
+
+  const locationsQuery = useLocations(userCoords ?? {});
+  const reportStatusMutation = useReportLocationStatus();
   const locations = useMemo(() => locationsQuery.data?.items ?? [], [locationsQuery.data]);
 
-  const collegeOptions = useMemo(() => {
+  const collegeOptions = useMemo<FilterOption[]>(() => {
     const seen = new Set<string>();
     let hasCampusWide = false;
     for (const loc of locations) {
@@ -125,40 +158,32 @@ const MapScreen: React.FC = () => {
     });
   }, [locations, activeCollege, searchQuery]);
 
-  const groupedSections = useMemo(() => {
-    const groups = new Map<string, CampusLocation[]>();
-    for (const loc of filteredLocations) {
-      const key = loc.college ?? CAMPUS_WIDE_KEY;
-      if (!groups.has(key)) groups.set(key, []);
-      groups.get(key)!.push(loc);
-    }
-    return Array.from(groups.entries()).sort(([a], [b]) => {
-      if (a === CAMPUS_WIDE_KEY) return -1;
-      if (b === CAMPUS_WIDE_KEY) return 1;
-      return a.localeCompare(b);
-    });
-  }, [filteredLocations]);
+  const onCampusLocations = useMemo(() => filteredLocations.filter(isOnMainCampus), [filteredLocations]);
+  const offCampusLocations = useMemo(() => filteredLocations.filter((l) => !isOnMainCampus(l)), [filteredLocations]);
 
-  const mapPins = useMemo(() => {
-    const onCampus = locations.filter(isOnMainCampus);
-    if (onCampus.length === 0) return [];
-    const lats = onCampus.map((l) => l.latitude);
-    const lngs = onCampus.map((l) => l.longitude);
-    const minLat = Math.min(...lats);
-    const maxLat = Math.max(...lats);
-    const minLng = Math.min(...lngs);
-    const maxLng = Math.max(...lngs);
-    const latRange = maxLat - minLat || 1;
-    const lngRange = maxLng - minLng || 1;
-    const PAD = 14;
-    return onCampus.map((loc) => ({
-      location: loc,
-      leftPct: ((loc.longitude - minLng) / lngRange) * (100 - PAD * 2) + PAD,
-      topPct: (1 - (loc.latitude - minLat) / latRange) * (100 - PAD * 2) + PAD,
-    }));
-  }, [locations]);
+  const selectedLocation = filteredLocations.find((loc) => loc.id === selectedId) ?? null;
 
-  const selectedPin = mapPins.find((p) => p.location.id === selectedPinId) ?? null;
+  const handleSelect = (location: CampusLocation) => {
+    setSelectedId(location.id);
+    mapRef.current?.animateToRegion(
+      {
+        latitude: location.latitude,
+        longitude: location.longitude,
+        latitudeDelta: BUILDING_FOCUS_DELTA,
+        longitudeDelta: BUILDING_FOCUS_DELTA,
+      },
+      500
+    );
+  };
+
+  const handleDeselect = () => {
+    setSelectedId(null);
+  };
+
+  const handleRecenter = () => {
+    setSelectedId(null);
+    mapRef.current?.animateToRegion(CAMPUS_REGION, 500);
+  };
 
   const handleSubmitReport = (status: LocationStatus) => {
     if (!reportTarget) return;
@@ -168,239 +193,132 @@ const MapScreen: React.FC = () => {
     );
   };
 
-  // No maps SDK in the app, so directions hand off to whatever the phone
-  // already has — Google Maps app if installed, otherwise a browser.
   const handleGetDirections = (location: CampusLocation) => {
     const url = `https://www.google.com/maps/dir/?api=1&destination=${location.latitude},${location.longitude}`;
     Linking.openURL(url).catch(() => undefined);
+  };
+
+  const handleLocateMe = () => {
+    if (!userCoords) return;
+    setSelectedId(null);
+    mapRef.current?.animateToRegion(
+      { latitude: userCoords.lat, longitude: userCoords.lng, latitudeDelta: 0.006, longitudeDelta: 0.006 },
+      500
+    );
   };
 
   const isLoading = locationsQuery.isLoading;
   const isError = !locationsQuery.data && locationsQuery.isError;
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={['top']}>
-      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={COLORS.background} />
+    <View style={styles.container}>
+      <StatusBar
+        barStyle={isDark ? 'light-content' : 'dark-content'}
+        translucent
+        backgroundColor="transparent"
+      />
 
-      <ScrollView
-        style={styles.container}
-        contentContainerStyle={[styles.scrollContent, { paddingBottom: tabBarHeight }]}
-        showsVerticalScrollIndicator={false}
+      <MapView
+        ref={mapRef}
+        style={StyleSheet.absoluteFill}
+        provider={Platform.OS === 'android' ? PROVIDER_GOOGLE : undefined}
+        initialRegion={CAMPUS_REGION}
+        customMapStyle={isDark ? DARK_MAP_STYLE : undefined}
+        userInterfaceStyle={isDark ? 'dark' : 'light'}
+        onPress={handleDeselect}
+        showsUserLocation={!!userCoords}
+        showsMyLocationButton={false}
+        showsCompass={false}
+        toolbarEnabled={false}
+        rotateEnabled
+        pitchEnabled
       >
-        {/* ---------------------------------------------------------- */}
-        {/* HEADER                                                      */}
-        {/* ---------------------------------------------------------- */}
-        <View style={styles.header}>
-          <Text style={styles.headerTitle}>{t('map.title')}</Text>
-          <Text style={styles.headerSubtitle}>{t('map.subtitle')}</Text>
-        </View>
+        {onCampusLocations.map((location) => {
+          const building = getCampusBuilding(location.name);
+          return (
+            <Marker
+              key={location.id}
+              coordinate={{ latitude: location.latitude, longitude: location.longitude }}
+              image={MARKER_IMAGES[building.modelKey]}
+              onPress={(e) => {
+                e.stopPropagation();
+                handleSelect(location);
+              }}
+            />
+          );
+        })}
+      </MapView>
 
-        {/* ---------------------------------------------------------- */}
-        {/* SEARCH BAR                                                  */}
-        {/* ---------------------------------------------------------- */}
-        <View style={styles.searchBarWrapper}>
-          <Feather name="search" size={18} color={COLORS.textMuted} />
-          <TextInput
-            style={styles.searchInput}
-            placeholder={t('map.searchPlaceholder')}
-            placeholderTextColor={COLORS.textMuted}
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-            returnKeyType="search"
+      {/* Floating title */}
+      <View style={[styles.titleWrap, { top: insets.top + 12 }]} pointerEvents="none">
+        <View style={styles.titlePill}>
+          <Text style={styles.title}>{t('map.title')}</Text>
+          <Text style={styles.subtitle}>{t('map.subtitle')}</Text>
+        </View>
+      </View>
+
+      {/* Floating controls (top right) */}
+      <View style={[styles.controlsWrap, { top: insets.top + 12 }]}>
+        <MapControls onRecenter={handleRecenter} onLocateMe={userCoords ? handleLocateMe : undefined} />
+      </View>
+
+      {/* Loading / error overlays */}
+      {isLoading && (
+        <View style={styles.overlayCenter} pointerEvents="none">
+          <View style={styles.overlayCard}>
+            <LoadingView message={t('map.loading')} />
+          </View>
+        </View>
+      )}
+      {isError && (
+        <View style={styles.overlayCenter}>
+          <View style={styles.overlayCard}>
+            <ErrorView message={t('map.loadError')} onRetry={() => locationsQuery.refetch()} />
+          </View>
+        </View>
+      )}
+
+      {/* Bottom stack: info card replaces the search bar while open */}
+      <View style={[styles.bottomStack, { bottom: tabBarHeight + 14 }]}>
+        {selectedLocation ? (
+          <MapInfoCard
+            location={selectedLocation}
+            onClose={handleDeselect}
+            onGetDirections={handleGetDirections}
+            onReportStatus={setReportTarget}
           />
-          {searchQuery.length > 0 && (
-            <TouchableOpacity onPress={() => setSearchQuery('')} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-              <Feather name="x" size={16} color={COLORS.textMuted} />
-            </TouchableOpacity>
-          )}
-        </View>
-
-        {/* ---------------------------------------------------------- */}
-        {/* COLLEGE FILTER CHIPS                                        */}
-        {/* ---------------------------------------------------------- */}
-        {collegeOptions.length > 1 && (
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterScroll}>
-            {collegeOptions.map((option) => {
-              const isActive = activeCollege === option.key;
-              return (
-                <TouchableOpacity
-                  key={option.key}
-                  style={[styles.filterChip, isActive && styles.filterChipActive]}
-                  activeOpacity={0.8}
-                  onPress={() => setActiveCollege(option.key)}
-                >
-                  <Text style={[styles.filterChipText, isActive && styles.filterChipTextActive]}>
-                    {option.label}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
-          </ScrollView>
-        )}
-
-        {isLoading ? (
-          <LoadingView message={t('map.loading')} />
-        ) : isError ? (
-          <ErrorView message={t('map.loadError')} onRetry={() => locationsQuery.refetch()} />
         ) : (
-          <>
-            {/* -------------------------------------------------------- */}
-            {/* CAMPUS OVERVIEW                                           */}
-            {/* -------------------------------------------------------- */}
-            {mapPins.length > 0 && (
-              <View style={styles.mapSection}>
-                <View style={styles.mapCard}>
-                  <View style={[styles.mapRoad, { top: '30%', left: '-10%', width: '120%', transform: [{ rotate: '-6deg' }] }]} />
-                  <View style={[styles.mapRoad, { top: '62%', left: '-10%', width: '120%', transform: [{ rotate: '4deg' }] }]} />
-                  <View style={[styles.mapRoadVertical, { left: '35%', top: '-10%', height: '120%', transform: [{ rotate: '3deg' }] }]} />
-                  <View style={[styles.mapRoadVertical, { left: '72%', top: '-10%', height: '120%', transform: [{ rotate: '-4deg' }] }]} />
-                  <View style={[styles.mapGreenSpace, { top: '10%', left: '45%', width: 90, height: 60 }]} />
-                  <View style={[styles.mapGreenSpace, { top: '55%', left: '8%', width: 70, height: 50 }]} />
-
-                  {mapPins.map(({ location, leftPct, topPct }) => {
-                    const isSelected = location.id === selectedPinId;
-                    return (
-                      <TouchableOpacity
-                        key={location.id}
-                        style={[styles.mapMarkerWrap, { top: `${topPct}%`, left: `${leftPct}%` }]}
-                        activeOpacity={0.85}
-                        onPress={() => setSelectedPinId(isSelected ? null : location.id)}
-                      >
-                        {isSelected && <View style={styles.mapMarkerPulse} />}
-                        <View style={[styles.mapPin, isSelected && styles.mapPinSelected]}>
-                          <Feather name={location.category === 'Library' ? 'book-open' : 'edit-3'} size={isSelected ? 15 : 12} color={COLORS.white} />
-                        </View>
-                      </TouchableOpacity>
-                    );
-                  })}
-                </View>
-
-                {selectedPin ? (
-                  <View style={styles.pinCallout}>
-                    <View style={styles.pinCalloutInfo}>
-                      <Text style={styles.pinCalloutName} numberOfLines={1}>
-                        {selectedPin.location.name}
+          !isLoading &&
+          !isError && (
+            <>
+              {offCampusLocations.length > 0 && (
+                <View style={styles.offCampusRow}>
+                  {offCampusLocations.map((loc) => (
+                    <TouchableOpacity
+                      key={loc.id}
+                      style={styles.offCampusChip}
+                      activeOpacity={0.85}
+                      onPress={() => setSelectedId(loc.id)}
+                    >
+                      <View style={styles.offCampusDot} />
+                      <Text style={styles.offCampusChipText} numberOfLines={1}>
+                        {loc.name} · {t('map.offMainCampus')}
                       </Text>
-                      <View
-                        style={[
-                          styles.statusChip,
-                          { backgroundColor: STATUS_STYLES[selectedPin.location.status ?? 'closed'].bg, alignSelf: 'flex-start', marginTop: 6 },
-                        ]}
-                      >
-                        <View style={[styles.statusDot, { backgroundColor: selectedPin.location.status ? STATUS_STYLES[selectedPin.location.status].color : COLORS.textMuted }]} />
-                        <Text style={[styles.statusChipText, { color: selectedPin.location.status ? STATUS_STYLES[selectedPin.location.status].color : COLORS.textMuted }]}>
-                          {selectedPin.location.status ? STATUS_STYLES[selectedPin.location.status].label : t('map.statusUnknown')}
-                        </Text>
-                      </View>
-                    </View>
-                    <TouchableOpacity
-                      style={styles.pinCalloutIconButton}
-                      activeOpacity={0.85}
-                      onPress={() => handleGetDirections(selectedPin.location)}
-                    >
-                      <Feather name="navigation" size={15} color={COLORS.primary} />
                     </TouchableOpacity>
-                    <TouchableOpacity
-                      style={styles.pinCalloutReportButton}
-                      activeOpacity={0.85}
-                      onPress={() => setReportTarget(selectedPin.location)}
-                    >
-                      <Text style={styles.pinCalloutReportButtonText}>{t('map.reportStatus')}</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity onPress={() => setSelectedPinId(null)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-                      <Feather name="x" size={16} color={COLORS.textMuted} />
-                    </TouchableOpacity>
-                  </View>
-                ) : (
-                  <Text style={styles.mapHint}>{t('map.tapPinHint')}</Text>
-                )}
-              </View>
-            )}
-
-            {/* -------------------------------------------------------- */}
-            {/* STUDY SPACES, GROUPED BY COLLEGE                          */}
-            {/* -------------------------------------------------------- */}
-            {groupedSections.length === 0 ? (
-              <EmptyState
-                icon="map-pin"
-                title={t('map.noLocationsFound')}
-                subtitle={t('map.noLocationsSubtitle')}
-                actionLabel={t('map.showAllLocations')}
-                onAction={() => {
-                  setSearchQuery('');
-                  setActiveCollege('All');
-                }}
-              />
-            ) : (
-              groupedSections.map(([collegeKey, spots]) => (
-                <View key={collegeKey} style={styles.collegeSection}>
-                  <View style={styles.sectionHeader}>
-                    <Text style={styles.sectionTitle}>
-                      {collegeKey === CAMPUS_WIDE_KEY ? t('map.filterCampusWide') : collegeShortLabel(collegeKey)}
-                    </Text>
-                  </View>
-
-                  <View style={styles.stackedCards}>
-                    {spots.map((spot) => {
-                      const statusInfo = spot.status ? STATUS_STYLES[spot.status] : null;
-                      return (
-                        <View key={spot.id} style={styles.spotCard}>
-                          <View style={styles.spotTopRow}>
-                            <View style={styles.spotIconWrap}>
-                              <Feather name={spot.category === 'Library' ? 'book-open' : 'edit-3'} size={16} color={COLORS.primary} />
-                            </View>
-                            <View style={styles.spotInfo}>
-                              <Text style={styles.spotName}>{spot.name}</Text>
-                              {!isOnMainCampus(spot) && (
-                                <Text style={styles.offCampusText}>{t('map.offMainCampus')}</Text>
-                              )}
-                            </View>
-                          </View>
-
-                          {spot.description ? <Text style={styles.spotDescription}>{spot.description}</Text> : null}
-
-                          <View style={styles.spotFooterRow}>
-                            <TouchableOpacity
-                              style={[styles.statusChip, { backgroundColor: statusInfo?.bg ?? COLORS.chipBg }]}
-                              activeOpacity={0.8}
-                              onPress={() => setReportTarget(spot)}
-                            >
-                              <View style={[styles.statusDot, { backgroundColor: statusInfo?.color ?? COLORS.textMuted }]} />
-                              <Text style={[styles.statusChipText, { color: statusInfo?.color ?? COLORS.textMuted }]}>
-                                {statusInfo?.label ?? t('map.statusUnknown')}
-                              </Text>
-                            </TouchableOpacity>
-
-                            <View style={styles.spotActionsRow}>
-                              <TouchableOpacity
-                                style={styles.directionsButton}
-                                activeOpacity={0.85}
-                                onPress={() => handleGetDirections(spot)}
-                              >
-                                <Feather name="navigation" size={12} color={COLORS.primary} />
-                                <Text style={styles.directionsButtonText}>{t('map.getDirections')}</Text>
-                              </TouchableOpacity>
-
-                              <TouchableOpacity
-                                style={styles.reportButton}
-                                activeOpacity={0.85}
-                                onPress={() => setReportTarget(spot)}
-                              >
-                                <Feather name="edit-2" size={12} color={COLORS.primary} />
-                                <Text style={styles.reportButtonText}>{t('map.reportStatus')}</Text>
-                              </TouchableOpacity>
-                            </View>
-                          </View>
-                        </View>
-                      );
-                    })}
-                  </View>
+                  ))}
                 </View>
-              ))
-            )}
-          </>
+              )}
+              <FloatingSearchBar
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+                filterOptions={collegeOptions}
+                activeFilter={activeCollege}
+                onSelectFilter={setActiveCollege}
+              />
+            </>
+          )
         )}
-      </ScrollView>
+      </View>
 
       {/* ---------------------------------------------------------- */}
       {/* STATUS REPORT MODAL                                         */}
@@ -413,7 +331,12 @@ const MapScreen: React.FC = () => {
             </Text>
             <View style={styles.statusOptionsGrid}>
               {STATUS_ORDER.map((status) => {
-                const info = STATUS_STYLES[status];
+                const info = {
+                  open: { bg: COLORS.successLight, color: COLORS.success, label: t('map.statusOpen') },
+                  available: { bg: COLORS.primaryLight, color: COLORS.primary, label: t('map.statusAvailable') },
+                  busy: { bg: COLORS.dangerLight, color: COLORS.danger, label: t('map.statusBusy') },
+                  closed: { bg: COLORS.chipBg, color: COLORS.textMuted, label: t('map.statusClosed') },
+                }[status];
                 return (
                   <TouchableOpacity
                     key={status}
@@ -434,7 +357,7 @@ const MapScreen: React.FC = () => {
           </View>
         </TouchableOpacity>
       </Modal>
-    </SafeAreaView>
+    </View>
   );
 };
 
@@ -443,301 +366,97 @@ export default MapScreen;
 // -----------------------------------------------------------------------
 // STYLES
 // -----------------------------------------------------------------------
-const CARD_GAP = 14;
-const H_PADDING = 20;
-const MAP_HEIGHT = 240;
+const H_PADDING = 18;
 
 function createStyles(COLORS: ThemeColors) {
   return StyleSheet.create({
-    safeArea: {
-      flex: 1,
-      backgroundColor: COLORS.background,
-    },
     container: {
       flex: 1,
       backgroundColor: COLORS.background,
     },
-    scrollContent: {
-      paddingBottom: 12,
-    },
 
-    // ---------------- HEADER ----------------
-    header: {
-      paddingHorizontal: H_PADDING,
-      paddingTop: 12,
-      paddingBottom: 4,
+    // ---------------- FLOATING TITLE ----------------
+    titleWrap: {
+      position: 'absolute',
+      left: H_PADDING,
+      maxWidth: '68%',
+      alignItems: 'flex-start',
     },
-    headerTitle: {
-      fontSize: 22,
+    titlePill: {
+      backgroundColor: COLORS.card,
+      borderRadius: 20,
+      paddingHorizontal: 16,
+      paddingVertical: 10,
+      ...SHADOW,
+      shadowOpacity: 0.14,
+    },
+    title: {
+      fontSize: 18,
       fontWeight: '700',
       color: COLORS.textPrimary,
       letterSpacing: -0.3,
     },
-    headerSubtitle: {
-      fontSize: 14,
-      color: COLORS.textSecondary,
-      marginTop: 4,
-    },
-
-    // ---------------- SEARCH BAR ----------------
-    searchBarWrapper: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      backgroundColor: COLORS.card,
-      marginHorizontal: H_PADDING,
-      marginTop: 16,
-      paddingHorizontal: 16,
-      height: 50,
-      borderRadius: 16,
-      borderWidth: 1,
-      borderColor: COLORS.border,
-      ...SHADOW,
-    },
-    searchInput: {
-      flex: 1,
-      marginLeft: 10,
-      marginRight: 8,
-      fontSize: 14.5,
-      color: COLORS.textPrimary,
-    },
-
-    // ---------------- FILTER CHIPS ----------------
-    filterScroll: {
-      paddingHorizontal: H_PADDING,
-      paddingVertical: 18,
-    },
-    filterChip: {
-      backgroundColor: COLORS.chipBg,
-      paddingHorizontal: 16,
-      paddingVertical: 9,
-      borderRadius: 20,
-      marginRight: 8,
-    },
-    filterChipActive: {
-      backgroundColor: COLORS.primary,
-    },
-    filterChipText: {
-      fontSize: 13,
-      fontWeight: '600',
-      color: COLORS.textSecondary,
-    },
-    filterChipTextActive: {
-      color: COLORS.white,
-    },
-
-    // ---------------- MAP SECTION ----------------
-    mapSection: {
-      paddingHorizontal: H_PADDING,
-      marginBottom: 20,
-    },
-    mapCard: {
-      height: MAP_HEIGHT,
-      borderRadius: 20,
-      backgroundColor: '#EAF0FB',
-      overflow: 'hidden',
-      ...SHADOW,
-    },
-    mapRoad: {
-      position: 'absolute',
-      height: 10,
-      backgroundColor: '#DCE3F5',
-    },
-    mapRoadVertical: {
-      position: 'absolute',
-      width: 10,
-      backgroundColor: '#DCE3F5',
-    },
-    mapGreenSpace: {
-      position: 'absolute',
-      backgroundColor: '#DCEEE0',
-      borderRadius: 14,
-    },
-    mapMarkerWrap: {
-      position: 'absolute',
-      alignItems: 'center',
-      transform: [{ translateX: -14 }, { translateY: -14 }],
-    },
-    mapPin: {
-      width: 26,
-      height: 26,
-      borderRadius: 13,
-      backgroundColor: COLORS.textSecondary,
-      alignItems: 'center',
-      justifyContent: 'center',
-      borderWidth: 2,
-      borderColor: COLORS.white,
-      shadowColor: '#1B1F3B',
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.15,
-      shadowRadius: 4,
-      elevation: 3,
-    },
-    mapPinSelected: {
-      backgroundColor: COLORS.primary,
-      width: 32,
-      height: 32,
-      borderRadius: 16,
-    },
-    mapMarkerPulse: {
-      position: 'absolute',
-      top: -6,
-      width: 44,
-      height: 44,
-      borderRadius: 22,
-      backgroundColor: COLORS.primary + '26',
-    },
-    mapHint: {
-      textAlign: 'center',
-      fontSize: 12,
-      color: COLORS.textMuted,
-      marginTop: 10,
-    },
-    pinCallout: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      backgroundColor: COLORS.card,
-      borderRadius: 16,
-      padding: 14,
-      marginTop: 10,
-      ...SHADOW,
-    },
-    pinCalloutInfo: {
-      flex: 1,
-    },
-    pinCalloutName: {
-      fontSize: 14,
-      fontWeight: '700',
-      color: COLORS.textPrimary,
-    },
-    pinCalloutIconButton: {
-      width: 32,
-      height: 32,
-      borderRadius: 10,
-      backgroundColor: COLORS.primaryLight,
-      alignItems: 'center',
-      justifyContent: 'center',
-      marginRight: 8,
-    },
-    pinCalloutReportButton: {
-      backgroundColor: COLORS.primaryLight,
-      paddingHorizontal: 12,
-      paddingVertical: 8,
-      borderRadius: 10,
-      marginRight: 10,
-    },
-    pinCalloutReportButtonText: {
-      fontSize: 12,
-      fontWeight: '700',
-      color: COLORS.primary,
-    },
-
-    // ---------------- COLLEGE SECTIONS ----------------
-    collegeSection: {
-      marginBottom: 8,
-    },
-    sectionHeader: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      paddingHorizontal: H_PADDING,
-      marginBottom: 12,
-    },
-    sectionTitle: {
-      fontSize: 16.5,
-      fontWeight: '700',
-      color: COLORS.textPrimary,
-    },
-    stackedCards: {
-      paddingHorizontal: H_PADDING,
-    },
-
-    // ---------------- STUDY SPOT CARD ----------------
-    spotCard: {
-      backgroundColor: COLORS.card,
-      borderRadius: 18,
-      padding: 16,
-      marginBottom: CARD_GAP,
-      ...SHADOW,
-    },
-    spotTopRow: {
-      flexDirection: 'row',
-      alignItems: 'flex-start',
-    },
-    spotIconWrap: {
-      width: 34,
-      height: 34,
-      borderRadius: 10,
-      backgroundColor: COLORS.primaryLight,
-      alignItems: 'center',
-      justifyContent: 'center',
-      marginRight: 12,
-    },
-    spotInfo: {
-      flex: 1,
-    },
-    spotName: {
-      fontSize: 14.5,
-      fontWeight: '700',
-      color: COLORS.textPrimary,
-    },
-    offCampusText: {
-      fontSize: 11,
-      color: COLORS.textMuted,
-      marginTop: 2,
-    },
-    spotDescription: {
-      fontSize: 12.5,
-      color: COLORS.textSecondary,
-      lineHeight: 18,
-      marginTop: 10,
-    },
-    spotFooterRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      marginTop: 12,
-    },
-    statusChip: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      paddingHorizontal: 10,
-      paddingVertical: 6,
-      borderRadius: 20,
-    },
-    statusDot: {
-      width: 6,
-      height: 6,
-      borderRadius: 3,
-      marginRight: 6,
-    },
-    statusChipText: {
+    subtitle: {
       fontSize: 11.5,
-      fontWeight: '700',
+      color: COLORS.textSecondary,
+      marginTop: 1,
     },
-    spotActionsRow: {
+
+    // ---------------- CONTROLS ----------------
+    controlsWrap: {
+      position: 'absolute',
+      right: H_PADDING,
+      alignItems: 'flex-end',
+    },
+
+    // ---------------- OVERLAYS ----------------
+    overlayCenter: {
+      ...StyleSheet.absoluteFillObject,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    overlayCard: {
+      width: '82%',
+      backgroundColor: COLORS.card,
+      borderRadius: 22,
+      paddingVertical: 8,
+      overflow: 'hidden',
+    },
+
+    // ---------------- BOTTOM STACK ----------------
+    bottomStack: {
+      position: 'absolute',
+      left: H_PADDING,
+      right: H_PADDING,
+    },
+    offCampusRow: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 8,
+      marginBottom: 10,
+    },
+    offCampusChip: {
       flexDirection: 'row',
       alignItems: 'center',
+      backgroundColor: COLORS.card,
+      paddingHorizontal: 13,
+      paddingVertical: 9,
+      borderRadius: 16,
+      maxWidth: 240,
+      ...SHADOW,
+      shadowOpacity: 0.1,
     },
-    directionsButton: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      marginRight: 16,
+    offCampusDot: {
+      width: 5,
+      height: 5,
+      borderRadius: 2.5,
+      backgroundColor: COLORS.textMuted,
+      marginRight: 7,
     },
-    directionsButtonText: {
-      fontSize: 12,
+    offCampusChipText: {
+      fontSize: 11.5,
       fontWeight: '600',
-      color: COLORS.primary,
-      marginLeft: 5,
-    },
-    reportButton: {
-      flexDirection: 'row',
-      alignItems: 'center',
-    },
-    reportButtonText: {
-      fontSize: 12,
-      fontWeight: '600',
-      color: COLORS.primary,
-      marginLeft: 5,
+      color: COLORS.textSecondary,
     },
 
     // ---------------- STATUS REPORT MODAL ----------------
@@ -751,15 +470,19 @@ function createStyles(COLORS: ThemeColors) {
     modalSheet: {
       width: '100%',
       backgroundColor: COLORS.card,
-      borderRadius: 20,
-      padding: 20,
+      borderRadius: 26,
+      padding: 22,
+      ...SHADOW,
+      shadowOpacity: 0.24,
+      shadowRadius: 24,
     },
     modalTitle: {
-      fontSize: 15.5,
+      fontSize: 16,
       fontWeight: '700',
       color: COLORS.textPrimary,
-      marginBottom: 16,
+      marginBottom: 18,
       textAlign: 'center',
+      letterSpacing: -0.2,
     },
     statusOptionsGrid: {
       flexDirection: 'row',
@@ -772,8 +495,8 @@ function createStyles(COLORS: ThemeColors) {
       justifyContent: 'center',
       flexBasis: '48%',
       flexGrow: 1,
-      paddingVertical: 12,
-      borderRadius: 14,
+      paddingVertical: 13,
+      borderRadius: 16,
     },
     statusOptionText: {
       fontSize: 13,
@@ -789,6 +512,12 @@ function createStyles(COLORS: ThemeColors) {
       fontSize: 13.5,
       fontWeight: '600',
       color: COLORS.textMuted,
+    },
+    statusDot: {
+      width: 6,
+      height: 6,
+      borderRadius: 3,
+      marginRight: 6,
     },
   });
 }

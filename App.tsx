@@ -12,6 +12,7 @@
 
 import React, { useEffect } from 'react';
 import { NavigationContainer, DefaultTheme, DarkTheme, createNavigationContainerRef } from '@react-navigation/native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { QueryClientProvider } from '@tanstack/react-query';
 import * as Notifications from 'expo-notifications';
@@ -67,14 +68,16 @@ const AppContent: React.FC = () => {
 
 export default function App() {
   return (
-    <SafeAreaProvider>
-      <QueryClientProvider client={queryClient}>
-        <ThemeProvider>
-          <LanguageProvider>
-            <AppContent />
-          </LanguageProvider>
-        </ThemeProvider>
-      </QueryClientProvider>
-    </SafeAreaProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <SafeAreaProvider>
+        <QueryClientProvider client={queryClient}>
+          <ThemeProvider>
+            <LanguageProvider>
+              <AppContent />
+            </LanguageProvider>
+          </ThemeProvider>
+        </QueryClientProvider>
+      </SafeAreaProvider>
+    </GestureHandlerRootView>
   );
 }
